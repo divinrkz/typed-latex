@@ -1,0 +1,4 @@
+(executable
+ (public_name typed_latex)
+ (name main)
+ (libraries typed_latex core stdio))

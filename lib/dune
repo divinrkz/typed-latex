@@ -1,0 +1,14 @@
+(ocamllex lexer)
+
+(menhir
+ ; (flags --explain --inspection --table --dump --strict)
+ ; (flags --explain --inspection --table --dump --list-errors lib/parser.mly)
+ (flags --explain --inspection --table --dump)
+ (modules parser))
+
+(library
+ (name typed_latex)
+ (modules parser lexer ast)
+ (libraries core menhirLib)
+ (preprocess (pps ppx_sexp_conv ppx_deriving.show ppx_deriving.eq))
+ )
