@@ -23,8 +23,9 @@ let parse_math = parse_with_error Parser.math_mode Lexer.math_token
 
 let main () =
   (* let result = parse_latex "\\begin{document}$1+2$\\end{document}" in *)
-  (* let result = parse_latex "$\\forall x \\in \\mathbb{R}, \\exists y \\: x = 2$" in *)
-  let result = parse_latex "$f(x, y) = \\frac{x}{y + 2}$" in
+  (* let result = parse_latex "$\\forall x \\in \\mathbb{R}, \\exists y \\: x = 2 \\land (y = 2 \\lor z = 3)$" in *)
+  (* let result = parse_latex "$f(x, y) = \\frac{e^{-x}}{1 - e^y}$" in *)
+  let result = parse_latex "$f(x, y) = \\frac{e^{-x}}{1 - e^y}$" in
   match result with
   | Some ast -> (
     Format.printf "%a\n" (Format.pp_print_list Ast.Latex.pp) ast;
@@ -41,4 +42,6 @@ let main () =
   )
   | None -> print_endline "None"
 
-let () = main ();
+let () = main ();;
+
+let () = Typing.test ();;

@@ -65,6 +65,9 @@
 %token <Lexing.position> FORALL
 %token <Lexing.position> EXISTS
 %token <Lexing.position> SUCHTHAT
+%token <Lexing.position> LAND
+%token <Lexing.position> LOR
+%token <Lexing.position> LNOT
 
 %start <Ast.Latex.t list option> start
 %start <Ast.Math.t option> math_mode
@@ -103,7 +106,7 @@ curly_word:
 (* TODO: figure out a better way of dealing with whitespace *)
 (* for now, I'm just doing whitespace right-recursively to appease the parser *)
 math_mode:
-| WHITESPACE?; relation = relation; EOF { Some relation }
+| WHITESPACE?; relation = relation1; EOF { Some relation }
 | WHITESPACE?; statement = statement; EOF { Some statement }
 | EOF { None }
 
@@ -112,14 +115,25 @@ math_mode:
 
 statement:
 (* forall X, Y *)
-| FORALL; WHITESPACE?; rel = relation; COMMA; WHITESPACE?; next = relation; { Ast.Math.Forall (rel, next) }
-| FORALL; WHITESPACE?; rel = relation; COMMA; WHITESPACE?; next = statement; { Ast.Math.Forall (rel, next) }
+| FORALL; WHITESPACE?; rel = relation1; COMMA; WHITESPACE?; next = relation1; { Ast.Math.Forall (rel, next) }
+| FORALL; WHITESPACE?; rel = relation1; COMMA; WHITESPACE?; next = statement; { Ast.Math.Forall (rel, next) }
 (* exists X : Y *)
-| EXISTS; WHITESPACE?; rel = relation; SUCHTHAT; WHITESPACE?; next = relation; { Ast.Math.Exists (rel, Ast.Math.Suchthat next) }
-| EXISTS; WHITESPACE?; rel = relation; SUCHTHAT; WHITESPACE?; next = statement; { Ast.Math.Exists (rel, Ast.Math.Suchthat next) }
+| EXISTS; WHITESPACE?; rel = relation1; SUCHTHAT; WHITESPACE?; next = relation1; { Ast.Math.Exists (rel, Ast.Math.Suchthat next) }
+| EXISTS; WHITESPACE?; rel = relation1; SUCHTHAT; WHITESPACE?; next = statement; { Ast.Math.Exists (rel, Ast.Math.Suchthat next) }
 
-relation:
-| lhs = relation; rel = rel; rhs = relation; WHITESPACE?; { Ast.Math.Rel (lhs, rel, rhs) }
+(* TODO: technically i think these shouldn't have the same precedence? *)
+relation1:
+| lhs = relation1; LAND; WHITESPACE?; rhs = relation2; WHITESPACE?; { Ast.Math.Op (lhs, Ast.Math.And, rhs) }
+| lhs = relation1; LOR; WHITESPACE?; rhs = relation2; WHITESPACE?; { Ast.Math.Op (lhs, Ast.Math.Or, rhs) }
+| rel = relation2 { rel }
+
+relation2:
+| lhs = relation2; rel = rel; rhs = expr; WHITESPACE?; { Ast.Math.Rel (lhs, rel, rhs) }
+(* grouping *)
+| LEFT_PAREN; WHITESPACE?; rel = relation1; RIGHT_PAREN; WHITESPACE?; { Ast.Math.Grouping rel }
+| LEFT_CURLY; WHITESPACE?; rel = relation1; RIGHT_CURLY; WHITESPACE?; { Ast.Math.Grouping rel }
+| LEFT_BRACKET; WHITESPACE?; rel = relation1; RIGHT_BRACKET; WHITESPACE?; { Ast.Math.Grouping rel }
+(* next case *)
 | expr = expr; { expr }
 
 (* precedence (high to low):
@@ -155,7 +169,12 @@ infix3:
 infix4:
 | lhs = infix4; UNDERSCORE; rhs = literal; WHITESPACE?; { Ast.Math.Subscript (lhs, rhs) }
 | lhs = infix4; CARET; rhs = literal; WHITESPACE?; { Ast.Math.Superscript (lhs, rhs) }
-| literal = literal; { literal }
+| unary = unary; { unary }
+
+unary:
+| MINUS; rhs = literal; { Ast.Math.Unary (Ast.Math.Negate, rhs) }
+| LNOT; WHITESPACE?; rhs = literal; { Ast.Math.Unary (Ast.Math.Not, rhs) }
+| rhs = literal { rhs }
 
 literal:
 (* allow interpreting concatenation as multiplication *)

@@ -50,6 +50,12 @@ module Math : sig
     | Union
     | Inter
     | Frac
+    | And
+    | Or
+
+  type unary =
+    | Negate
+    | Not
 
   type relation =
     | Le
@@ -68,6 +74,7 @@ module Math : sig
 
   type t =
     | Op of t * operator * t
+    | Unary of unary * t
     | Rel of t * relation * t
     | Literal of int
     | Variable of string
@@ -89,6 +96,12 @@ end = struct
     | Union
     | Inter
     | Frac
+    | And
+    | Or
+
+  type unary =
+    | Negate
+    | Not
 
   type relation =
     | Le
@@ -107,6 +120,7 @@ end = struct
 
   type t =
     | Op of t * operator * t
+    | Unary of unary * t
     | Rel of t * relation * t
     | Literal of int
     | Variable of string
@@ -119,6 +133,10 @@ end = struct
     | Exists of t * t
     | Suchthat of t
 
+  let string_of_unary = function
+    | Negate -> "-"
+    | Not -> "NOT"
+
   let string_of_operator = function
     | Plus -> "+"
     | Minus -> "-"
@@ -126,6 +144,8 @@ end = struct
     | Union -> "UNION"
     | Inter -> "INTER"
     | Frac -> "/"
+    | And -> "AND"
+    | Or -> "OR"
 
   let string_of_relation = function
     | Le -> "<"
@@ -142,13 +162,16 @@ end = struct
     | Implies -> "IMPLIES"
     | Iff -> "IFF"
 
+  let char_sep char formatter = fun () -> Format.pp_print_char formatter char
+
   let rec pp formatter math = match math with
       | Op (lhs, op, rhs) -> Format.fprintf formatter "(%s %a %a)" (string_of_operator op) pp lhs pp rhs
+      | Unary (op, lhs) -> Format.fprintf formatter "(%s %a)" (string_of_unary op) pp lhs
       | Literal num -> Format.fprintf formatter "%i" num
       | Variable var -> Format.fprintf formatter "%s" var
       | Grouping expr -> Format.fprintf formatter "%a" pp expr
       | Rel (lhs, rel, rhs) -> Format.fprintf formatter "(%s %a %a)" (string_of_relation rel) pp lhs pp rhs
-      | Apply (lhs, rhs) -> Format.fprintf formatter "(%a %a)"  pp lhs (Format.pp_print_list ~pp_sep:(fun formatter -> fun () -> Format.pp_print_char formatter ' ') pp) rhs
+      | Apply (lhs, rhs) -> Format.fprintf formatter "(%a %a)"  pp lhs (Format.pp_print_list ~pp_sep:(char_sep ' ') pp) rhs
       | Subscript (lhs, rhs) -> Format.fprintf formatter "%a_%a"  pp lhs pp rhs
       | Superscript (lhs, rhs) -> Format.fprintf formatter "%a^%a"  pp lhs pp rhs
       | Command (name, arg) -> (match arg with

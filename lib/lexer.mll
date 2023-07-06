@@ -95,6 +95,9 @@ and math_token =
   | "\\superset"  { SUPERSET lexbuf.lex_curr_p}
   | "\\superseteq"{ SUPERSETEQ lexbuf.lex_curr_p}
   (* logic *)
+  | "\\land"    { LAND lexbuf.lex_curr_p}
+  | "\\lor"     { LOR lexbuf.lex_curr_p}
+  | "\\neg"     { LNOT lexbuf.lex_curr_p}
   | "\\implies" { IMPLIES lexbuf.lex_curr_p}
   | "\\iff"     { IFF lexbuf.lex_curr_p}
   | "\\forall"  { FORALL lexbuf.lex_curr_p}

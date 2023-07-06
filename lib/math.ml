@@ -4,7 +4,7 @@
 Probably need to include: assumptions, facts, declarations/definitions
 Basic english pattern matcher?
 - Since, Given, Starting with, Since we have
-- We start with, We have, Assume
+- We start with, We have, Assume, Suppose
 - AND to combine relations logically
 - Or, we can just take LHS as assumptions.
 
@@ -53,15 +53,3 @@ First iteration:
 - give each variable a type - either numeric, function, or set of _
 *)
 
-type var_type =
-  | Numeric
-  | Set of var_type
-  | Unknown
-
-(*
-Type rules:
-  - Literal: x must be of type T
-  - Same: x must be same type as y
-  - Contains: if y is has type T Set, then x must have type T (and vice versa) (for all elements in the set)
-  - Function: if f(x: U) has type V, then then f has type [U] -> V (and thrice versa? - x has type U and f(x) has type V)
-*)
