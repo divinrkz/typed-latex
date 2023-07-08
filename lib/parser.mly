@@ -183,7 +183,7 @@ literal:
 | num = INTEGER; WHITESPACE?; { Ast.Math.Literal (snd num) }
 | var = VARIABLE; WHITESPACE?; { Ast.Math.Variable (snd var) }
 | f = function_call; { f }
-(* set literal *)
+(* TODO: set literal *)
 (* either a list of expressions or a comprehension *)
 (* fraction *)
 | FRAC; LEFT_CURLY; WHITESPACE?; numerator = expr; RIGHT_CURLY; LEFT_CURLY; WHITESPACE?; denominator = expr; RIGHT_CURLY; WHITESPACE?; { Ast.Math.Op (numerator, Ast.Math.Frac, denominator) }

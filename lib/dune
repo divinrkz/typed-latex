@@ -8,7 +8,7 @@
 
 (library
  (name typed_latex)
- (modules parser lexer ast typing)
+ (modules parser lexer ast typing math)
  (libraries core menhirLib)
  (preprocess (pps ppx_sexp_conv ppx_deriving.show ppx_deriving.eq))
  )

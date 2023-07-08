@@ -25,7 +25,8 @@ let main () =
   (* let result = parse_latex "\\begin{document}$1+2$\\end{document}" in *)
   (* let result = parse_latex "$\\forall x \\in \\mathbb{R}, \\exists y \\: x = 2 \\land (y = 2 \\lor z = 3)$" in *)
   (* let result = parse_latex "$f(x, y) = \\frac{e^{-x}}{1 - e^y}$" in *)
-  let result = parse_latex "$f(x, y) = \\frac{e^{-x}}{1 - e^y}$" in
+  (* let result = parse_latex "$f(x, y) = x + y$" in *)
+  let result = parse_latex "$x \\in y \\land 2 \\in y$" in
   match result with
   | Some ast -> (
     Format.printf "%a\n" (Format.pp_print_list Ast.Latex.pp) ast;
@@ -35,7 +36,10 @@ let main () =
         Format.printf "Parsing math: \"%s\"...\n" str;
         let result = parse_math str in
         match result with
-          | Some ast -> ( Format.printf "%a\n" Ast.Math.pp ast)
+          | Some ast -> (
+            Format.printf "%a\n" Ast.Math.pp ast;
+            Ast.Math.type_check ast
+          )
           | None -> printf "No math\n")
       | _ -> Format.printf "not math"
     in ()
@@ -43,5 +47,3 @@ let main () =
   | None -> print_endline "None"
 
 let () = main ();;
-
-let () = Typing.test ();;

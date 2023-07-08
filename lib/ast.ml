@@ -88,6 +88,9 @@ module Math : sig
     | Suchthat of t (* s.t. X *)
 
   val pp: Format.formatter -> t -> unit
+
+  val type_check: t -> unit
+
 end = struct
   type operator =
     | Plus
@@ -141,9 +144,9 @@ end = struct
     | Plus -> "+"
     | Minus -> "-"
     | Times -> "*"
+    | Frac -> "/"
     | Union -> "UNION"
     | Inter -> "INTER"
-    | Frac -> "/"
     | And -> "AND"
     | Or -> "OR"
 
@@ -181,6 +184,157 @@ end = struct
       | Forall (expr, next) -> Format.fprintf formatter "(FORALL %a, %a)" pp expr pp next
       | Exists (expr, next) -> Format.fprintf formatter "(EXISTS %a %a)" pp expr pp next
       | Suchthat expr -> Format.fprintf formatter "SUCHTHAT %a" pp expr
+
+    let type_check math =
+      let vars = ref (Map.empty (module String)) in (* map from variable names to types *)
+      let fns = ref (Map.empty (module String)) in (* map from function names to type signatures *)
+      let constraints = ref [] in
+
+      let add_constraint (c: Typing.type_constraint) = constraints := c :: !constraints in
+      let add_var name t = vars := Map.set !vars ~key:name ~data:t in
+      let add_fns name t = fns := Map.set !fns ~key:name ~data:t in
+
+      let rec recurse node =
+        match node with
+        | Op (lhs, op, rhs) -> (match op with
+          | Plus | Minus | Times | Frac -> (
+            let lhs_t = recurse lhs in
+            let rhs_t = recurse rhs in
+            add_constraint (lhs_t, Typing.Number);
+            add_constraint (rhs_t, Typing.Number);
+            Typing.Number
+          )
+          | Union | Inter -> (
+            let t = Typing.fresh () in
+            let lhs_t = recurse lhs in
+            let rhs_t = recurse rhs in
+            add_constraint (lhs_t, Typing.Set (Typing.Any t));
+            add_constraint (rhs_t, Typing.Set (Typing.Any t));
+            Typing.Set (Typing.Any t)
+          )
+          | And | Or -> (
+            let lhs_t = recurse lhs in
+            let rhs_t = recurse rhs in
+            add_constraint (lhs_t, Typing.Bool);
+            add_constraint (rhs_t, Typing.Bool);
+            Typing.Bool
+          )
+        )
+        | Unary (op, lhs) -> (match op with
+          | Negate -> (
+            let lhs_t = recurse lhs in
+            add_constraint (lhs_t, Typing.Number);
+            Typing.Number
+
+          )
+          | Not -> (
+            let lhs_t = recurse lhs in
+            add_constraint (lhs_t, Typing.Bool);
+            Typing.Bool
+          )
+        )
+        | Literal _ -> Typing.Number
+        | Variable name -> (
+          (* TODO: "special" variable names such as e, \pi, and \mathbb{R} *)
+          match Map.find !vars name with
+          | Some t -> Typing.Any t
+          | None -> (
+            let t = Typing.fresh () in
+            add_var name t;
+            Typing.Any t
+          )
+        )
+        | Grouping expr -> (
+          recurse expr
+        )
+        | Rel (lhs, rel, rhs) -> (
+          (* TODO: ignore eq/ineq chaining for now *)
+          match rel with
+          | Eq -> (
+            let lhs_t = recurse lhs in
+            let rhs_t = recurse rhs in
+            add_constraint (lhs_t, rhs_t);
+            Typing.Bool
+          )
+          | Le | Leq | Ge | Geq -> (
+            let lhs_t = recurse lhs in
+            let rhs_t = recurse rhs in
+            add_constraint (lhs_t, Typing.Number);
+            add_constraint (rhs_t, Typing.Number);
+            Typing.Bool
+          )
+          | In | NotIn -> (
+            let lhs_t = recurse lhs in
+            let rhs_t = recurse rhs in
+            add_constraint (rhs_t, Typing.Set lhs_t);
+            Typing.Bool
+          )
+          | Subset | SubsetEq | Superset | SupersetEq -> (
+            let lhs_t = recurse lhs in
+            let rhs_t = recurse rhs in
+            add_constraint (rhs_t, Typing.Set lhs_t);
+
+            (* ensure both lhs and rhs are sets *)
+            let t0 = Typing.fresh () in
+            let t1 = Typing.fresh () in
+            add_constraint (lhs_t, Typing.Set (Typing.Any t0));
+            add_constraint (rhs_t, Typing.Set (Typing.Any t1));
+
+            Typing.Bool
+          )
+          | Implies | Iff -> (
+            let lhs_t = recurse lhs in
+            let rhs_t = recurse rhs in
+            add_constraint (lhs_t, Typing.Bool);
+            add_constraint (rhs_t, Typing.Bool);
+            Typing.Bool
+          )
+        )
+        | Apply (lhs, args) -> (
+          let args_t, return_t = (match lhs with
+            | Variable name -> (
+              match Map.find !fns name with
+              | Some data -> data
+              | None -> (
+                let args_t = List.map args ~f:(fun _ -> Typing.fresh ()) in
+                let return_t = Typing.fresh () in
+                add_fns name (args_t, return_t);
+                (args_t, return_t)
+              )
+            )
+            | _ -> raise (Typing.TypeError "Cannot apply non-function")
+          ) in
+          List.iter (List.zip_exn args args_t) ~f:(fun (x, y) -> add_constraint (recurse x, Typing.Any y));
+          Typing.Any return_t
+        )
+        | _ -> raise (Typing.TypeError "Not yet implemented")
+        (* | Subscript (lhs, rhs) -> Format.fprintf formatter "%a_%a"  pp lhs pp rhs *)
+        (* | Superscript (lhs, rhs) -> Format.fprintf formatter "%a^%a"  pp lhs pp rhs *)
+        (* | Command (name, arg) -> (match arg with *)
+        (*   | Some thing -> Format.fprintf formatter "%s{%a}" name pp thing *)
+        (*   | None -> Format.fprintf formatter "%s" name *)
+        (* ) *)
+        (* | Forall (expr, next) -> Format.fprintf formatter "(FORALL %a, %a)" pp expr pp next *)
+        (* | Exists (expr, next) -> Format.fprintf formatter "(EXISTS %a %a)" pp expr pp next *)
+        (* | Suchthat expr -> Format.fprintf formatter "SUCHTHAT %a" pp expr *)
+      in
+      let _ = recurse math in
+
+      let subs = Typing.unify !constraints in
+
+      Map.iteri !vars ~f:(fun ~key ~data ->
+        let principal_type = Typing.apply subs (Typing.Any data) in
+        Format.printf "val %s : %a\n" key Typing.pp_math_type principal_type;
+      );
+
+      Map.iteri !fns ~f:(fun ~key ~data ->
+        let (args_t, ret_t) = data in
+        let arg_types = List.map args_t ~f:(fun a -> Typing.apply subs (Typing.Any a)) in
+        let return_type  = Typing.apply subs (Typing.Any ret_t) in
+        Format.printf "fun %s : %a -> %a\n" key (Format.pp_print_list ~pp_sep:(fun f -> fun () -> Format.pp_print_string f " -> ") Typing.pp_math_type) arg_types Typing.pp_math_type return_type
+      );
+
+      ()
 end
 
 module rec Environment : sig

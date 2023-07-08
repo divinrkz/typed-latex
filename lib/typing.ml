@@ -128,7 +128,7 @@ let rec unify constraints =
           )
           | (Function (x1, y1), Function (x2, y2)) -> (
             if (not (Int.equal (List.length x1) (List.length x2))) then
-              raise (TypeError "asdf")
+              raise (TypeError "Could not unify function types")
             else
               let new_constraints = (y1, y2) :: List.zip_exn x1 x2 in
               unify new_constraints
@@ -136,10 +136,14 @@ let rec unify constraints =
           | _ -> raise (TypeError "Could not unify types")
     )
 
-let test () =
-  let t = fresh () in
-  let x = Number in
-  let y = Any t in
-  let constraints = [(x, y)] in
-  let subs = unify constraints in
-  Format.printf "%a\n" pp_substitutions subs;
+(* let test () = *)
+(*   let t0 = fresh () in *)
+(*   let x = Any t0 in *)
+(*   let y = Bool in *)
+(*   let constraints = [(x, y)] in *)
+(*   let subs = unify constraints in *)
+(*   Format.printf "%a\n" pp_substitutions subs; *)
+(*   let p = apply subs x in *)
+(*   Format.printf "%a\n" pp_math_type p; *)
+(*   () *)
+
