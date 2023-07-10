@@ -61,6 +61,9 @@ let rec pp_math_type formatter math = match math with
 type type_constraint = math_type * math_type
 type type_constraints = type_constraint list
 
+let pp_type_constraint formatter c = Format.fprintf formatter "[ %a = %a ]" pp_math_type (fst c) pp_math_type (snd c)
+let pp_type_constraints formatter subs = Format.fprintf formatter "%a" (Format.pp_print_list ~pp_sep:(string_sep ", ") pp_type_constraint) subs
+
 (* maps type variables to types *)
 (* the goal of type checking is to come up with enough substitutions to satisfy every constraint *)
 type substitution = math_type * type_var (* {t / 'x}, e.g. substitute 'x with type t *)
@@ -117,23 +120,27 @@ let rec unify constraints =
               let s = (u, t) in
               s :: unify (apply_cs [s] tl)
             else
-              raise (TypeError "Could not unify types")
+              raise (TypeError "Could not unify types 1")
           )
           | (u, Any t) -> (
             if not (occurs_in t u) then
               let s = (u, t) in
               s :: unify (apply_cs [s] tl)
             else
-              raise (TypeError "Could not unify types")
+              raise (TypeError "Could not unify types 2")
           )
           | (Function (x1, y1), Function (x2, y2)) -> (
             if (not (Int.equal (List.length x1) (List.length x2))) then
               raise (TypeError "Could not unify function types")
             else
-              let new_constraints = (y1, y2) :: List.zip_exn x1 x2 in
+              let new_constraints = (y1, y2) :: List.append (List.zip_exn x1 x2) tl in
               unify new_constraints
           )
-          | _ -> raise (TypeError "Could not unify types")
+          | (Set x, Set y) -> (
+            let new_constraints = (x, y) :: tl in
+            unify new_constraints
+          )
+          | _ -> raise (TypeError "Could not unify types 3")
     )
 
 (* let test () = *)

@@ -188,7 +188,7 @@ end = struct
     let type_check math =
       let vars = ref (Map.empty (module String)) in (* map from variable names to types *)
       let fns = ref (Map.empty (module String)) in (* map from function names to type signatures *)
-      let constraints = ref [] in
+      let (constraints: Typing.type_constraints ref) = ref [] in
 
       let add_constraint (c: Typing.type_constraint) = constraints := c :: !constraints in
       let add_var name t = vars := Map.set !vars ~key:name ~data:t in
@@ -319,6 +319,8 @@ end = struct
         (* | Suchthat expr -> Format.fprintf formatter "SUCHTHAT %a" pp expr *)
       in
       let _ = recurse math in
+
+      Format.printf "Constraints: %a\n" Typing.pp_type_constraints !constraints;
 
       let subs = Typing.unify !constraints in
 
