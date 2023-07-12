@@ -50,8 +50,6 @@ module Math : sig
     | Union
     | Inter
     | Frac
-    | And
-    | Or
 
   type unary =
     | Negate
@@ -71,21 +69,28 @@ module Math : sig
     | SupersetEq
     | Implies
     | Iff
+    | And
+    | Or
 
   type t =
     | Op of t * operator * t
     | Unary of unary * t
-    | Rel of t * relation * t
+    (* Note: Relation does not keep track of precedence w.r.t and/or/implies/iff *)
+    | Relation of t * (relation * t) list (* LHS (= RHS)+ *)
     | Literal of int
+    | SetComprehension of t * t (* { expr | relation }*)
+    | SetLiteral of t list (* { expr, expr, ... } *)
     | Variable of string
     | Grouping of t
     | Apply of t * t list (* ex: f(args) (if args has length 1, could also be interpreted as multiplication) *)
     | Subscript of t * t (* not implemented as an binop since can be interpreted in different ways depending on context *)
     | Superscript of t * t
+    (* TODO: encode all possible commands in an enum *)
     | Command of string * t option
     | Forall of t * t (* forall X, Y *)
     | Exists of t * t (* exists X, Y *)
     | Suchthat of t (* s.t. X *)
+    | Text of string
 
   val pp: Format.formatter -> t -> unit
 
@@ -99,8 +104,6 @@ end = struct
     | Union
     | Inter
     | Frac
-    | And
-    | Or
 
   type unary =
     | Negate
@@ -120,12 +123,17 @@ end = struct
     | SupersetEq
     | Implies
     | Iff
+    | And
+    | Or
 
+    (* a iff b and c iff d *)
   type t =
     | Op of t * operator * t
     | Unary of unary * t
-    | Rel of t * relation * t
+    | Relation of t * (relation * t) list
     | Literal of int
+    | SetComprehension of t * t (* { expr | relation }*)
+    | SetLiteral of t list (* { expr, expr, ... } *)
     | Variable of string
     | Grouping of t
     | Apply of t * t list
@@ -135,6 +143,7 @@ end = struct
     | Forall of t * t
     | Exists of t * t
     | Suchthat of t
+    | Text of string
 
   let string_of_unary = function
     | Negate -> "-"
@@ -147,8 +156,6 @@ end = struct
     | Frac -> "/"
     | Union -> "UNION"
     | Inter -> "INTER"
-    | And -> "AND"
-    | Or -> "OR"
 
   let string_of_relation = function
     | Le -> "<"
@@ -164,8 +171,33 @@ end = struct
     | SupersetEq -> "SUPERSETEQ"
     | Implies -> "IMPLIES"
     | Iff -> "IFF"
+    | And -> "AND"
+    | Or -> "OR"
 
-  let char_sep char formatter = fun () -> Format.pp_print_char formatter char
+type state = {
+  mutable le: bool;
+  mutable ge: bool;
+  mutable sub: bool;
+  mutable sup: bool;
+}
+
+let is_greek_letter name =
+  match name with
+  | "\\alpha" | "\\nu" 
+  | "\\beta" | "\\xi" | "\\Xi"
+  | "\\gamma" | "\\Gamma"
+  | "\\delta" | "\\Delta"	| "\\pi" | "\\Pi"
+  | "\\epsilon" | "\\varepsilon" | "\\rho" | "\\varrho" 
+  | "\\zeta" | "\\sigma" | "\\Sigma"
+  | "\\eta" | "\\tau" 
+  | "\\theta" | "\\vartheta" | "\\Theta" | "\\upsilon" | "\\Upsilon"
+  | "\\iota" | "\\phi" | "\\varphi" | "\\Phi"
+  | "\\kappa" | "\\chi" 
+  | "\\lambda" | "\\Lambda"	| "\\psi" | "\\Psi"
+  | "\\mu" | "\\omega" | "\\Omega" -> true
+  | _ -> false
+
+let string_sep str formatter = fun () -> Format.pp_print_string formatter str
 
   let rec pp formatter math = match math with
       | Op (lhs, op, rhs) -> Format.fprintf formatter "(%s %a %a)" (string_of_operator op) pp lhs pp rhs
@@ -173,8 +205,11 @@ end = struct
       | Literal num -> Format.fprintf formatter "%i" num
       | Variable var -> Format.fprintf formatter "%s" var
       | Grouping expr -> Format.fprintf formatter "%a" pp expr
-      | Rel (lhs, rel, rhs) -> Format.fprintf formatter "(%s %a %a)" (string_of_relation rel) pp lhs pp rhs
-      | Apply (lhs, rhs) -> Format.fprintf formatter "(%a %a)"  pp lhs (Format.pp_print_list ~pp_sep:(char_sep ' ') pp) rhs
+      | Relation (lhs, rhs) -> (
+        let pp_pair = fun formatter -> fun (rel, t) -> Format.fprintf formatter "%s %a" (string_of_relation rel) pp t in
+        Format.fprintf formatter "(%a %a)" pp lhs (Format.pp_print_list ~pp_sep:(string_sep " ") pp_pair) rhs;
+      )
+      | Apply (lhs, rhs) -> Format.fprintf formatter "(%a %a)"  pp lhs (Format.pp_print_list ~pp_sep:(string_sep " ") pp) rhs
       | Subscript (lhs, rhs) -> Format.fprintf formatter "%a_%a"  pp lhs pp rhs
       | Superscript (lhs, rhs) -> Format.fprintf formatter "%a^%a"  pp lhs pp rhs
       | Command (name, arg) -> (match arg with
@@ -184,14 +219,41 @@ end = struct
       | Forall (expr, next) -> Format.fprintf formatter "(FORALL %a, %a)" pp expr pp next
       | Exists (expr, next) -> Format.fprintf formatter "(EXISTS %a %a)" pp expr pp next
       | Suchthat expr -> Format.fprintf formatter "SUCHTHAT %a" pp expr
+      | SetLiteral contents -> Format.fprintf formatter "{ %a }" (Format.pp_print_list ~pp_sep:(string_sep ", ") pp) contents
+      | SetComprehension (lhs, rhs) -> Format.fprintf formatter "{ %a | %a }" pp lhs pp rhs
+      | Text str -> Format.fprintf formatter "%s" str
 
     let type_check math =
       let vars = ref (Map.empty (module String)) in (* map from variable names to types *)
+      let add_var name t = vars := Map.set !vars ~key:name ~data:t in
+
+      let recurse_var name = 
+          match Map.find !vars name with
+          | Some t -> Typing.Any t
+          | None -> (
+            let t = Typing.fresh () in
+            add_var name t;
+            Typing.Any t
+          )
+      in
+
       let fns = ref (Map.empty (module String)) in (* map from function names to type signatures *)
       let (constraints: Typing.type_constraints ref) = ref [] in
 
-      let add_constraint (c: Typing.type_constraint) = constraints := c :: !constraints in
-      let add_var name t = vars := Map.set !vars ~key:name ~data:t in
+      let add_constraint c = match c with
+        (* ignore trivial constraints *)
+        | (Typing.Number, Typing.Number)
+        | (Typing.Bool, Typing.Bool) -> ()
+        | (Typing.Any t1, Typing.Any t2) when Typing.equal_type_var t1 t2 -> ()
+        (* keep nontrivial constraints *)
+        | (Any _, _) | (_, Any _)
+        | (Function _, Function _)
+        (* TODO: use an actual set for efficiency *)
+        | (Set _, Set _) -> if List.exists ~f:(Typing.equal_type_constraint c) !constraints then () else constraints := c :: !constraints
+        (* reject impossible constraints *)
+        | _ -> raise (Typing.TypeError "Type error")
+      in
+
       let add_fns name t = fns := Map.set !fns ~key:name ~data:t in
 
       let rec recurse node =
@@ -212,13 +274,6 @@ end = struct
             add_constraint (rhs_t, Typing.Set (Typing.Any t));
             Typing.Set (Typing.Any t)
           )
-          | And | Or -> (
-            let lhs_t = recurse lhs in
-            let rhs_t = recurse rhs in
-            add_constraint (lhs_t, Typing.Bool);
-            add_constraint (rhs_t, Typing.Bool);
-            Typing.Bool
-          )
         )
         | Unary (op, lhs) -> (match op with
           | Negate -> (
@@ -235,61 +290,93 @@ end = struct
         )
         | Literal _ -> Typing.Number
         | Variable name -> (
-          (* TODO: "special" variable names such as e, \pi, and \mathbb{R} *)
-          match Map.find !vars name with
-          | Some t -> Typing.Any t
-          | None -> (
-            let t = Typing.fresh () in
-            add_var name t;
-            Typing.Any t
-          )
+          recurse_var name
         )
         | Grouping expr -> (
           recurse expr
         )
-        | Rel (lhs, rel, rhs) -> (
-          (* TODO: ignore eq/ineq chaining for now *)
-          match rel with
-          | Eq -> (
-            let lhs_t = recurse lhs in
-            let rhs_t = recurse rhs in
-            add_constraint (lhs_t, rhs_t);
-            Typing.Bool
-          )
-          | Le | Leq | Ge | Geq -> (
-            let lhs_t = recurse lhs in
-            let rhs_t = recurse rhs in
-            add_constraint (lhs_t, Typing.Number);
-            add_constraint (rhs_t, Typing.Number);
-            Typing.Bool
-          )
-          | In | NotIn -> (
-            let lhs_t = recurse lhs in
-            let rhs_t = recurse rhs in
-            add_constraint (rhs_t, Typing.Set lhs_t);
-            Typing.Bool
-          )
-          | Subset | SubsetEq | Superset | SupersetEq -> (
-            let lhs_t = recurse lhs in
-            let rhs_t = recurse rhs in
-            add_constraint (rhs_t, Typing.Set lhs_t);
+        | Relation (lhs, rhs) -> (
+          (* first verify relations are valid, e.g. < only followed by = and <=, etc *)
+          let rec verify first arr =
+            (* le/leq followed only by itself or eq (same for ge/geq) *)
+            (* \in and \notin only followed by set *)
+            (* subset/subseteq only followed by itself or eq (same for superset/superseteq) *)
+            (* same for superset/superseteq *)
+            let (seen: state) = {
+              le = false;
+              ge = false;
+              sub = false;
+              sup = false; }
+            in
 
-            (* ensure both lhs and rhs are sets *)
-            let t0 = Typing.fresh () in
-            let t1 = Typing.fresh () in
-            add_constraint (lhs_t, Typing.Set (Typing.Any t0));
-            add_constraint (rhs_t, Typing.Set (Typing.Any t1));
-
-            Typing.Bool
-          )
-          | Implies | Iff -> (
-            let lhs_t = recurse lhs in
-            let rhs_t = recurse rhs in
-            add_constraint (lhs_t, Typing.Bool);
-            add_constraint (rhs_t, Typing.Bool);
-            Typing.Bool
-          )
+            let rec iter prev_t arr = 
+              match arr with
+              | [] -> ()
+              | hd :: tl -> (
+                match hd with
+                | (Le, _) | (Leq, _) when seen.ge -> raise (Typing.TypeError "> and >= should be followed by < or <=")
+                | (Le, expr) | (Leq, expr) -> (
+                  seen.le <- true;
+                  let t = recurse expr in
+                  add_constraint (prev_t, Typing.Number);
+                  add_constraint (t, Typing.Number);
+                  iter t tl
+                )
+                | (Ge, _) | (Geq, _) when seen.le -> raise (Typing.TypeError "< and <= should be followed by > or >=")
+                | (Ge, expr) | (Geq, expr) -> (
+                  seen.ge <- true;
+                  let t = recurse expr in
+                  add_constraint (prev_t, Typing.Number);
+                  add_constraint (t, Typing.Number);
+                  iter t tl
+                )
+                | (Superset, _) | (SupersetEq, _) when seen.sub -> raise (Typing.TypeError "Subset(eq) should not be followed by superset(eq)")
+                | (Superset, expr) | (SupersetEq, expr) -> (
+                  seen.sup <- true;
+                  (* ensure prev_t is a set *)
+                  let u = Typing.fresh () in
+                  add_constraint (prev_t, Typing.Set (Typing.Any u));
+                  (* next t should also a set of the same type *)
+                  let t = recurse expr in
+                  add_constraint (prev_t, t);
+                  iter t tl
+                )
+                | (Subset, _) | (SubsetEq, _) when seen.sup -> raise (Typing.TypeError "Superset(eq) should not be followed by subset(eq)")
+                | (Subset, expr) | (SubsetEq, expr) -> (
+                  seen.sub <- true;
+                  (* ensure prev_t is a set *)
+                  let u = Typing.fresh () in
+                  add_constraint (prev_t, Typing.Set (Typing.Any u));
+                  (* next t should also a set of the same type *)
+                  let t = recurse expr in
+                  add_constraint (prev_t, t);
+                  iter t tl
+                )
+                | (In, expr) | (NotIn, expr) -> (
+                  let t = recurse expr in
+                  add_constraint (Typing.Set prev_t, t);
+                  iter (Typing.Set prev_t) tl
+                )
+                | (Eq, expr) -> (
+                  let t = recurse expr in
+                  add_constraint (prev_t, t);
+                  iter t tl
+                )
+                | (_, expr) -> (
+                  match expr with
+                  | Relation (lhs, rhs) -> verify lhs rhs
+                  | Grouping (Relation (lhs, rhs)) -> verify lhs rhs
+                  | _ -> raise (Typing.TypeError "Invalid relations")
+                )
+              )
+            in
+            iter (recurse first) arr
+          in
+          verify lhs rhs;
+          Typing.Bool
         )
+        (* how to distinguish between f(x) where x is captured vs x is a global variable? *)
+        (* *)
         | Apply (lhs, args) -> (
           let args_t, return_t = (match lhs with
             | Variable name -> (
@@ -307,16 +394,63 @@ end = struct
           List.iter (List.zip_exn args args_t) ~f:(fun (x, y) -> add_constraint (recurse x, Typing.Any y));
           Typing.Any return_t
         )
-        | _ -> raise (Typing.TypeError "Not yet implemented")
-        (* | Subscript (lhs, rhs) -> Format.fprintf formatter "%a_%a"  pp lhs pp rhs *)
-        (* | Superscript (lhs, rhs) -> Format.fprintf formatter "%a^%a"  pp lhs pp rhs *)
-        (* | Command (name, arg) -> (match arg with *)
-        (*   | Some thing -> Format.fprintf formatter "%s{%a}" name pp thing *)
-        (*   | None -> Format.fprintf formatter "%s" name *)
-        (* ) *)
-        (* | Forall (expr, next) -> Format.fprintf formatter "(FORALL %a, %a)" pp expr pp next *)
-        (* | Exists (expr, next) -> Format.fprintf formatter "(EXISTS %a %a)" pp expr pp next *)
-        (* | Suchthat expr -> Format.fprintf formatter "SUCHTHAT %a" pp expr *)
+        (* TODO: ignore subscripts for now *)
+        | Subscript (lhs, _) ->
+            recurse lhs
+        (* TODO: alternative interpretations? *)
+        | Superscript (lhs, rhs) -> (
+            let lhs_t = recurse lhs in
+            let rhs_t = recurse rhs in
+            add_constraint (lhs_t, Typing.Number);
+            add_constraint (rhs_t, Typing.Number);
+            Typing.Number
+        )
+        | Command (name, arg) -> (
+            match (name, arg) with
+            | ("\\mathbb", _) -> Typing.Set Typing.Number
+            (* treat greek letters and math terms as variables *)
+            | (name, _) when is_greek_letter name -> recurse_var name
+            | ("\\mathit", _) | ("\\mathrm", _) -> recurse_var name
+            (* assign text an arbitrary type - could be useful in future? *)
+            | ("\\text", _) -> (
+              let t = Typing.fresh () in
+              Typing.Any t
+            )
+            | _ -> raise (Typing.TypeError "Command not yet implemented")
+        )
+        (* don't generate constraints, just type check insides *)
+        | Forall (expr, next) -> (
+          let _ = recurse expr in
+          let _ = recurse next in
+          Typing.Bool
+        )
+        | Exists (expr, next) -> (
+          let _ = recurse expr in
+          let _ = recurse next in
+          Typing.Bool
+        )
+        | Suchthat expr -> (
+          let _ = recurse expr in
+          Typing.Bool
+        )
+        | SetComprehension (lhs, rhs) -> (
+          let t = recurse lhs in
+          let _ = recurse rhs in
+          Typing.Set t
+        )
+        | SetLiteral lhs -> (
+          let t = Typing.fresh () in
+          List.iter ~f:(fun expr ->
+            let u = recurse expr in
+            add_constraint (u, Typing.Any t)
+          ) lhs;
+          Typing.Set (Typing.Any t)
+        )
+        (* assign text an arbitrary type - could be useful in future? *)
+        | Text _ -> (
+          let t = Typing.fresh () in
+          Typing.Any t
+        )
       in
       let _ = recurse math in
 
@@ -335,6 +469,8 @@ end = struct
         let return_type  = Typing.apply subs (Typing.Any ret_t) in
         Format.printf "fun %s : %a -> %a\n" key (Format.pp_print_list ~pp_sep:(fun f -> fun () -> Format.pp_print_string f " -> ") Typing.pp_math_type) arg_types Typing.pp_math_type return_type
       );
+
+      (* TODO: if variable has type Any t, warn unused *)
 
       ()
 end

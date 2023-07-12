@@ -68,6 +68,7 @@
 %token <Lexing.position> LAND
 %token <Lexing.position> LOR
 %token <Lexing.position> LNOT
+%token <Lexing.position * string> TEXT
 
 %start <Ast.Latex.t list option> start
 %start <Ast.Math.t option> math_mode
@@ -115,26 +116,37 @@ math_mode:
 
 statement:
 (* forall X, Y *)
-| FORALL; WHITESPACE?; rel = relation1; COMMA; WHITESPACE?; next = relation1; { Ast.Math.Forall (rel, next) }
-| FORALL; WHITESPACE?; rel = relation1; COMMA; WHITESPACE?; next = statement; { Ast.Math.Forall (rel, next) }
+| FORALL; WHITESPACE?; rel = relation; COMMA; WHITESPACE?; next = relation; { Ast.Math.Forall (rel, next) }
+| FORALL; WHITESPACE?; rel = relation; COMMA; WHITESPACE?; next = statement; { Ast.Math.Forall (rel, next) }
 (* exists X : Y *)
-| EXISTS; WHITESPACE?; rel = relation1; SUCHTHAT; WHITESPACE?; next = relation1; { Ast.Math.Exists (rel, Ast.Math.Suchthat next) }
-| EXISTS; WHITESPACE?; rel = relation1; SUCHTHAT; WHITESPACE?; next = statement; { Ast.Math.Exists (rel, Ast.Math.Suchthat next) }
+| EXISTS; WHITESPACE?; rel = relation; SUCHTHAT; WHITESPACE?; next = relation; { Ast.Math.Exists (rel, Ast.Math.Suchthat next) }
+| EXISTS; WHITESPACE?; rel = relation; SUCHTHAT; WHITESPACE?; next = statement; { Ast.Math.Exists (rel, Ast.Math.Suchthat next) }
+
+relation:
+| rel = relation1; { rel }
 
 (* TODO: technically i think these shouldn't have the same precedence? *)
 relation1:
-| lhs = relation1; LAND; WHITESPACE?; rhs = relation2; WHITESPACE?; { Ast.Math.Op (lhs, Ast.Math.And, rhs) }
-| lhs = relation1; LOR; WHITESPACE?; rhs = relation2; WHITESPACE?; { Ast.Math.Op (lhs, Ast.Math.Or, rhs) }
+| lhs = relation2; rels = relation1_aux+; { Ast.Math.Relation (lhs, rels) }
 | rel = relation2 { rel }
 
+relation1_aux:
+| LAND; WHITESPACE?; rhs = relation2; { (Ast.Math.And, rhs) }
+| LOR; WHITESPACE?; rhs = relation2; { (Ast.Math.Or, rhs) }
+| IFF; WHITESPACE?; rhs = relation2; { (Ast.Math.Iff, rhs) }
+| IMPLIES; WHITESPACE?; rhs = relation2; { (Ast.Math.Implies, rhs) }
+
 relation2:
-| lhs = relation2; rel = rel; rhs = expr; WHITESPACE?; { Ast.Math.Rel (lhs, rel, rhs) }
+| lhs = expr; rels = relation2_aux+; { Ast.Math.Relation (lhs, rels) }
 (* grouping *)
 | LEFT_PAREN; WHITESPACE?; rel = relation1; RIGHT_PAREN; WHITESPACE?; { Ast.Math.Grouping rel }
 | LEFT_CURLY; WHITESPACE?; rel = relation1; RIGHT_CURLY; WHITESPACE?; { Ast.Math.Grouping rel }
 | LEFT_BRACKET; WHITESPACE?; rel = relation1; RIGHT_BRACKET; WHITESPACE?; { Ast.Math.Grouping rel }
 (* next case *)
 | expr = expr; { expr }
+
+relation2_aux:
+| rel = rel; rhs = expr { (rel, rhs) }
 
 (* precedence (high to low):
   - literals, implicit multiplication, function application
@@ -145,6 +157,7 @@ relation2:
   - set_in, set_notin
   - subset, ssubset, superset, ssuperset
   - implies, iff
+  - and, or
   Statements:
   - forall, exists, such that
   *)
@@ -183,6 +196,7 @@ literal:
 | num = INTEGER; WHITESPACE?; { Ast.Math.Literal (snd num) }
 | var = VARIABLE; WHITESPACE?; { Ast.Math.Variable (snd var) }
 | f = function_call; { f }
+| s = set_literal; { s }
 (* TODO: set literal *)
 (* either a list of expressions or a comprehension *)
 (* fraction *)
@@ -195,9 +209,17 @@ literal:
 | LEFT_PAREN; WHITESPACE?; expr = expr; RIGHT_PAREN; WHITESPACE?; { Ast.Math.Grouping expr }
 | LEFT_CURLY; WHITESPACE?; expr = expr; RIGHT_CURLY; WHITESPACE?; { Ast.Math.Grouping expr }
 | LEFT_BRACKET; WHITESPACE?; expr = expr; RIGHT_BRACKET; WHITESPACE?; { Ast.Math.Grouping expr }
+| text = TEXT; WHITESPACE?; { Ast.Math.Command ("\\text", Some (Ast.Math.Text (snd text))) }
 
 function_call:
 | lhs = VARIABLE; LEFT_PAREN; rhs = separated_list(comma_sep, expr); RIGHT_PAREN; WHITESPACE?; { Ast.Math.Apply (Ast.Math.Variable (snd lhs), rhs) }
+
+set_literal:
+  (* comprehension *)
+| SET_OPEN; WHITESPACE?; lhs = expr; SUCHTHAT; WHITESPACE?; rel = relation; SET_CLOSE; WHITESPACE?; { Ast.Math.SetComprehension (lhs, rel) }
+| SET_OPEN; WHITESPACE?; lhs = expr; PIPE; WHITESPACE?; rel = relation; SET_CLOSE; WHITESPACE?; { Ast.Math.SetComprehension (lhs, rel) }
+  (* list of exprs *)
+| SET_OPEN; WHITESPACE?; contents = separated_list(comma_sep, expr); SET_CLOSE; WHITESPACE?; { Ast.Math.SetLiteral contents }
 
 comma_sep:
 | COMMA; WHITESPACE?; {}
@@ -214,5 +236,3 @@ comma_sep:
 | SUPERSETEQ; WHITESPACE?; { Ast.Math.SupersetEq }
 | SET_IN; WHITESPACE?; { Ast.Math.In }
 | SET_NOTIN; WHITESPACE?; { Ast.Math.NotIn }
-| IMPLIES; WHITESPACE?; { Ast.Math.Implies }
-| IFF; WHITESPACE?; { Ast.Math.Iff }

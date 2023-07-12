@@ -44,6 +44,7 @@ type math_type =
   | Set of math_type
   | Function of math_type list * math_type
   | Any of type_var
+[@@deriving eq]
 
 let string_sep str formatter = fun () -> Format.pp_print_string formatter str
 
@@ -59,6 +60,7 @@ let rec pp_math_type formatter math = match math with
 
 (* an assertion that one type is equivalent to another, i.e. t1 = t2 *)
 type type_constraint = math_type * math_type
+[@@deriving eq]
 type type_constraints = type_constraint list
 
 let pp_type_constraint formatter c = Format.fprintf formatter "[ %a = %a ]" pp_math_type (fst c) pp_math_type (snd c)
@@ -129,6 +131,7 @@ let rec unify constraints =
             else
               raise (TypeError "Could not unify types 2")
           )
+          (* TODO: implement variable capture/environment for functions *)
           | (Function (x1, y1), Function (x2, y2)) -> (
             if (not (Int.equal (List.length x1) (List.length x2))) then
               raise (TypeError "Could not unify function types")

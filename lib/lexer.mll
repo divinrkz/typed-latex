@@ -1,7 +1,7 @@
 {
   open Parser
 
-  exception SyntaxError of string
+  exception LexError of string
 }
 
 let newline = '\r' | '\n' | "\r\n"
@@ -51,13 +51,13 @@ rule token =
   | command     { COMMAND (lexbuf.lex_curr_p, Lexing.lexeme lexbuf) }
   | word        { WORD (lexbuf.lex_curr_p, Lexing.lexeme lexbuf) }
   | eof         { EOF lexbuf.lex_curr_p }
-  | _           { raise (SyntaxError ("Unexpected char: " ^ Lexing.lexeme lexbuf)) }
+  | _           { raise (LexError ("Unexpected char: " ^ Lexing.lexeme lexbuf)) }
 and mathmode buf =
   parse
   | end_math    { Buffer.contents buf }
   | [^ '$']+    { Buffer.add_string buf (Lexing.lexeme lexbuf); mathmode buf lexbuf}
-  | _           { raise (SyntaxError ("Unexpected char in math mode: " ^ Lexing.lexeme lexbuf)) }
-  | eof         { raise (SyntaxError ("Math mode is not terminated")) }
+  | _           { raise (LexError ("Unexpected char in math mode: " ^ Lexing.lexeme lexbuf)) }
+  | eof         { raise (LexError ("Math mode is not terminated")) }
 and math_token =
   parse
   (* syntax *)
@@ -109,7 +109,16 @@ and math_token =
   | '_'         { UNDERSCORE lexbuf.lex_curr_p}
   | '^'         { CARET lexbuf.lex_curr_p}
   | integer     { INTEGER (lexbuf.lex_curr_p, int_of_string (Lexing.lexeme lexbuf)) }
+  | "\\text{"   { TEXT (lexbuf.lex_curr_p, math_text (Buffer.create 80) lexbuf) }
+  | "\\textit{" { TEXT (lexbuf.lex_curr_p, math_text (Buffer.create 80) lexbuf) }
+  | "\\textrm{" { TEXT (lexbuf.lex_curr_p, math_text (Buffer.create 80) lexbuf) }
   | alpha+      { VARIABLE (lexbuf.lex_curr_p, Lexing.lexeme lexbuf) }
   | command     { COMMAND (lexbuf.lex_curr_p, Lexing.lexeme lexbuf) }
-  | _           { raise (SyntaxError ("Unexpected char: " ^ Lexing.lexeme lexbuf)) }
+  | _           { raise (LexError ("Unexpected char: " ^ Lexing.lexeme lexbuf)) }
   | eof         { EOF lexbuf.lex_curr_p }
+and math_text buf =
+  parse
+  | '}'         { Buffer.contents buf }
+  | [^ '}']     { Buffer.add_string buf (Lexing.lexeme lexbuf); math_text buf lexbuf}
+  | _           { raise (LexError ("Unexpected char in \\text: " ^ Lexing.lexeme lexbuf)) }
+  | eof         { raise (LexError ("Text command mode is not closed")) }
