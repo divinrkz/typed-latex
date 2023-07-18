@@ -132,6 +132,7 @@ relation1:
 
 relation1_aux:
 | LAND; WHITESPACE?; rhs = relation2; { (Ast.Math.And, rhs) }
+(* | COMMA; WHITESPACE?; rhs = relation2; { (Ast.Math.And, rhs) } *)
 | LOR; WHITESPACE?; rhs = relation2; { (Ast.Math.Or, rhs) }
 | IFF; WHITESPACE?; rhs = relation2; { (Ast.Math.Iff, rhs) }
 | IMPLIES; WHITESPACE?; rhs = relation2; { (Ast.Math.Implies, rhs) }
@@ -187,6 +188,8 @@ infix4:
 unary:
 | MINUS; rhs = literal; { Ast.Math.Unary (Ast.Math.Negate, rhs) }
 | LNOT; WHITESPACE?; rhs = literal; { Ast.Math.Unary (Ast.Math.Not, rhs) }
+(* absolute value *)
+| PIPE; WHITESPACE?; expr = expr; PIPE; WHITESPACE?; { Ast.Math.Unary (Ast.Math.Abs, expr) }
 | rhs = literal { rhs }
 
 literal:
@@ -212,7 +215,7 @@ literal:
 | text = TEXT; WHITESPACE?; { Ast.Math.Command ("\\text", Some (Ast.Math.Text (snd text))) }
 
 function_call:
-| lhs = VARIABLE; LEFT_PAREN; rhs = separated_list(comma_sep, expr); RIGHT_PAREN; WHITESPACE?; { Ast.Math.Apply (Ast.Math.Variable (snd lhs), rhs) }
+| lhs = VARIABLE; LEFT_PAREN; WHITESPACE?; rhs = separated_list(comma_sep, expr); RIGHT_PAREN; WHITESPACE?; { Ast.Math.Apply (Ast.Math.Variable (snd lhs), rhs) }
 
 set_literal:
   (* comprehension *)

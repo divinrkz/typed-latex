@@ -1,4 +1,6 @@
 open Core
+open Util
+
 (*
 Type rules:
   - Literal: x must be of type T
@@ -20,140 +22,164 @@ Type rules:
   for reference: https://cs3110.github.io/textbook/chapters/interp/inference.html#constraint-based-inference
 *)
 
-(* the name of a variable that needs to be type checked *)
-type identifier = string
+(* a type variable *)
+module Var = struct
+  type t = {
+    id: int
+  }
+  [@@deriving eq, show, sexp, hash]
 
-type type_var = {
-  id: int
-}
-[@@deriving eq, show]
+  let pp formatter var = Format.fprintf formatter "'t%i" var.id
 
-let pp_type_var formatter var = Format.fprintf formatter "'t%i" var.id
+  (* instantiates a new, unique type variable each call *)
+  let fresh = 
+    let counter = ref 0 in
+    fun () ->
+      let t = { id = !counter } in
+      counter := !counter + 1;
+      t
+end
 
-(* instantiates a new, unique type variable each call *)
-let fresh = 
-  let counter = ref 0 in
-  fun () ->
-    let t = { id = !counter } in
-    counter := !counter + 1;
-    t
+module Type = struct
+  type t =
+    | Number
+    | Bool
+    | Set of t
+    | Any of Var.t
+  [@@deriving eq, sexp, hash]
 
-type math_type =
-  | Number
-  | Bool
-  | Set of math_type
-  | Function of math_type list * math_type
-  | Any of type_var
-[@@deriving eq]
+  let rec pp formatter math = match math with
+    | Number -> Format.fprintf formatter "NUMBER"
+    | Bool -> Format.fprintf formatter "BOOL"
+    | Set t -> Format.fprintf formatter "SET<%a>" pp t
+    | Any t -> Var.pp formatter t
 
-let string_sep str formatter = fun () -> Format.pp_print_string formatter str
+end
 
-let rec pp_math_type formatter math = match math with
-  | Number -> Format.fprintf formatter "NUMBER"
-  | Bool -> Format.fprintf formatter "BOOL"
-  | Set t -> Format.fprintf formatter "SET<%a>" pp_math_type t
-  | Function (u, v) -> Format.fprintf formatter  "[%a] -> %a" (Format.pp_print_list ~pp_sep:(string_sep ", ") pp_math_type) u pp_math_type v
-  | Any t -> pp_type_var formatter t
+module Constraint = struct
+  type t =
+    | Equal of Type.t * Type.t (* a declaration that two types are equivalent, e.g. t1 = t2 *)
+  [@@deriving eq, sexp, hash]
 
-(* mapping from type variables to types *)
-(* type environment = identifier -> math_type *)
+  let compare a b = if equal a b then 0 else 1
 
-(* an assertion that one type is equivalent to another, i.e. t1 = t2 *)
-type type_constraint = math_type * math_type
-[@@deriving eq]
-type type_constraints = type_constraint list
+  let pp formatter c = match c with
+    | Equal (a, b) -> Format.fprintf formatter "[ %a = %a ]" Type.pp a Type.pp b
+end
 
-let pp_type_constraint formatter c = Format.fprintf formatter "[ %a = %a ]" pp_math_type (fst c) pp_math_type (snd c)
-let pp_type_constraints formatter subs = Format.fprintf formatter "%a" (Format.pp_print_list ~pp_sep:(string_sep ", ") pp_type_constraint) subs
+module ConstraintHashSet = Hash_set.Make (Constraint)
+
+module Constraints = struct
+  include ConstraintHashSet
+
+  let pp formatter (subs: t) = Format.fprintf formatter "%a" (Format.pp_print_list ~pp_sep:(string_sep ", ") Constraint.pp) (Hash_set.to_list subs)
+
+  let map ~f t =
+    let new_t = create () in
+    Hash_set.iter ~f:(fun a -> Hash_set.add new_t (f a)) t;
+    new_t
+
+  let first t = Hash_set.find t ~f:(fun _ -> true)
+end
 
 (* maps type variables to types *)
-(* the goal of type checking is to come up with enough substitutions to satisfy every constraint *)
-type substitution = math_type * type_var (* {t / 'x}, e.g. substitute 'x with type t *)
-type substitutions = substitution list
+(* the goal of type checking is to come up with substitutions to satisfy every constraint *)
+module Substitution = struct
+  type t = Type.t * Var.t (* {t / 'x}, e.g. substitute 'x with type t *)
+  [@@deriving eq, sexp, hash]
 
-let pp_substitution formatter sub = Format.fprintf formatter "{ %a / %a }" pp_math_type (fst sub) pp_type_var (snd sub)
-let pp_substitutions formatter subs = Format.fprintf formatter "%a" (Format.pp_print_list ~pp_sep:(string_sep ", ") pp_substitution) subs
+  let compare a b = if equal a b then 0 else 1
+
+  let pp formatter sub = Format.fprintf formatter "{ %a / %a }" Type.pp (fst sub) Var.pp (snd sub)
+end
+
+module SubstitutionList = Hash_set.Make (Substitution)
+
+module Substitutions = struct
+  type t = Substitution.t list
+
+  let pp formatter subs = Format.fprintf formatter "%a" (Format.pp_print_list ~pp_sep:(string_sep ", ") Substitution.pp) subs
+end
 
 (* applies a type substitution to a type *)
-let rec apply1 (sub: substitution) (t: math_type) =
+let rec apply1 (sub: Substitution.t) (t: Type.t) =
   match t with
-    | Number -> Number
-    | Bool -> Bool
-    | Set u -> Set (apply1 sub u)
-    | Function (u, v) -> Function (List.map ~f:(apply1 sub) u, apply1 sub v)
-    | Any u -> if equal_type_var (snd sub) u then (fst sub) else Any u
+    | Number -> Type.Number
+    | Bool -> Type.Bool
+    | Set u -> Type.Set (apply1 sub u)
+    | Any u -> if Var.equal (snd sub) u then (fst sub) else Type.Any u
 
 (* t (S1; S2) = (t S1) S2 *)
-let rec apply (subs: substitutions) (t: math_type) =
+let rec apply (subs: Substitutions.t) (t: Type.t) =
   match subs with
     | [] -> t
     | hd :: tl -> apply tl (apply1 hd t)
 
 (* (t1 = t2) S => t1 S = t2 S *)
-let apply_c (subs: substitutions) (c: type_constraint) = (apply subs (fst c), apply subs (snd c))
-let apply_cs (subs: substitutions) (cs: type_constraints) = List.map ~f:(apply_c subs) cs
+let apply_c (subs: Substitutions.t) (c: Constraint.t) =
+  match c with
+  | Equal (a, b) -> Constraint.Equal (apply subs a, apply subs b)
+
+let apply_cs (subs: Substitutions.t) (cs: Constraints.t) = Constraints.map ~f:(apply_c subs) cs
 
 let exists = function
   | Some _ -> true
   | None -> false
 
-let rec occurs_in (t: type_var) (u: math_type) =
+let rec occurs_in t (u: Type.t) =
   match u with
     | Number -> false
     | Bool -> false
     | Set v -> occurs_in t v
-    | Function (u, v) -> occurs_in t v || exists (List.find ~f:(occurs_in t) u)
-    | Any v -> equal_type_var t v
+    | Any v -> Var.equal t v
 
 exception TypeError of string
 
-let rec unify constraints =
-  match constraints with
-    | [] -> []
-    | hd :: tl -> (
-        match hd with
-          (* basic cases that don't require any logic *)
-          | (Number, Number) -> unify tl
-          | (Bool, Bool) -> unify tl
-          | (Any t, Any u) when equal_type_var t u -> unify tl
-          (* basic substitutions *)
-          | (Any t, u) -> (
-            if not (occurs_in t u) then
-              let s = (u, t) in
-              s :: unify (apply_cs [s] tl)
-            else
-              raise (TypeError "Could not unify types 1")
-          )
-          | (u, Any t) -> (
-            if not (occurs_in t u) then
-              let s = (u, t) in
-              s :: unify (apply_cs [s] tl)
-            else
-              raise (TypeError "Could not unify types 2")
-          )
-          (* TODO: implement variable capture/environment for functions *)
-          | (Function (x1, y1), Function (x2, y2)) -> (
-            if (not (Int.equal (List.length x1) (List.length x2))) then
-              raise (TypeError "Could not unify function types")
-            else
-              let new_constraints = (y1, y2) :: List.append (List.zip_exn x1 x2) tl in
-              unify new_constraints
-          )
-          | (Set x, Set y) -> (
-            let new_constraints = (x, y) :: tl in
-            unify new_constraints
-          )
-          | _ -> raise (TypeError "Could not unify types 3")
-    )
+let unify constraints =
+  let rec recurse (cs: Constraints.t) (acc: Substitutions.t) =
+    if (Hash_set.length cs = 0) then
+      acc
+    else
+      (* pick out any element from the set of constraints *)
+      let hd = Option.value_exn (Constraints.first cs) in
+      Hash_set.remove cs hd;
+      match hd with
+        (* basic cases that don't require any logic *)
+        | Equal (Type.Number, Type.Number) -> recurse cs acc
+        | Equal (Bool, Bool) -> recurse cs acc
+        | Equal (Any t, Any u) when Var.equal t u -> recurse cs acc
+        (* basic substitutions *)
+        | Equal (Any t, u) -> (
+          if not (occurs_in t u) then
+            let s = (u, t) in
+            recurse (apply_cs [s] cs) (s :: acc)
+          else
+            raise (TypeError "Could not unify types 1")
+        )
+        | Equal (u, Any t) -> (
+          if not (occurs_in t u) then
+            let s = (u, t) in
+            recurse (apply_cs [s] cs) (s :: acc)
+          else
+            raise (TypeError "Could not unify types 2")
+        )
+        | Equal (Set x, Set y) -> (
+          Hash_set.add cs (Equal (x, y));
+          recurse cs acc
+        )
+        | _ -> raise (TypeError "Could not unify types 3")
+  in
+  let copy = Hash_set.copy constraints in (* prevent original set from being modified *)
+  recurse copy []
 
-(* let test () = *)
-(*   let t0 = fresh () in *)
-(*   let x = Any t0 in *)
-(*   let y = Bool in *)
-(*   let constraints = [(x, y)] in *)
-(*   let subs = unify constraints in *)
-(*   Format.printf "%a\n" pp_substitutions subs; *)
-(*   let p = apply subs x in *)
-(*   Format.printf "%a\n" pp_math_type p; *)
-(*   () *)
+let test () =
+  let t0 = Var.fresh () in
+  let x = Type.Any t0 in
+  let y = Type.Number in
+  let constraints = Constraints.of_list [Equal (x, y)] in
+  let subs = unify constraints in
+  Format.printf "%a\n" Substitutions.pp subs;
+  let p = apply subs x in
+  Format.printf "%a\n" Type.pp p;
+  ()
 

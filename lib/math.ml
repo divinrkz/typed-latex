@@ -54,3 +54,8 @@ First iteration:
 *)
 
 
+(*
+Rules for interpreting:
+  - lone relations (such as x < 5) are taken to be assumptions
+
+*)
