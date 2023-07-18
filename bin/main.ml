@@ -52,6 +52,6 @@ let main () =
   )
   | None -> print_endline "None"
 
-(* let () = main ();; *)
+let () = main ();;
 
-let () = Typing.test ();;
+(* let () = Typing.test ();; *)

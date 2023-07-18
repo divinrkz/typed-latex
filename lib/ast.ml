@@ -237,277 +237,294 @@ end = struct
     | Env (vars, _, _) -> Hashtbl.set vars ~key:name ~data:data
     | Empty -> raise (Typing.TypeError "Empty environment (this should not ever happen)")
 
+  let rec get_var env (name: string) =
+    match env with
+    | Env (vars, _, parent) -> (
+      match Hashtbl.find vars name with
+      | Some x -> Some x
+      | None -> get_var parent name
+    )
+    | Empty -> None
+
   let add_fn env name data =
     match env with
     | Env (_, fns, _) -> Hashtbl.set fns ~key:name ~data:data
     | Empty -> raise (Typing.TypeError "Empty environment (this should not ever happen)")
 
+  let rec get_fn env (name: string) =
+    match env with
+    | Env (_, fns, parent) -> (
+      match Hashtbl.find fns name with
+      | Some x -> Some x
+      | None -> get_fn parent name
+    )
+    | Empty -> None
+
   let type_check (math: t list) =
-    (* let top_level = new_env Empty in *)
+    let top_level = new_env Empty in
 
-    (* let constraints = Hash_set.create (module String) in *)
+    let constraints = Typing.Constraints.create () in
 
-    (* let recurse_var name =  *)
-    (*     match Map.find !vars name with *)
-    (*     | Some t -> Typing.Type.Any t *)
-    (*     | None -> ( *)
-    (*       let t = Typing.Var.fresh () in *)
-    (*       add_var name t; *)
-    (*       Typing.Any t *)
-    (*     ) *)
-    (* in *)
+    let recurse_var (name: string) = 
+        match get_var top_level name with
+        | Some t -> Typing.Type.Any t
+        | None -> (
+          let t = Typing.Var.fresh () in
+          add_var top_level name t;
+          Typing.Type.Any t
+        )
+    in
 
-    (* let (constraints: Typing.type_constraints ref) = ref [] in *)
+    let add_constraint c = match c with
+      (* ignore trivial constraints *)
+      | Typing.Constraint.Equal (Typing.Type.Number, Typing.Type.Number)
+      | Equal (Typing.Type.Bool, Typing.Type.Bool) -> ()
+      | Equal (Typing.Type.Any t1, Typing.Type.Any t2) when Typing.Var.equal t1 t2 -> ()
+      (* keep nontrivial constraints *)
+      | Equal (Any _, _) | Equal (_, Any _)
+      | Equal (Set _, Set _) -> (
+        Hash_set.add constraints c
+      )
+      (* reject impossible constraints *)
+      | _ -> raise (Typing.TypeError "Type error")
+    in
 
-    (* let add_constraint c = match c with *)
-    (*   (* ignore trivial constraints *) *)
-    (*   | (Typing.Number, Typing.Number) *)
-    (*   | (Typing.Bool, Typing.Bool) -> () *)
-    (*   | (Typing.Any t1, Typing.Any t2) when Typing.equal_type_var t1 t2 -> () *)
-    (*   (* keep nontrivial constraints *) *)
-    (*   | (Any _, _) | (_, Any _) *)
-    (*   | (Function _, Function _) *)
-    (*   (* TODO: use an actual set for efficiency *) *)
-    (*   | (Set _, Set _) -> if List.exists ~f:(Typing.equal_type_constraint c) !constraints then () else constraints := c :: !constraints *)
-    (*   (* reject impossible constraints *) *)
-    (*   | _ -> raise (Typing.TypeError "Type error") *)
-    (* in *)
+    let rec recurse node =
+      match node with
+      | Op (lhs, op, rhs) -> (match op with
+        | Plus | Minus | Times | Frac -> (
+          let lhs_t = recurse lhs in
+          let rhs_t = recurse rhs in
+          add_constraint (Equal (lhs_t, Typing.Type.Number));
+          add_constraint (Equal (rhs_t, Typing.Type.Number));
+          Typing.Type.Number
+        )
+        | Union | Inter -> (
+          let t = Typing.Var.fresh () in
+          let lhs_t = recurse lhs in
+          let rhs_t = recurse rhs in
+          add_constraint (Equal (lhs_t, Typing.Type.Set (Typing.Type.Any t)));
+          add_constraint (Equal (rhs_t, Typing.Type.Set (Typing.Type.Any t)));
+          Typing.Type.Set (Typing.Type.Any t)
+        )
+      )
+      | Unary (op, lhs) -> (match op with
+        | Negate -> (
+          let lhs_t = recurse lhs in
+          add_constraint (Equal (lhs_t, Typing.Type.Number));
+          Typing.Type.Number
 
-    (* let add_fns name t = fns := Map.set !fns ~key:name ~data:t in *)
+        )
+        | Not -> (
+          let lhs_t = recurse lhs in
+          add_constraint (Equal (lhs_t, Typing.Type.Bool));
+          Typing.Type.Bool
+        )
+        | Abs -> (
+          let lhs_t = recurse lhs in
+          add_constraint (Equal (lhs_t, Typing.Type.Number));
+          Typing.Type.Number
+        )
+      )
+      | Literal _ -> Typing.Type.Number
+      | Variable name -> (
+        recurse_var name
+      )
+      | Grouping expr -> (
+        recurse expr
+      )
+      | Relation (lhs, rhs) -> (
+        (* verify relations are valid, e.g. < only followed by = and <=, etc *)
+        let verify first arr =
+          (* le/leq followed only by itself or eq (same for ge/geq) *)
+          (* \in and \notin only followed by set *)
+          (* subset/subseteq only followed by itself or eq (same for superset/superseteq) *)
+          (* same for superset/superseteq *)
+          let (seen: state) = {
+            le = false;
+            ge = false;
+            sub = false;
+            sup = false; }
+          in
 
-    (* let rec recurse node = *)
-    (*   match node with *)
-    (*   | Op (lhs, op, rhs) -> (match op with *)
-    (*     | Plus | Minus | Times | Frac -> ( *)
-    (*       let lhs_t = recurse lhs in *)
-    (*       let rhs_t = recurse rhs in *)
-    (*       add_constraint (lhs_t, Typing.Number); *)
-    (*       add_constraint (rhs_t, Typing.Number); *)
-    (*       Typing.Number *)
-    (*     ) *)
-    (*     | Union | Inter -> ( *)
-    (*       let t = Typing.fresh () in *)
-    (*       let lhs_t = recurse lhs in *)
-    (*       let rhs_t = recurse rhs in *)
-    (*       add_constraint (lhs_t, Typing.Set (Typing.Any t)); *)
-    (*       add_constraint (rhs_t, Typing.Set (Typing.Any t)); *)
-    (*       Typing.Set (Typing.Any t) *)
-    (*     ) *)
-    (*   ) *)
-    (*   | Unary (op, lhs) -> (match op with *)
-    (*     | Negate -> ( *)
-    (*       let lhs_t = recurse lhs in *)
-    (*       add_constraint (lhs_t, Typing.Number); *)
-    (*       Typing.Number *)
+          let rec iter prev_t arr = 
+            match arr with
+            | [] -> ()
+            | hd :: tl -> (
+              match hd with
+              | (Le, _) | (Leq, _) when seen.ge -> raise (Typing.TypeError "> and >= should be followed by < or <=")
+              | (Le, expr) | (Leq, expr) -> (
+                seen.le <- true;
+                let t = recurse expr in
+                add_constraint (Equal (prev_t, Typing.Type.Number));
+                add_constraint (Equal (t, Typing.Type.Number));
+                iter t tl
+              )
+              | (Ge, _) | (Geq, _) when seen.le -> raise (Typing.TypeError "< and <= should be followed by > or >=")
+              | (Ge, expr) | (Geq, expr) -> (
+                seen.ge <- true;
+                let t = recurse expr in
+                add_constraint (Equal (prev_t, Typing.Type.Number));
+                add_constraint (Equal (t, Typing.Type.Number));
+                iter t tl
+              )
+              | (Superset, _) | (SupersetEq, _) when seen.sub -> raise (Typing.TypeError "Subset(eq) should not be followed by superset(eq)")
+              | (Superset, expr) | (SupersetEq, expr) -> (
+                seen.sup <- true;
+                (* ensure prev_t is a set *)
+                let u = Typing.Var.fresh () in
+                add_constraint (Equal (prev_t, Typing.Type.Set (Typing.Type.Any u)));
+                (* next t should also a set of the same type *)
+                let t = recurse expr in
+                add_constraint (Equal (prev_t, t));
+                iter t tl
+              )
+              | (Subset, _) | (SubsetEq, _) when seen.sup -> raise (Typing.TypeError "Superset(eq) should not be followed by subset(eq)")
+              | (Subset, expr) | (SubsetEq, expr) -> (
+                seen.sub <- true;
+                (* ensure prev_t is a set *)
+                let u = Typing.Var.fresh () in
+                add_constraint (Equal (prev_t, Typing.Type.Set (Typing.Type.Any u)));
+                (* next t should also a set of the same type *)
+                let t = recurse expr in
+                add_constraint (Equal (prev_t, t));
+                iter t tl
+              )
+              | (In, expr) | (NotIn, expr) -> (
+                let t = recurse expr in
+                add_constraint (Equal (Typing.Type.Set prev_t, t));
+                iter (Typing.Type.Set prev_t) tl
+              )
+              | (Eq, expr) -> (
+                let t = recurse expr in
+                add_constraint (Equal (prev_t, t));
+                iter t tl
+              )
+              | (_, expr) -> (
+                let t = recurse expr in
+                iter t tl
+              )
+            )
+          in
+          iter (recurse first) arr
+        in
+        verify lhs rhs;
+        Typing.Type.Bool
+      )
+      (*
+        First pass:
+          Go through all declarations, find all free variables (ex: n = 2)
 
-    (*     ) *)
-    (*     | Not -> ( *)
-    (*       let lhs_t = recurse lhs in *)
-    (*       add_constraint (lhs_t, Typing.Bool); *)
-    (*       Typing.Bool *)
-    (*     ) *)
-    (*     | Abs -> ( *)
-    (*       let lhs_t = recurse lhs in *)
-    (*       add_constraint (lhs_t, Typing.Number); *)
-    (*       Typing.Number *)
-    (*     ) *)
-    (*   ) *)
-    (*   | Literal _ -> Typing.Number *)
-    (*   | Variable name -> ( *)
-    (*     recurse_var name *)
-    (*   ) *)
-    (*   | Grouping expr -> ( *)
-    (*     recurse expr *)
-    (*   ) *)
-    (*   | Relation (lhs, rhs) -> ( *)
-    (*     (* verify relations are valid, e.g. < only followed by = and <=, etc *) *)
-    (*     let verify first arr = *)
-    (*       (* le/leq followed only by itself or eq (same for ge/geq) *) *)
-    (*       (* \in and \notin only followed by set *) *)
-    (*       (* subset/subseteq only followed by itself or eq (same for superset/superseteq) *) *)
-    (*       (* same for superset/superseteq *) *)
-    (*       let (seen: state) = { *)
-    (*         le = false; *)
-    (*         ge = false; *)
-    (*         sub = false; *)
-    (*         sup = false; } *)
-    (*       in *)
+        Rules for scoping:
+          if LHS is Apply, and all args are variables, assume to be function call.
+            If any args share a name with free variables, print a warning (due to possible ambiguity)
+            All args get captured as bound variables in RHS of Relation
+            In RHS, if any free variables detected that have not been assigned any values, print warning (undefined variable).
+            (possible extension: defining piecewise functions (could even make this the default later))
 
-    (*       let rec iter prev_t arr =  *)
-    (*         match arr with *)
-    (*         | [] -> () *)
-    (*         | hd :: tl -> ( *)
-    (*           match hd with *)
-    (*           | (Le, _) | (Leq, _) when seen.ge -> raise (Typing.TypeError "> and >= should be followed by < or <=") *)
-    (*           | (Le, expr) | (Leq, expr) -> ( *)
-    (*             seen.le <- true; *)
-    (*             let t = recurse expr in *)
-    (*             add_constraint (prev_t, Typing.Number); *)
-    (*             add_constraint (t, Typing.Number); *)
-    (*             iter t tl *)
-    (*           ) *)
-    (*           | (Ge, _) | (Geq, _) when seen.le -> raise (Typing.TypeError "< and <= should be followed by > or >=") *)
-    (*           | (Ge, expr) | (Geq, expr) -> ( *)
-    (*             seen.ge <- true; *)
-    (*             let t = recurse expr in *)
-    (*             add_constraint (prev_t, Typing.Number); *)
-    (*             add_constraint (t, Typing.Number); *)
-    (*             iter t tl *)
-    (*           ) *)
-    (*           | (Superset, _) | (SupersetEq, _) when seen.sub -> raise (Typing.TypeError "Subset(eq) should not be followed by superset(eq)") *)
-    (*           | (Superset, expr) | (SupersetEq, expr) -> ( *)
-    (*             seen.sup <- true; *)
-    (*             (* ensure prev_t is a set *) *)
-    (*             let u = Typing.fresh () in *)
-    (*             add_constraint (prev_t, Typing.Set (Typing.Any u)); *)
-    (*             (* next t should also a set of the same type *) *)
-    (*             let t = recurse expr in *)
-    (*             add_constraint (prev_t, t); *)
-    (*             iter t tl *)
-    (*           ) *)
-    (*           | (Subset, _) | (SubsetEq, _) when seen.sup -> raise (Typing.TypeError "Superset(eq) should not be followed by subset(eq)") *)
-    (*           | (Subset, expr) | (SubsetEq, expr) -> ( *)
-    (*             seen.sub <- true; *)
-    (*             (* ensure prev_t is a set *) *)
-    (*             let u = Typing.fresh () in *)
-    (*             add_constraint (prev_t, Typing.Set (Typing.Any u)); *)
-    (*             (* next t should also a set of the same type *) *)
-    (*             let t = recurse expr in *)
-    (*             add_constraint (prev_t, t); *)
-    (*             iter t tl *)
-    (*           ) *)
-    (*           | (In, expr) | (NotIn, expr) -> ( *)
-    (*             let t = recurse expr in *)
-    (*             add_constraint (Typing.Set prev_t, t); *)
-    (*             iter (Typing.Set prev_t) tl *)
-    (*           ) *)
-    (*           | (Eq, expr) -> ( *)
-    (*             let t = recurse expr in *)
-    (*             add_constraint (prev_t, t); *)
-    (*             iter t tl *)
-    (*           ) *)
-    (*           | (_, expr) -> ( *)
-    (*             let t = recurse expr in *)
-    (*             iter t tl *)
-    (*           ) *)
-    (*         ) *)
-    (*       in *)
-    (*       iter (recurse first) arr *)
-    (*     in *)
-    (*     verify lhs rhs; *)
-    (*     Typing.Bool *)
-    (*   ) *)
-    (*   (* *)
-    (*     First pass: *)
-    (*       Go through all declarations, find all free variables (ex: n = 2) *)
+          Exists/Forall capture variables in body
 
-    (*     Rules for scoping: *)
-    (*       if LHS is Apply, and all args are variables, assume to be function call. *)
-    (*         If any args share a name with free variables, print a warning (due to possible ambiguity) *)
-    (*         All args get captured as bound variables in RHS of Relation *)
-    (*         In RHS, if any free variables detected that have not been assigned any values, print warning (undefined variable). *)
-    (*         (possible extension: defining piecewise functions (could even make this the default later)) *)
+          Set comprehensions can also capture variables
 
-    (*       Exists/Forall capture variables in body *)
+      *)
+      | Apply (lhs, args) -> (
+        let args_t, return_t = (match lhs with
+          | Variable name -> (
+            match get_fn top_level name with
+            | Some data -> data
+            | None -> (
+              let args_t = List.map args ~f:(fun _ -> Typing.Var.fresh ()) in
+              let return_t = Typing.Var.fresh () in
+              add_fn top_level name (args_t, return_t);
+              (args_t, return_t)
+            )
+          )
+          | _ -> raise (Typing.TypeError "Cannot apply non-function")
+        ) in
+        List.iter (List.zip_exn args args_t) ~f:(fun (x, y) -> add_constraint (Equal (recurse x, Typing.Type.Any y)));
+        Typing.Type.Any return_t
+      )
+      (* TODO: ignore subscripts for now *)
+      | Subscript (lhs, _) ->
+          recurse lhs
+      (* TODO: alternative interpretations? *)
+      | Superscript (lhs, rhs) -> (
+          let lhs_t = recurse lhs in
+          let rhs_t = recurse rhs in
+          add_constraint (Equal (lhs_t, Typing.Type.Number));
+          add_constraint (Equal (rhs_t, Typing.Type.Number));
+          Typing.Type.Number
+      )
+      | Command (name, arg) -> (
+          match (name, arg) with
+          | ("\\mathbb", _) -> Typing.Type.Set Typing.Type.Number
+          (* treat greek letters and math terms as variables *)
+          | (name, _) when is_greek_letter name -> recurse_var name
+          | ("\\mathit", _) | ("\\mathrm", _) -> recurse_var name
+          (* assign text an arbitrary type - could be useful in future? *)
+          | ("\\text", _) -> (
+            let t = Typing.Var.fresh () in
+            Typing.Type.Any t
+          )
+          | _ -> raise (Typing.TypeError "Command not yet implemented")
+      )
+      (* don't generate constraints, just type check insides *)
+      | Forall (expr, next) -> (
+        let _ = recurse expr in
+        let _ = recurse next in
+        Typing.Type.Bool
+      )
+      | Exists (expr, next) -> (
+        let _ = recurse expr in
+        let _ = recurse next in
+        Typing.Type.Bool
+      )
+      | Suchthat expr -> (
+        let _ = recurse expr in
+        Typing.Type.Bool
+      )
+      | SetComprehension (lhs, rhs) -> (
+        let t = recurse lhs in
+        let _ = recurse rhs in
+        Typing.Type.Set t
+      )
+      | SetLiteral lhs -> (
+        let t = Typing.Var.fresh () in
+        List.iter ~f:(fun expr ->
+          let u = recurse expr in
+          add_constraint (Equal (u, Typing.Type.Any t))
+        ) lhs;
+        Typing.Type.Set (Typing.Type.Any t)
+      )
+      (* assign text an arbitrary type - could be useful in future? *)
+      | Text _ -> (
+        let t = Typing.Var.fresh () in
+        Typing.Type.Any t
+      )
+    in
+    List.iter ~f:(fun x -> let _ = recurse x in ()) math;
 
-    (*       Set comprehensions can also capture variables *)
+    Format.printf "Constraints: %a\n" Typing.Constraints.pp constraints;
 
-    (*   *) *)
-    (*   | Apply (lhs, args) -> ( *)
-    (*     let args_t, return_t = (match lhs with *)
-    (*       | Variable name -> ( *)
-    (*         match Map.find !fns name with *)
-    (*         | Some data -> data *)
-    (*         | None -> ( *)
-    (*           let args_t = List.map args ~f:(fun _ -> Typing.fresh ()) in *)
-    (*           let return_t = Typing.fresh () in *)
-    (*           add_fns name (args_t, return_t); *)
-    (*           (args_t, return_t) *)
-    (*         ) *)
-    (*       ) *)
-    (*       | _ -> raise (Typing.TypeError "Cannot apply non-function") *)
-    (*     ) in *)
-    (*     List.iter (List.zip_exn args args_t) ~f:(fun (x, y) -> add_constraint (recurse x, Typing.Any y)); *)
-    (*     Typing.Any return_t *)
-    (*   ) *)
-    (*   (* TODO: ignore subscripts for now *) *)
-    (*   | Subscript (lhs, _) -> *)
-    (*       recurse lhs *)
-    (*   (* TODO: alternative interpretations? *) *)
-    (*   | Superscript (lhs, rhs) -> ( *)
-    (*       let lhs_t = recurse lhs in *)
-    (*       let rhs_t = recurse rhs in *)
-    (*       add_constraint (lhs_t, Typing.Number); *)
-    (*       add_constraint (rhs_t, Typing.Number); *)
-    (*       Typing.Number *)
-    (*   ) *)
-    (*   | Command (name, arg) -> ( *)
-    (*       match (name, arg) with *)
-    (*       | ("\\mathbb", _) -> Typing.Set Typing.Number *)
-    (*       (* treat greek letters and math terms as variables *) *)
-    (*       | (name, _) when is_greek_letter name -> recurse_var name *)
-    (*       | ("\\mathit", _) | ("\\mathrm", _) -> recurse_var name *)
-    (*       (* assign text an arbitrary type - could be useful in future? *) *)
-    (*       | ("\\text", _) -> ( *)
-    (*         let t = Typing.fresh () in *)
-    (*         Typing.Any t *)
-    (*       ) *)
-    (*       | _ -> raise (Typing.TypeError "Command not yet implemented") *)
-    (*   ) *)
-    (*   (* don't generate constraints, just type check insides *) *)
-    (*   | Forall (expr, next) -> ( *)
-    (*     let _ = recurse expr in *)
-    (*     let _ = recurse next in *)
-    (*     Typing.Bool *)
-    (*   ) *)
-    (*   | Exists (expr, next) -> ( *)
-    (*     let _ = recurse expr in *)
-    (*     let _ = recurse next in *)
-    (*     Typing.Bool *)
-    (*   ) *)
-    (*   | Suchthat expr -> ( *)
-    (*     let _ = recurse expr in *)
-    (*     Typing.Bool *)
-    (*   ) *)
-    (*   | SetComprehension (lhs, rhs) -> ( *)
-    (*     let t = recurse lhs in *)
-    (*     let _ = recurse rhs in *)
-    (*     Typing.Set t *)
-    (*   ) *)
-    (*   | SetLiteral lhs -> ( *)
-    (*     let t = Typing.fresh () in *)
-    (*     List.iter ~f:(fun expr -> *)
-    (*       let u = recurse expr in *)
-    (*       add_constraint (u, Typing.Any t) *)
-    (*     ) lhs; *)
-    (*     Typing.Set (Typing.Any t) *)
-    (*   ) *)
-    (*   (* assign text an arbitrary type - could be useful in future? *) *)
-    (*   | Text _ -> ( *)
-    (*     let t = Typing.fresh () in *)
-    (*     Typing.Any t *)
-    (*   ) *)
-    (* in *)
-    (* let _ = recurse math in *)
+    let subs = Typing.unify constraints in
 
-    (* Format.printf "Constraints: %a\n" Typing.pp_type_constraints !constraints; *)
+    match top_level with
+    | Env (vars, fns, _) -> (
+      Hashtbl.iteri vars ~f:(fun ~key ~data ->
+        let principal_type = Typing.apply subs (Typing.Type.Any data) in
+        Format.printf "val %s : %a\n" key Typing.Type.pp principal_type;
+      );
 
-    (* let subs = Typing.unify !constraints in *)
-
-    (* Map.iteri !vars ~f:(fun ~key ~data -> *)
-    (*   let principal_type = Typing.apply subs (Typing.Any data) in *)
-    (*   Format.printf "val %s : %a\n" key Typing.pp_math_type principal_type; *)
-    (* ); *)
-
-    (* Map.iteri !fns ~f:(fun ~key ~data -> *)
-    (*   let (args_t, ret_t) = data in *)
-    (*   let arg_types = List.map args_t ~f:(fun a -> Typing.apply subs (Typing.Any a)) in *)
-    (*   let return_type  = Typing.apply subs (Typing.Any ret_t) in *)
-    (*   Format.printf "fun %s : %a -> %a\n" key (Format.pp_print_list ~pp_sep:(fun f -> fun () -> Format.pp_print_string f " -> ") Typing.pp_math_type) arg_types Typing.pp_math_type return_type *)
-    (* ); *)
+      Hashtbl.iteri fns ~f:(fun ~key ~data ->
+        let (args_t, ret_t) = data in
+        let arg_types = List.map args_t ~f:(fun a -> Typing.apply subs (Typing.Type.Any a)) in
+        let return_type  = Typing.apply subs (Typing.Type.Any ret_t) in
+        Format.printf "fun %s : %a -> %a\n" key (Format.pp_print_list ~pp_sep:(fun f -> fun () -> Format.pp_print_string f " -> ") Typing.Type.pp) arg_types Typing.Type.pp return_type
+      );
+    );
+    | Empty -> ();
 
     (* TODO: if variable has type Any t, warn unused *)
-
     ()
 end
 
