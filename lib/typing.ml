@@ -22,6 +22,8 @@ Type rules:
   for reference: https://cs3110.github.io/textbook/chapters/interp/inference.html#constraint-based-inference
 *)
 
+exception TypeError of string
+
 (* a type variable *)
 module Var = struct
   type t = {
@@ -80,17 +82,34 @@ module Constraints = struct
     new_t
 
   let first t = Hash_set.find t ~f:(fun _ -> true)
+
+  let add constraints c = match c with
+    (* ignore trivial constraints *)
+    | Constraint.Equal (Type.Number, Type.Number)
+    | Equal (Type.Bool, Type.Bool) -> ()
+    | Equal (Type.Any t1, Type.Any t2) when Var.equal t1 t2 -> ()
+    (* keep nontrivial constraints *)
+    | Equal (Any _, _) | Equal (_, Any _)
+    | Equal (Set _, Set _) -> (
+      Hash_set.add constraints c
+    )
+    (* reject impossible constraints *)
+    | _ -> raise (TypeError "Type error")
+  
+  let length = Hash_set.length
 end
 
+
 (* maps type variables to types *)
-(* the goal of type checking is to come up with substitutions to satisfy every constraint *)
-module Substitution = struct
-  type t = Type.t * Var.t (* {t / 'x}, e.g. substitute 'x with type t *)
-  [@@deriving eq, sexp, hash]
+(* the goal of type checking is to come up with substitutions to satisfy every
+   constraint *)
+module Substitution = struct type t = Type.t * Var.t (* {t / 'x}, e.g.
+substitute 'x with type t *) [@@deriving eq, sexp, hash]
 
   let compare a b = if equal a b then 0 else 1
 
-  let pp formatter sub = Format.fprintf formatter "{ %a / %a }" Type.pp (fst sub) Var.pp (snd sub)
+  let pp formatter sub = Format.fprintf formatter "{ %a / %a }" Type.pp (fst
+    sub) Var.pp (snd sub)
 end
 
 module SubstitutionList = Hash_set.Make (Substitution)
@@ -133,11 +152,9 @@ let rec occurs_in t (u: Type.t) =
     | Set v -> occurs_in t v
     | Any v -> Var.equal t v
 
-exception TypeError of string
-
 let unify constraints =
   let rec recurse (cs: Constraints.t) (acc: Substitutions.t) =
-    if (Hash_set.length cs = 0) then
+    if (Constraints.length cs = 0) then
       acc
     else
       (* pick out any element from the set of constraints *)
@@ -170,13 +187,15 @@ let unify constraints =
         | _ -> raise (TypeError "Could not unify types 3")
   in
   let copy = Hash_set.copy constraints in (* prevent original set from being modified *)
-  recurse copy []
+  (* need to reverse list since it was built up in reverse in the above recursion *)
+  List.rev (recurse copy [])
 
 let test () =
   let t0 = Var.fresh () in
   let x = Type.Any t0 in
   let y = Type.Number in
-  let constraints = Constraints.of_list [Equal (x, y)] in
+  let constraints = Constraints.create () in
+  Constraints.add constraints (Equal (x, y));
   let subs = unify constraints in
   Format.printf "%a\n" Substitutions.pp subs;
   let p = apply subs x in

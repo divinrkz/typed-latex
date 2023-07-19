@@ -31,12 +31,14 @@ let main () =
   (* let result = parse_latex "$x \\in T \\land y \\notin U$" in *)
   (* let result = parse_latex "$\\{ x^n | n \\in \\mathbb{R} \\}$" in *)
   (* let result = parse_latex "$f(x) = x^2 = x * x \\leq 0$" in *)
-  let result = parse_latex "$\\forall \\epsilon > 0, \\exists \\delta < \\epsilon s.t. \\forall x, 0 < |a + 2| < \\delta \\implies |f(x)| < \\epsilon$" in
-  (* let result = parse_latex "$P(n) = \\text{the probability of rolling an odd number} = \\frac{1}{2}$" in *)
+  (* let result = parse_latex "$\\forall \\epsilon > 0, \\exists \\delta < \\epsilon s.t. \\forall x, 0 < |a + 2| < \\delta \\implies |f(x)| < \\epsilon$" in *)
+  (* let result = parse_latex "$x \\in \\mathbb{R}$\n$y = \\{x, z\\}$" in *)
+  let result = parse_latex "$P(x, y) = x + y * N$" in
   match result with
   | Some ast -> (
-    Format.printf "%a\n" (Format.pp_print_list Ast.Latex.pp) ast;
+    (* Format.printf "%a\n" (Format.pp_print_list Ast.Latex.pp) ast; *)
     let open List in
+    let math_nodes = ref [] in
     let _ = ast >>| fun x -> match x with
       | {pos = _; value = Ast.Latex.Mathmode str} -> (
         Format.printf "Parsing math: \"%s\"...\n" str;
@@ -44,11 +46,12 @@ let main () =
         match result with
           | Some ast -> (
             Format.printf "%a\n" Ast.Math.pp ast;
-            Ast.Math.type_check [ast]
+            math_nodes := ast :: !math_nodes;
           )
           | None -> printf "No math\n")
-      | _ -> Format.printf "not math"
-    in ()
+      | _ -> ()
+    in
+    Ast.Math.type_check !math_nodes
   )
   | None -> print_endline "None"
 

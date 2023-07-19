@@ -227,82 +227,79 @@ end = struct
 
   (* an environment containing type variables for both variables and functions *)
   type env =
-    | Env of (string, Typing.Var.t) Hashtbl.t * (string, Typing.Var.t list * Typing.Var.t) Hashtbl.t * env
+    | Env of (string, Typing.Var.t) Hashtbl.t * env
     | Empty
 
-  let new_env parent = Env (Hashtbl.create (module String), Hashtbl.create (module String), parent)
+
+  let new_env parent = Env (Hashtbl.create (module String), parent)
 
   let add_var env name data =
     match env with
-    | Env (vars, _, _) -> Hashtbl.set vars ~key:name ~data:data
+    | Env (vars, _) -> Hashtbl.set vars ~key:name ~data:data
     | Empty -> raise (Typing.TypeError "Empty environment (this should not ever happen)")
 
   let rec get_var env (name: string) =
     match env with
-    | Env (vars, _, parent) -> (
+    | Env (vars, parent) -> (
       match Hashtbl.find vars name with
       | Some x -> Some x
       | None -> get_var parent name
     )
     | Empty -> None
 
-  let add_fn env name data =
-    match env with
-    | Env (_, fns, _) -> Hashtbl.set fns ~key:name ~data:data
-    | Empty -> raise (Typing.TypeError "Empty environment (this should not ever happen)")
+  type fns = (string, Typing.Var.t list * Typing.Var.t) Hashtbl.t
 
-  let rec get_fn env (name: string) =
-    match env with
-    | Env (_, fns, parent) -> (
-      match Hashtbl.find fns name with
-      | Some x -> Some x
-      | None -> get_fn parent name
-    )
-    | Empty -> None
+  let add_fn (env: fns) name data = Hashtbl.set env ~key:name ~data:data
+
+  let get_fn (env: fns) (name: string) = Hashtbl.find env name
 
   let type_check (math: t list) =
     let top_level = new_env Empty in
+    let functions = Hashtbl.create (module String) in
 
     let constraints = Typing.Constraints.create () in
 
-    let recurse_var (name: string) = 
-        match get_var top_level name with
+    let recurse_var env (name: string) = 
+        match get_var env name with
         | Some t -> Typing.Type.Any t
         | None -> (
           let t = Typing.Var.fresh () in
-          add_var top_level name t;
+          add_var top_level name t; (* free variables go straight to the top level environment *)
           Typing.Type.Any t
         )
     in
 
-    let add_constraint c = match c with
-      (* ignore trivial constraints *)
-      | Typing.Constraint.Equal (Typing.Type.Number, Typing.Type.Number)
-      | Equal (Typing.Type.Bool, Typing.Type.Bool) -> ()
-      | Equal (Typing.Type.Any t1, Typing.Type.Any t2) when Typing.Var.equal t1 t2 -> ()
-      (* keep nontrivial constraints *)
-      | Equal (Any _, _) | Equal (_, Any _)
-      | Equal (Set _, Set _) -> (
-        Hash_set.add constraints c
-      )
-      (* reject impossible constraints *)
-      | _ -> raise (Typing.TypeError "Type error")
-    in
+    let add_constraint = Typing.Constraints.add constraints in
 
-    let rec recurse node =
+    let rec recurse_fn env name args =
+      match get_fn functions name with
+      | Some (args_t, return_t) -> (
+          if List.length args <> List.length args_t then
+            raise (Typing.TypeError (Format.sprintf "Conflicting declarations for function %s" name))
+          else
+            List.iter (List.zip_exn args args_t) ~f:(fun (x, y) -> add_constraint (Equal (recurse env x, Typing.Type.Any y)));
+            (args_t, return_t)
+        )
+      | None -> (
+        let args_t = List.map args ~f:(fun _ -> Typing.Var.fresh ()) in
+        let return_t = Typing.Var.fresh () in
+        add_fn functions name (args_t, return_t);
+        (args_t, return_t)
+      )
+    and recurse (env: env) node =
       match node with
       | Op (lhs, op, rhs) -> (match op with
         | Plus | Minus | Times | Frac -> (
-          let lhs_t = recurse lhs in
-          let rhs_t = recurse rhs in
+          let lhs_t = recurse env lhs in
+          let rhs_t = recurse env rhs in
           add_constraint (Equal (lhs_t, Typing.Type.Number));
           add_constraint (Equal (rhs_t, Typing.Type.Number));
           Typing.Type.Number
         )
         | Union | Inter -> (
           let t = Typing.Var.fresh () in
-          let lhs_t = recurse lhs in
-          let rhs_t = recurse rhs in
+          let lhs_t = recurse env lhs in
+          let rhs_t = recurse env rhs in
           add_constraint (Equal (lhs_t, Typing.Type.Set (Typing.Type.Any t)));
           add_constraint (Equal (rhs_t, Typing.Type.Set (Typing.Type.Any t)));
           Typing.Type.Set (Typing.Type.Any t)
@@ -310,28 +307,28 @@ end = struct
       )
       | Unary (op, lhs) -> (match op with
         | Negate -> (
-          let lhs_t = recurse lhs in
+          let lhs_t = recurse env lhs in
           add_constraint (Equal (lhs_t, Typing.Type.Number));
           Typing.Type.Number
 
         )
         | Not -> (
-          let lhs_t = recurse lhs in
+          let lhs_t = recurse env lhs in
           add_constraint (Equal (lhs_t, Typing.Type.Bool));
           Typing.Type.Bool
         )
         | Abs -> (
-          let lhs_t = recurse lhs in
+          let lhs_t = recurse env lhs in
           add_constraint (Equal (lhs_t, Typing.Type.Number));
           Typing.Type.Number
         )
       )
       | Literal _ -> Typing.Type.Number
       | Variable name -> (
-        recurse_var name
+        recurse_var env name
       )
       | Grouping expr -> (
-        recurse expr
+        recurse env expr
       )
       | Relation (lhs, rhs) -> (
         (* verify relations are valid, e.g. < only followed by = and <=, etc *)
@@ -355,7 +352,7 @@ end = struct
               | (Le, _) | (Leq, _) when seen.ge -> raise (Typing.TypeError "> and >= should be followed by < or <=")
               | (Le, expr) | (Leq, expr) -> (
                 seen.le <- true;
-                let t = recurse expr in
+                let t = recurse env expr in
                 add_constraint (Equal (prev_t, Typing.Type.Number));
                 add_constraint (Equal (t, Typing.Type.Number));
                 iter t tl
@@ -363,7 +360,7 @@ end = struct
               | (Ge, _) | (Geq, _) when seen.le -> raise (Typing.TypeError "< and <= should be followed by > or >=")
               | (Ge, expr) | (Geq, expr) -> (
                 seen.ge <- true;
-                let t = recurse expr in
+                let t = recurse env expr in
                 add_constraint (Equal (prev_t, Typing.Type.Number));
                 add_constraint (Equal (t, Typing.Type.Number));
                 iter t tl
@@ -375,7 +372,7 @@ end = struct
                 let u = Typing.Var.fresh () in
                 add_constraint (Equal (prev_t, Typing.Type.Set (Typing.Type.Any u)));
                 (* next t should also a set of the same type *)
-                let t = recurse expr in
+                let t = recurse env expr in
                 add_constraint (Equal (prev_t, t));
                 iter t tl
               )
@@ -386,27 +383,27 @@ end = struct
                 let u = Typing.Var.fresh () in
                 add_constraint (Equal (prev_t, Typing.Type.Set (Typing.Type.Any u)));
                 (* next t should also a set of the same type *)
-                let t = recurse expr in
+                let t = recurse env expr in
                 add_constraint (Equal (prev_t, t));
                 iter t tl
               )
               | (In, expr) | (NotIn, expr) -> (
-                let t = recurse expr in
+                let t = recurse env expr in
                 add_constraint (Equal (Typing.Type.Set prev_t, t));
                 iter (Typing.Type.Set prev_t) tl
               )
               | (Eq, expr) -> (
-                let t = recurse expr in
+                let t = recurse env expr in
                 add_constraint (Equal (prev_t, t));
                 iter t tl
               )
               | (_, expr) -> (
-                let t = recurse expr in
+                let t = recurse env expr in
                 iter t tl
               )
             )
           in
-          iter (recurse first) arr
+          iter (recurse env first) arr
         in
         verify lhs rhs;
         Typing.Type.Bool
@@ -429,28 +426,19 @@ end = struct
       *)
       | Apply (lhs, args) -> (
         let args_t, return_t = (match lhs with
-          | Variable name -> (
-            match get_fn top_level name with
-            | Some data -> data
-            | None -> (
-              let args_t = List.map args ~f:(fun _ -> Typing.Var.fresh ()) in
-              let return_t = Typing.Var.fresh () in
-              add_fn top_level name (args_t, return_t);
-              (args_t, return_t)
-            )
-          )
+          | Variable name -> recurse_fn env name args
           | _ -> raise (Typing.TypeError "Cannot apply non-function")
         ) in
-        List.iter (List.zip_exn args args_t) ~f:(fun (x, y) -> add_constraint (Equal (recurse x, Typing.Type.Any y)));
+        List.iter (List.zip_exn args args_t) ~f:(fun (x, y) -> add_constraint (Equal (recurse env x, Typing.Type.Any y)));
         Typing.Type.Any return_t
       )
       (* TODO: ignore subscripts for now *)
       | Subscript (lhs, _) ->
-          recurse lhs
+          recurse env lhs
       (* TODO: alternative interpretations? *)
       | Superscript (lhs, rhs) -> (
-          let lhs_t = recurse lhs in
-          let rhs_t = recurse rhs in
+          let lhs_t = recurse env lhs in
+          let rhs_t = recurse env rhs in
           add_constraint (Equal (lhs_t, Typing.Type.Number));
           add_constraint (Equal (rhs_t, Typing.Type.Number));
           Typing.Type.Number
@@ -459,8 +447,8 @@ end = struct
           match (name, arg) with
           | ("\\mathbb", _) -> Typing.Type.Set Typing.Type.Number
           (* treat greek letters and math terms as variables *)
-          | (name, _) when is_greek_letter name -> recurse_var name
-          | ("\\mathit", _) | ("\\mathrm", _) -> recurse_var name
+          | (name, _) when is_greek_letter name -> recurse_var env name
+          | ("\\mathit", _) | ("\\mathrm", _) -> recurse_var env name
           (* assign text an arbitrary type - could be useful in future? *)
           | ("\\text", _) -> (
             let t = Typing.Var.fresh () in
@@ -470,28 +458,28 @@ end = struct
       )
       (* don't generate constraints, just type check insides *)
       | Forall (expr, next) -> (
-        let _ = recurse expr in
-        let _ = recurse next in
+        let _ = recurse env expr in
+        let _ = recurse env next in
         Typing.Type.Bool
       )
       | Exists (expr, next) -> (
-        let _ = recurse expr in
-        let _ = recurse next in
+        let _ = recurse env expr in
+        let _ = recurse env next in
         Typing.Type.Bool
       )
       | Suchthat expr -> (
-        let _ = recurse expr in
+        let _ = recurse env expr in
         Typing.Type.Bool
       )
       | SetComprehension (lhs, rhs) -> (
-        let t = recurse lhs in
-        let _ = recurse rhs in
+        let t = recurse env lhs in
+        let _ = recurse env rhs in
         Typing.Type.Set t
       )
       | SetLiteral lhs -> (
         let t = Typing.Var.fresh () in
         List.iter ~f:(fun expr ->
-          let u = recurse expr in
+          let u = recurse env expr in
           add_constraint (Equal (u, Typing.Type.Any t))
         ) lhs;
         Typing.Type.Set (Typing.Type.Any t)
@@ -502,20 +490,48 @@ end = struct
         Typing.Type.Any t
       )
     in
-    List.iter ~f:(fun x -> let _ = recurse x in ()) math;
+
+    let rec all_vars arr =
+      match arr with
+      | [] -> true
+      | hd :: tl -> (match hd with
+          | Variable _ -> all_vars tl
+          | _ -> false
+        )
+    in
+
+    let recurse0 env node =
+      match node with
+      | Relation (Apply (Variable name, args), (Eq, _) :: _) -> (
+            if all_vars args then
+              (* create a new environment that captures the variables *)
+              let child = new_env env in
+              List.iter args ~f:(fun arg -> match arg with
+                | Variable a -> add_var child a (Typing.Var.fresh ())
+                | _ -> raise (Typing.TypeError "Invalid function declaration (this should not happen)")
+              );
+              let _ = recurse_fn child name args in
+              recurse child node
+            else
+              recurse env node
+      )
+      | _ -> recurse env node
+    in
+
+    List.iter ~f:(fun x -> let _ = recurse0 top_level x in ()) math;
 
     Format.printf "Constraints: %a\n" Typing.Constraints.pp constraints;
 
     let subs = Typing.unify constraints in
 
     match top_level with
-    | Env (vars, fns, _) -> (
+    | Env (vars, _) -> (
       Hashtbl.iteri vars ~f:(fun ~key ~data ->
         let principal_type = Typing.apply subs (Typing.Type.Any data) in
         Format.printf "val %s : %a\n" key Typing.Type.pp principal_type;
       );
 
-      Hashtbl.iteri fns ~f:(fun ~key ~data ->
+      Hashtbl.iteri functions ~f:(fun ~key ~data ->
         let (args_t, ret_t) = data in
         let arg_types = List.map args_t ~f:(fun a -> Typing.apply subs (Typing.Type.Any a)) in
         let return_type  = Typing.apply subs (Typing.Type.Any ret_t) in
