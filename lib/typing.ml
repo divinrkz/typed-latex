@@ -43,15 +43,58 @@ module Var = struct
 end
 
 module Type = struct
+  type number = 
+  | Natural (* includes 0 *)
+  | Integer
+  | Rational
+  | Real
+  [@@deriving eq, sexp, hash]
+
+  let pp_number formatter n = match n with
+  | Natural -> Format.fprintf formatter "NAT"
+  | Integer -> Format.fprintf formatter "INT"
+  | Rational -> Format.fprintf formatter "RAT"
+  | Real -> Format.fprintf formatter "REAL"
+
+  (* type bound = *)
+  (* | LessThan of Var.t *)
+  (* | GreaterThan of Var.t *)
+  (* | EqualTo of Var.t *)
+  (* [@@deriving eq, sexp, hash] *)
+
+  (* let pp_bound formatter n = match n with *)
+  (* | LessThan t -> Format.fprintf formatter "< %a" Var.pp t *)
+  (* | GreaterThan t -> Format.fprintf formatter "> %a" Var.pp t *)
+  (* | EqualTo t -> Format.fprintf formatter "= %a" Var.pp t *)
+
+  type op =
+  | Plus
+  | Times
+  | Minus
+  | Frac
+  | Pow
+  [@@deriving eq, sexp, hash]
+
+  let string_of_op = function
+  | Plus -> "PLUS"
+  | Times -> "TIMES"
+  | Minus -> "MINUS"
+  | Frac -> "FRAC"
+  | Pow -> "POW"
+
+  let pp_op formatter op = Format.fprintf formatter "%s" (string_of_op op)
+
   type t =
-    | Number
+    | Number of number
+    | Bound of t * op * t
     | Bool
     | Set of t
     | Any of Var.t
   [@@deriving eq, sexp, hash]
 
   let rec pp formatter math = match math with
-    | Number -> Format.fprintf formatter "NUMBER"
+    | Number t -> Format.fprintf formatter "%a" pp_number t
+    | Bound (t1, op, t2) -> Format.fprintf formatter "BOUND<%a %a %a>" pp t1 pp_op op pp t2
     | Bool -> Format.fprintf formatter "BOOL"
     | Set t -> Format.fprintf formatter "SET<%a>" pp t
     | Any t -> Var.pp formatter t
@@ -61,12 +104,14 @@ end
 module Constraint = struct
   type t =
     | Equal of Type.t * Type.t (* a declaration that two types are equivalent, e.g. t1 = t2 *)
+    | BoundedBy of Type.t * Type.t (* declares that a numeric type is within the bounds of another *)
   [@@deriving eq, sexp, hash]
 
   let compare a b = if equal a b then 0 else 1
 
   let pp formatter c = match c with
     | Equal (a, b) -> Format.fprintf formatter "[ %a = %a ]" Type.pp a Type.pp b
+    | BoundedBy (a, b) -> Format.fprintf formatter "[ %a < %a ]" Type.pp a Type.pp b
 end
 
 module ConstraintHashSet = Hash_set.Make (Constraint)
@@ -85,7 +130,7 @@ module Constraints = struct
 
   let add constraints c = match c with
     (* ignore trivial constraints *)
-    | Constraint.Equal (Type.Number, Type.Number)
+    | Constraint.Equal (Type.Number n1, Type.Number n2) when Type.equal_number n1 n2 -> ()
     | Equal (Type.Bool, Type.Bool) -> ()
     | Equal (Type.Any t1, Type.Any t2) when Var.equal t1 t2 -> ()
     (* keep nontrivial constraints *)
@@ -93,18 +138,63 @@ module Constraints = struct
     | Equal (Set _, Set _) -> (
       Hash_set.add constraints c
     )
+    (* numeric subtyping *)
+    | BoundedBy _ -> Hash_set.add constraints c
     (* reject impossible constraints *)
     | _ -> raise (TypeError "Type error")
   
   let length = Hash_set.length
 end
 
+  (* (* used for addiiton and multiplication *) *)
+  (* let promote t1 t2 = *)
+  (*   match (t1, t2) with *)
+  (*   | (Typing.Type.Number Natural, Typing.Type.Number Natural) -> Typing.Type.Number Natural *)
+
+  (*   | (Typing.Type.Number Integer, Typing.Type.Number Natural) *)
+  (*   | (Typing.Type.Number Natural, Typing.Type.Number Integer) -> Typing.Type.Number Integer *)
+
+  (*   | (Typing.Type.Number Rational, Typing.Type.Number Natural) *)
+  (*   | (Typing.Type.Number Natural, Typing.Type.Number Rational) *)
+  (*   | (Typing.Type.Number Rational, Typing.Type.Number Integer) *)
+  (*   | (Typing.Type.Number Integer, Typing.Type.Number Rational) -> Typing.Type.Number Rational *)
+
+  (*   | (Typing.Type.Number Real, _) *)
+  (*   | (_, Typing.Type.Number Real) -> Typing.Type.Number Real *)
+
+  (*   | _ -> raise (Typing.TypeError "invalid arithmetic promotion (this should not happen)") *)
+
+  (* let promote_sub t1 t2 = *)
+  (*   match (t1, t2) with *)
+  (*   (* we may not be able to prove if t1 > t2 *) *)
+  (*   | (Typing.Type.Number Natural, Typing.Type.Number Natural) -> Typing.Type.Number Integer *)
+  (*   | _ -> promote t1 t2 *)
+  (*  *)
+
+  (* let promote_frac t1 t2 = *)
+  (*   match (t1, t2) with *)
+  (*   | (Typing.Type.Number Natural, Typing.Type.Number Natural) *)
+  (*   | (Typing.Type.Number Natural, Typing.Type.Number Integer) *)
+  (*   | (Typing.Type.Number Integer, Typing.Type.Number Natural) *)
+  (*   | (Typing.Type.Number Integer, Typing.Type.Number Integer) -> Typing.Type.Number Rational *)
+  (*   | _ -> promote t1 t2 *)
+
+  (* let promote_exp t1 t2 = *)
+  (*   match (t1, t2) with *)
+  (*   | (Typing.Type.Number Natural, Typing.Type.Number Natural) -> Typing.Type.Number Natural *)
+  (*   | (Typing.Type.Number Integer, Typing.Type.Number Natural) -> Typing.Type.Number Integer *)
+  (*   | (Typing.Type.Number Natural, Typing.Type.Number Integer) *)
+  (*   | (Typing.Type.Number Integer, Typing.Type.Number Integer) -> Typing.Type.Number Rational *)
+  (*   | (Typing.Type.Number _, Typing.Type.Number _) -> Typing.Type.Number Real *)
+  (*   | _ -> raise (Typing.TypeError "invalid arithmetic promotion (this should not happen)") *)
+
 
 (* maps type variables to types *)
 (* the goal of type checking is to come up with substitutions to satisfy every
    constraint *)
-module Substitution = struct type t = Type.t * Var.t (* {t / 'x}, e.g.
-substitute 'x with type t *) [@@deriving eq, sexp, hash]
+module Substitution = struct
+  type t = Type.t * Var.t (* {t / 'x}, e.g. substitute 'x with type t *)
+  [@@deriving eq, sexp, hash]
 
   let compare a b = if equal a b then 0 else 1
 
@@ -123,7 +213,8 @@ end
 (* applies a type substitution to a type *)
 let rec apply1 (sub: Substitution.t) (t: Type.t) =
   match t with
-    | Number -> Type.Number
+    | Number n -> Type.Number n
+    | Bound (a, op, b) -> Type.Bound (apply1 sub a, op, apply1 sub b)
     | Bool -> Type.Bool
     | Set u -> Type.Set (apply1 sub u)
     | Any u -> if Var.equal (snd sub) u then (fst sub) else Type.Any u
@@ -138,6 +229,7 @@ let rec apply (subs: Substitutions.t) (t: Type.t) =
 let apply_c (subs: Substitutions.t) (c: Constraint.t) =
   match c with
   | Equal (a, b) -> Constraint.Equal (apply subs a, apply subs b)
+  | BoundedBy (a, b) -> Constraint.BoundedBy (apply subs a, apply subs b)
 
 let apply_cs (subs: Substitutions.t) (cs: Constraints.t) = Constraints.map ~f:(apply_c subs) cs
 
@@ -147,8 +239,9 @@ let exists = function
 
 let rec occurs_in t (u: Type.t) =
   match u with
-    | Number -> false
+    | Number _ -> false
     | Bool -> false
+    | Bound (a, _, b) -> occurs_in t a || occurs_in t b
     | Set v -> occurs_in t v
     | Any v -> Var.equal t v
 
@@ -162,7 +255,7 @@ let unify constraints =
       Hash_set.remove cs hd;
       match hd with
         (* basic cases that don't require any logic *)
-        | Equal (Type.Number, Type.Number) -> recurse cs acc
+        | Equal (Type.Number n1 , Type.Number n2) when Type.equal_number n1 n2 -> recurse cs acc
         | Equal (Bool, Bool) -> recurse cs acc
         | Equal (Any t, Any u) when Var.equal t u -> recurse cs acc
         (* basic substitutions *)
@@ -184,6 +277,18 @@ let unify constraints =
           Hash_set.add cs (Equal (x, y));
           recurse cs acc
         )
+        (* arithmetic and type promotion *)
+        (* TODO: finish type promotion (each steps needs to do 1 step of simplification) *)
+        | BoundedBy (Any t, Bound (b, op, c)) -> (
+          if not (occurs_in t (Bound (b, op, c))) then
+            let s = (Type.Bound (b, op, c), t) in
+            recurse (apply_cs [s] cs) (s :: acc)
+          else
+            raise (TypeError "Could not unify types 4")
+        )
+        | BoundedBy (Number _, Bound _) -> (
+          recurse cs acc
+        )
         | _ -> raise (TypeError "Could not unify types 3")
   in
   let copy = Hash_set.copy constraints in (* prevent original set from being modified *)
@@ -193,7 +298,7 @@ let unify constraints =
 let test () =
   let t0 = Var.fresh () in
   let x = Type.Any t0 in
-  let y = Type.Number in
+  let y = Type.Number Integer in
   let constraints = Constraints.create () in
   Constraints.add constraints (Equal (x, y));
   let subs = unify constraints in

@@ -125,28 +125,26 @@ statement:
 relation:
 | rel = relation1; { rel }
 
-(* TODO: technically i think these shouldn't have the same precedence? *)
 relation1:
-| lhs = relation2; rels = relation1_aux+; { Ast.Math.Relation (lhs, rels) }
+| lhs = relation1; IFF; WHITESPACE?; rhs = relation2; { Ast.Math.Logic (lhs, Ast.Math.Iff, rhs) }
+| lhs = relation1; IMPLIES; WHITESPACE?; rhs = relation2; { Ast.Math.Logic (lhs, Ast.Math.Implies, rhs) }
 | rel = relation2 { rel }
 
-relation1_aux:
-| LAND; WHITESPACE?; rhs = relation2; { (Ast.Math.And, rhs) }
-(* | COMMA; WHITESPACE?; rhs = relation2; { (Ast.Math.And, rhs) } *)
-| LOR; WHITESPACE?; rhs = relation2; { (Ast.Math.Or, rhs) }
-| IFF; WHITESPACE?; rhs = relation2; { (Ast.Math.Iff, rhs) }
-| IMPLIES; WHITESPACE?; rhs = relation2; { (Ast.Math.Implies, rhs) }
-
 relation2:
-| lhs = expr; rels = relation2_aux+; { Ast.Math.Relation (lhs, rels) }
+| lhs = relation2; LAND; WHITESPACE?; rhs = relation3; { Ast.Math.LogicOp (lhs, Ast.Math.And, rhs) }
+| lhs = relation2; LOR; WHITESPACE?; rhs = relation3; { Ast.Math.LogicOp (lhs, Ast.Math.Or, rhs) }
 (* grouping *)
 | LEFT_PAREN; WHITESPACE?; rel = relation1; RIGHT_PAREN; WHITESPACE?; { Ast.Math.Grouping rel }
 | LEFT_CURLY; WHITESPACE?; rel = relation1; RIGHT_CURLY; WHITESPACE?; { Ast.Math.Grouping rel }
 | LEFT_BRACKET; WHITESPACE?; rel = relation1; RIGHT_BRACKET; WHITESPACE?; { Ast.Math.Grouping rel }
-(* next case *)
+| rel = relation3 { rel }
+
+relation3:
+(* to support chaining *)
+| lhs = expr; rels = relation3_aux+; { Ast.Math.Relation (lhs, rels) }
 | expr = expr; { expr }
 
-relation2_aux:
+relation3_aux:
 | rel = rel; rhs = expr { (rel, rhs) }
 
 (* precedence (high to low):
@@ -194,13 +192,12 @@ unary:
 
 literal:
 (* allow interpreting concatenation as multiplication *)
-| lhs = INTEGER; WHITESPACE?; rhs = literal; { Ast.Math.Op (Ast.Math.Literal (snd lhs), Ast.Math.Times, rhs) }
+| lhs = INTEGER; WHITESPACE?; rhs = literal; { Ast.Math.Op (Ast.Math.IntLiteral (snd lhs), Ast.Math.Times, rhs) }
 | lhs = VARIABLE; WHITESPACE?; rhs = literal; { Ast.Math.Op (Ast.Math.Variable (snd lhs), Ast.Math.Times, rhs) }
-| num = INTEGER; WHITESPACE?; { Ast.Math.Literal (snd num) }
+| num = INTEGER; WHITESPACE?; { Ast.Math.IntLiteral (snd num) }
 | var = VARIABLE; WHITESPACE?; { Ast.Math.Variable (snd var) }
 | f = function_call; { f }
 | s = set_literal; { s }
-(* TODO: set literal *)
 (* either a list of expressions or a comprehension *)
 (* fraction *)
 | FRAC; LEFT_CURLY; WHITESPACE?; numerator = expr; RIGHT_CURLY; LEFT_CURLY; WHITESPACE?; denominator = expr; RIGHT_CURLY; WHITESPACE?; { Ast.Math.Op (numerator, Ast.Math.Frac, denominator) }

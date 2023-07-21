@@ -31,9 +31,9 @@ let main () =
   (* let result = parse_latex "$x \\in T \\land y \\notin U$" in *)
   (* let result = parse_latex "$\\{ x^n | n \\in \\mathbb{R} \\}$" in *)
   (* let result = parse_latex "$f(x) = x^2 = x * x \\leq 0$" in *)
-  (* let result = parse_latex "$\\forall \\epsilon > 0, \\exists \\delta < \\epsilon s.t. \\forall x, 0 < |a + 2| < \\delta \\implies |f(x)| < \\epsilon$" in *)
+  (* let result = parse_latex "$\\forall \\epsilon > 0, \\exists \\delta < \\epsilon s.t. \\forall x, 0 < |x| < \\delta \\implies |f(x)| < \\epsilon$" in *)
   (* let result = parse_latex "$x \\in \\mathbb{R}$\n$y = \\{x, z\\}$" in *)
-  let result = parse_latex "$P(x, y) = x + y * N$" in
+  let result = parse_latex "$P(x, y) = x + y * N$\n$P(1, 2)$\n$N = 3$" in
   match result with
   | Some ast -> (
     (* Format.printf "%a\n" (Format.pp_print_list Ast.Latex.pp) ast; *)

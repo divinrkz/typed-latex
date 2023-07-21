@@ -69,17 +69,23 @@ module Math : sig
     | Superset
     | SubsetEq
     | SupersetEq
-    | Implies
-    | Iff
+
+  type logic_op =
     | And
     | Or
+
+  type logic =
+    | Implies
+    | Iff
 
   type t =
     | Op of t * operator * t
     | Unary of unary * t
-    (* Note: Relation does not keep track of precedence w.r.t and/or/implies/iff *)
     | Relation of t * (relation * t) list (* LHS (= RHS)+ *)
-    | Literal of int
+    | LogicOp of t * logic_op * t
+    | Logic of t * logic * t
+    | IntLiteral of int
+    | FloatLiteral of float
     | SetComprehension of t * t (* { expr | relation }*)
     | SetLiteral of t list (* { expr, expr, ... } *)
     | Variable of string
@@ -97,6 +103,10 @@ module Math : sig
   val pp: Format.formatter -> t -> unit
 
   val type_check: t list -> unit
+
+  val string_of_logic: logic -> string
+
+  val string_of_relation: relation -> string
 
 end = struct
   type operator =
@@ -124,17 +134,23 @@ end = struct
     | Superset
     | SubsetEq
     | SupersetEq
-    | Implies
-    | Iff
+
+  type logic_op =
     | And
     | Or
 
-    (* a iff b and c iff d *)
+  type logic =
+    | Implies
+    | Iff
+
   type t =
     | Op of t * operator * t
     | Unary of unary * t
     | Relation of t * (relation * t) list
-    | Literal of int
+    | LogicOp of t * logic_op * t
+    | Logic of t * logic * t
+    | IntLiteral of int
+    | FloatLiteral of float
     | SetComprehension of t * t (* { expr | relation }*)
     | SetLiteral of t list (* { expr, expr, ... } *)
     | Variable of string
@@ -143,7 +159,7 @@ end = struct
     | Subscript of t * t
     | Superscript of t * t
     | Command of string * t option
-    | Forall of t * t
+    | Forall of t * t 
     | Exists of t * t
     | Suchthat of t
     | Text of string
@@ -173,10 +189,14 @@ end = struct
     | Superset -> "SUPERSET"
     | SubsetEq -> "SUBSETEQ"
     | SupersetEq -> "SUPERSETEQ"
-    | Implies -> "IMPLIES"
-    | Iff -> "IFF"
+
+  let string_of_logic_op = function
     | And -> "AND"
     | Or -> "OR"
+
+  let string_of_logic = function
+    | Implies -> "IMPLIES"
+    | Iff -> "IFF"
 
   type state = {
     mutable le: bool;
@@ -202,34 +222,44 @@ end = struct
     | _ -> false
 
   let rec pp formatter math = match math with
-      | Op (lhs, op, rhs) -> Format.fprintf formatter "(%s %a %a)" (string_of_operator op) pp lhs pp rhs
-      | Unary (op, lhs) -> Format.fprintf formatter "(%s %a)" (string_of_unary op) pp lhs
-      | Literal num -> Format.fprintf formatter "%i" num
-      | Variable var -> Format.fprintf formatter "%s" var
-      | Grouping expr -> Format.fprintf formatter "%a" pp expr
-      | Relation (lhs, rhs) -> (
-        let pp_pair = fun formatter -> fun (rel, t) -> Format.fprintf formatter "%s %a" (string_of_relation rel) pp t in
-        Format.fprintf formatter "(%a %a)" pp lhs (Format.pp_print_list ~pp_sep:(string_sep " ") pp_pair) rhs;
-      )
-      | Apply (lhs, rhs) -> Format.fprintf formatter "(%a %a)"  pp lhs (Format.pp_print_list ~pp_sep:(string_sep " ") pp) rhs
-      | Subscript (lhs, rhs) -> Format.fprintf formatter "%a_%a"  pp lhs pp rhs
-      | Superscript (lhs, rhs) -> Format.fprintf formatter "%a^%a"  pp lhs pp rhs
-      | Command (name, arg) -> (match arg with
-        | Some thing -> Format.fprintf formatter "%s{%a}" name pp thing
-        | None -> Format.fprintf formatter "%s" name
-      )
-      | Forall (expr, next) -> Format.fprintf formatter "(FORALL %a, %a)" pp expr pp next
-      | Exists (expr, next) -> Format.fprintf formatter "(EXISTS %a %a)" pp expr pp next
-      | Suchthat expr -> Format.fprintf formatter "SUCHTHAT %a" pp expr
-      | SetLiteral contents -> Format.fprintf formatter "{ %a }" (Format.pp_print_list ~pp_sep:(string_sep ", ") pp) contents
-      | SetComprehension (lhs, rhs) -> Format.fprintf formatter "{ %a | %a }" pp lhs pp rhs
-      | Text str -> Format.fprintf formatter "%s" str
+    | Op (lhs, op, rhs) -> Format.fprintf formatter "(%s %a %a)" (string_of_operator op) pp lhs pp rhs
+    | LogicOp (lhs, op, rhs) -> Format.fprintf formatter "(%s %a %a)" (string_of_logic_op op) pp lhs pp rhs
+    | Logic (lhs, op, rhs) -> Format.fprintf formatter "(%s %a %a)" (string_of_logic op) pp lhs pp rhs
+    | Unary (op, lhs) -> Format.fprintf formatter "(%s %a)" (string_of_unary op) pp lhs
+    | IntLiteral num -> Format.fprintf formatter "%i" num
+    | FloatLiteral num -> Format.fprintf formatter "%f" num
+    | Variable var -> Format.fprintf formatter "%s" var
+    | Grouping expr -> Format.fprintf formatter "%a" pp expr
+    | Relation (lhs, rhs) -> (
+      let pp_pair = fun formatter -> fun (rel, t) -> Format.fprintf formatter "%s %a" (string_of_relation rel) pp t in
+      Format.fprintf formatter "(%a %a)" pp lhs (Format.pp_print_list ~pp_sep:(string_sep " ") pp_pair) rhs;
+    )
+    | Apply (lhs, rhs) -> Format.fprintf formatter "(%a %a)"  pp lhs (Format.pp_print_list ~pp_sep:(string_sep " ") pp) rhs
+    | Subscript (lhs, rhs) -> Format.fprintf formatter "%a_%a"  pp lhs pp rhs
+    | Superscript (lhs, rhs) -> Format.fprintf formatter "%a^%a"  pp lhs pp rhs
+    | Command (name, arg) -> (match arg with
+      | Some thing -> Format.fprintf formatter "%s{%a}" name pp thing
+      | None -> Format.fprintf formatter "%s" name
+    )
+    | Forall (expr, next) -> Format.fprintf formatter "(FORALL %a, %a)" pp expr pp next
+    | Exists (expr, next) -> Format.fprintf formatter "(EXISTS %a %a)" pp expr pp next
+    | Suchthat expr -> Format.fprintf formatter "SUCHTHAT %a" pp expr
+    | SetLiteral contents -> Format.fprintf formatter "{ %a }" (Format.pp_print_list ~pp_sep:(string_sep ", ") pp) contents
+    | SetComprehension (lhs, rhs) -> Format.fprintf formatter "{ %a | %a }" pp lhs pp rhs
+    | Text str -> Format.fprintf formatter "%s" str
 
-  (* an environment containing type variables for both variables and functions *)
+  (* type statement = *)
+  (*   | Logical of t * logic * t *)
+  (*   | Equational of t * relation * t *)
+
+  (* let pp_statement formatter statement = match statement with *)
+  (*   | Logical (lhs, logic, rhs) -> Format.fprintf formatter "%a %s %a" pp lhs (string_of_logic logic) pp rhs *)
+  (*   | Equational (lhs, relation, rhs) -> Format.fprintf formatter "%a %s %a" pp lhs (string_of_relation relation) pp rhs *)
+
+  (* an environment containing type variables for variables *)
   type env =
     | Env of (string, Typing.Var.t) Hashtbl.t * env
     | Empty
-
 
   let new_env parent = Env (Hashtbl.create (module String), parent)
 
@@ -271,6 +301,34 @@ end = struct
 
     let add_constraint = Typing.Constraints.add constraints in
 
+    let rec captured_vars node =
+      match node with
+      | Variable _ -> [node]
+      | Command (name, _) when is_greek_letter name -> [node]
+      | LogicOp (lhs, And, rhs) -> (
+          List.append (captured_vars lhs) (captured_vars rhs)
+        )
+      | Relation (lhs, _) -> (
+          captured_vars lhs
+        )
+      | _ -> []
+    in
+
+    let capture parent node =
+      let vars = captured_vars node in
+      if List.length vars = 0 then
+        parent
+      else
+        let child = new_env parent in
+        List.iter vars ~f:(fun v -> 
+          match v with
+          | Variable name -> add_var child name (Typing.Var.fresh ())
+          | Command (name, _) -> add_var child name (Typing.Var.fresh ())
+          | _ -> raise (Typing.TypeError "This should not happen")
+        );
+        child
+    in
+
     let rec recurse_fn env name args =
       match get_fn functions name with
       | Some (args_t, return_t) -> (
@@ -288,13 +346,48 @@ end = struct
       )
     and recurse (env: env) node =
       match node with
-      | Op (lhs, op, rhs) -> (match op with
-        | Plus | Minus | Times | Frac -> (
+      | LogicOp (lhs, _, rhs) -> (
+        let lhs_t = recurse env lhs in
+        let rhs_t = recurse env rhs in
+        add_constraint(Equal (lhs_t, Typing.Type.Bool));
+        add_constraint(Equal (rhs_t, Typing.Type.Bool));
+        Typing.Type.Bool;
+      )
+      | Logic (lhs, _, rhs) -> (
           let lhs_t = recurse env lhs in
           let rhs_t = recurse env rhs in
-          add_constraint (Equal (lhs_t, Typing.Type.Number));
-          add_constraint (Equal (rhs_t, Typing.Type.Number));
-          Typing.Type.Number
+          add_constraint(Equal (lhs_t, Typing.Type.Bool));
+          add_constraint(Equal (rhs_t, Typing.Type.Bool));
+          Typing.Type.Bool;
+      )
+      | Op (lhs, op, rhs) -> (match op with
+        | Plus -> (
+          let t = Typing.Var.fresh () in
+          let lhs_t = recurse env lhs in
+          let rhs_t = recurse env rhs in
+          add_constraint (BoundedBy (Typing.Type.Any t, (Bound (lhs_t, Plus, rhs_t))));
+          Typing.Type.Any t
+        )
+        | Times -> (
+          let t = Typing.Var.fresh () in
+          let lhs_t = recurse env lhs in
+          let rhs_t = recurse env rhs in
+          add_constraint (BoundedBy (Typing.Type.Any t, (Bound (lhs_t, Times, rhs_t))));
+          Typing.Type.Any t
+        )
+        | Minus -> (
+          let t = Typing.Var.fresh () in
+          let lhs_t = recurse env lhs in
+          let rhs_t = recurse env rhs in
+          add_constraint (BoundedBy (Typing.Type.Any t, (Bound (lhs_t, Minus, rhs_t))));
+          Typing.Type.Any t
+        )
+        | Frac -> (
+          let t = Typing.Var.fresh () in
+          let lhs_t = recurse env lhs in
+          let rhs_t = recurse env rhs in
+          add_constraint (BoundedBy (Typing.Type.Any t, (Bound (lhs_t, Frac, rhs_t))));
+          Typing.Type.Any t
         )
         | Union | Inter -> (
           let t = Typing.Var.fresh () in
@@ -308,8 +401,8 @@ end = struct
       | Unary (op, lhs) -> (match op with
         | Negate -> (
           let lhs_t = recurse env lhs in
-          add_constraint (Equal (lhs_t, Typing.Type.Number));
-          Typing.Type.Number
+          add_constraint (BoundedBy (lhs_t, Typing.Type.Number Natural));
+          lhs_t
 
         )
         | Not -> (
@@ -319,11 +412,12 @@ end = struct
         )
         | Abs -> (
           let lhs_t = recurse env lhs in
-          add_constraint (Equal (lhs_t, Typing.Type.Number));
-          Typing.Type.Number
+          add_constraint (BoundedBy (lhs_t, Typing.Type.Number Natural));
+          lhs_t
         )
       )
-      | Literal _ -> Typing.Type.Number
+      | IntLiteral _ -> Typing.Type.Number Integer
+      | FloatLiteral _ -> Typing.Type.Number Real
       | Variable name -> (
         recurse_var env name
       )
@@ -353,16 +447,16 @@ end = struct
               | (Le, expr) | (Leq, expr) -> (
                 seen.le <- true;
                 let t = recurse env expr in
-                add_constraint (Equal (prev_t, Typing.Type.Number));
-                add_constraint (Equal (t, Typing.Type.Number));
+                add_constraint (BoundedBy (prev_t, Typing.Type.Number Natural));
+                add_constraint (BoundedBy (t, Typing.Type.Number Natural));
                 iter t tl
               )
               | (Ge, _) | (Geq, _) when seen.le -> raise (Typing.TypeError "< and <= should be followed by > or >=")
               | (Ge, expr) | (Geq, expr) -> (
                 seen.ge <- true;
                 let t = recurse env expr in
-                add_constraint (Equal (prev_t, Typing.Type.Number));
-                add_constraint (Equal (t, Typing.Type.Number));
+                add_constraint (BoundedBy (prev_t, Typing.Type.Number Natural));
+                add_constraint (BoundedBy (t, Typing.Type.Number Natural));
                 iter t tl
               )
               | (Superset, _) | (SupersetEq, _) when seen.sub -> raise (Typing.TypeError "Subset(eq) should not be followed by superset(eq)")
@@ -397,10 +491,6 @@ end = struct
                 add_constraint (Equal (prev_t, t));
                 iter t tl
               )
-              | (_, expr) -> (
-                let t = recurse env expr in
-                iter t tl
-              )
             )
           in
           iter (recurse env first) arr
@@ -409,9 +499,6 @@ end = struct
         Typing.Type.Bool
       )
       (*
-        First pass:
-          Go through all declarations, find all free variables (ex: n = 2)
-
         Rules for scoping:
           if LHS is Apply, and all args are variables, assume to be function call.
             If any args share a name with free variables, print a warning (due to possible ambiguity)
@@ -437,15 +524,19 @@ end = struct
           recurse env lhs
       (* TODO: alternative interpretations? *)
       | Superscript (lhs, rhs) -> (
+          let t = Typing.Var.fresh () in
           let lhs_t = recurse env lhs in
           let rhs_t = recurse env rhs in
-          add_constraint (Equal (lhs_t, Typing.Type.Number));
-          add_constraint (Equal (rhs_t, Typing.Type.Number));
-          Typing.Type.Number
+          add_constraint (BoundedBy (Typing.Type.Any t, (Bound (lhs_t, Pow, rhs_t))));
+          Typing.Type.Any t
       )
       | Command (name, arg) -> (
           match (name, arg) with
-          | ("\\mathbb", _) -> Typing.Type.Set Typing.Type.Number
+          (* this is kind of a hack, maybe fix later? *)
+          | ("\\mathbb", Some (Variable "N")) -> Typing.Type.Set (Typing.Type.Number Natural)
+          | ("\\mathbb", Some (Variable "Z")) -> Typing.Type.Set (Typing.Type.Number Integer)
+          | ("\\mathbb", Some (Variable "Q")) -> Typing.Type.Set (Typing.Type.Number Rational)
+          | ("\\mathbb", Some (Variable "R")) -> Typing.Type.Set (Typing.Type.Number Real)
           (* treat greek letters and math terms as variables *)
           | (name, _) when is_greek_letter name -> recurse_var env name
           | ("\\mathit", _) | ("\\mathrm", _) -> recurse_var env name
@@ -456,15 +547,16 @@ end = struct
           )
           | _ -> raise (Typing.TypeError "Command not yet implemented")
       )
-      (* don't generate constraints, just type check insides *)
       | Forall (expr, next) -> (
-        let _ = recurse env expr in
-        let _ = recurse env next in
+        let child = capture env expr in
+        let _ = recurse child expr in
+        let _ = recurse child next in
         Typing.Type.Bool
       )
       | Exists (expr, next) -> (
-        let _ = recurse env expr in
-        let _ = recurse env next in
+        let child = capture env expr in
+        let _ = recurse child expr in
+        let _ = recurse child next in
         Typing.Type.Bool
       )
       | Suchthat expr -> (
@@ -472,8 +564,9 @@ end = struct
         Typing.Type.Bool
       )
       | SetComprehension (lhs, rhs) -> (
-        let t = recurse env lhs in
-        let _ = recurse env rhs in
+        let child = capture env rhs in
+        let t = recurse child lhs in
+        let _ = recurse child rhs in
         Typing.Type.Set t
       )
       | SetLiteral lhs -> (
@@ -535,13 +628,31 @@ end = struct
         let (args_t, ret_t) = data in
         let arg_types = List.map args_t ~f:(fun a -> Typing.apply subs (Typing.Type.Any a)) in
         let return_type  = Typing.apply subs (Typing.Type.Any ret_t) in
-        Format.printf "fun %s : %a -> %a\n" key (Format.pp_print_list ~pp_sep:(fun f -> fun () -> Format.pp_print_string f " -> ") Typing.Type.pp) arg_types Typing.Type.pp return_type
+        Format.printf "fun %s : %a -> %a\n" key (Format.pp_print_list ~pp_sep:(string_sep " -> ") Typing.Type.pp) arg_types Typing.Type.pp return_type
       );
     );
     | Empty -> ();
 
     (* TODO: if variable has type Any t, warn unused *)
     ()
+
+    (* let all_statements = [] *)
+    (* TODO: constant propagation *)
+    (* what if mutually recursive statements? *)
+    (*
+      n = 2 * m
+      m = 2 * n
+      # n -> m -> n
+        *)
+    (* 
+       While walking the tree, generate a dependency graph linking nodes to free variables and (constant) functions.
+       Then, after walking, go through all the constant nodes, evaluate them, and evaluate the nodes that depend on them recursively as far as possible.
+       Check that each node N is visited at most indegree(N) times.
+       Also, we only need to assign constant variables to functions and variables (doesn't rly make sense to replace AST nodes, since user won't see them).
+
+       I feel like this needs to be done after the type checking stuff - there's a lot that needs to be done.
+       While type checking, generate a list of statements (like edge list). Then, solve edge list to evaluate constants, etc, and print out assumptions.
+          *)
 end
 
 module rec Environment : sig
