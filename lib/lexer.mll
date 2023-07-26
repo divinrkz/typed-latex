@@ -21,6 +21,7 @@ let not_alpha = [^ 'a'-'z' 'A'-'Z']
 let command = '\\' not_alpha | '\\' alpha+
 
 let integer = ['0'-'9']+
+let real = ['0'-'9']+ '.' ['0'-'9']+
 
 let begin_env = "\\begin{" ['a'-'z' 'A'-'Z']+ '}'
 let end_env = "\\end{" ['a'-'z' 'A'-'Z']+ '}'
@@ -108,6 +109,7 @@ and math_token =
   (* misc *)
   | '_'         { UNDERSCORE lexbuf.lex_curr_p}
   | '^'         { CARET lexbuf.lex_curr_p}
+  | real        { REAL (lexbuf.lex_curr_p, float_of_string (Lexing.lexeme lexbuf)) }
   | integer     { INTEGER (lexbuf.lex_curr_p, int_of_string (Lexing.lexeme lexbuf)) }
   | "\\text{"   { TEXT (lexbuf.lex_curr_p, math_text (Buffer.create 80) lexbuf) }
   | "\\textit{" { TEXT (lexbuf.lex_curr_p, math_text (Buffer.create 80) lexbuf) }

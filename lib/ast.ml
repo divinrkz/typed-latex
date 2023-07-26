@@ -43,14 +43,14 @@ module Text = struct
 
 end
 
-module Math : sig
+module rec Math : sig
   type operator =
     | Plus
     | Minus
     | Times
+    | Frac
     | Union
     | Inter
-    | Frac
 
   type unary =
     | Negate
@@ -113,9 +113,9 @@ end = struct
     | Plus
     | Minus
     | Times
+    | Frac
     | Union
     | Inter
-    | Frac
 
   type unary =
     | Negate
@@ -400,9 +400,11 @@ end = struct
       )
       | Unary (op, lhs) -> (match op with
         | Negate -> (
+          let t = Typing.Var.fresh () in
           let lhs_t = recurse env lhs in
-          add_constraint (BoundedBy (lhs_t, Typing.Type.Number Natural));
-          lhs_t
+          (* same type constraints as minus, since -x is 0 - x (e.g. negative of a natural is an integer)*)
+          add_constraint (BoundedBy (Typing.Type.Any t, (Bound (Number Natural, Minus, lhs_t))));
+          Typing.Type.Any t
 
         )
         | Not -> (
@@ -416,7 +418,7 @@ end = struct
           lhs_t
         )
       )
-      | IntLiteral _ -> Typing.Type.Number Integer
+      | IntLiteral _ -> Typing.Type.Number Natural
       | FloatLiteral _ -> Typing.Type.Number Real
       | Variable name -> (
         recurse_var env name
@@ -620,14 +622,14 @@ end = struct
     match top_level with
     | Env (vars, _) -> (
       Hashtbl.iteri vars ~f:(fun ~key ~data ->
-        let principal_type = Typing.apply subs (Typing.Type.Any data) in
+        let principal_type = Typing.simplify subs (Typing.Type.Any data) in
         Format.printf "val %s : %a\n" key Typing.Type.pp principal_type;
       );
 
       Hashtbl.iteri functions ~f:(fun ~key ~data ->
         let (args_t, ret_t) = data in
-        let arg_types = List.map args_t ~f:(fun a -> Typing.apply subs (Typing.Type.Any a)) in
-        let return_type  = Typing.apply subs (Typing.Type.Any ret_t) in
+        let arg_types = List.map args_t ~f:(fun a -> Typing.simplify subs (Typing.Type.Any a)) in
+        let return_type  = Typing.simplify subs (Typing.Type.Any ret_t) in
         Format.printf "fun %s : %a -> %a\n" key (Format.pp_print_list ~pp_sep:(string_sep " -> ") Typing.Type.pp) arg_types Typing.Type.pp return_type
       );
     );
@@ -635,6 +637,13 @@ end = struct
 
     (* TODO: if variable has type Any t, warn unused *)
     ()
+
+end
+and Statement: sig
+    type t =
+    | Fact of Math.t
+    | Assumption of Math.t
+    | Definition of Math.t
 
     (* let all_statements = [] *)
     (* TODO: constant propagation *)
@@ -653,7 +662,13 @@ end = struct
        I feel like this needs to be done after the type checking stuff - there's a lot that needs to be done.
        While type checking, generate a list of statements (like edge list). Then, solve edge list to evaluate constants, etc, and print out assumptions.
           *)
+end = struct
+    type t =
+    | Fact of Math.t
+    | Assumption of Math.t
+    | Definition of Math.t
 end
+
 
 module rec Environment : sig
   (* store both begin and end name to verify environment is valid *)

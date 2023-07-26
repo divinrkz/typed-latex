@@ -24,6 +24,8 @@ Type rules:
 
 exception TypeError of string
 
+let warn msg = Format.printf "Warning: %s\n" msg
+
 (* a type variable *)
 module Var = struct
   type t = {
@@ -55,6 +57,34 @@ module Type = struct
   | Integer -> Format.fprintf formatter "INT"
   | Rational -> Format.fprintf formatter "RAT"
   | Real -> Format.fprintf formatter "REAL"
+
+
+  (* e.g. is t1 a subset of t2 *)
+  let is_bounded_by a b =
+    match (a, b) with
+    | (Natural, _) -> true
+
+    | (Integer, Natural) -> false
+    | (Integer, _) -> true
+
+    | (Rational, Natural)
+    | (Rational, Integer) -> false
+    | (Rational, _) -> true
+
+    | (Real, Natural)
+    | (Real, Integer)
+    | (Real, Rational) -> false
+    | (Real, _) -> true
+
+let widen a b = match (a, b) with
+  | (Real, _)
+  | (_, Real) -> Real
+  | (Rational, _)
+  | (_, Rational) -> Rational
+  | (Integer, _)
+  | (_, Integer) -> Integer
+  | (Natural, _) -> Natural
+
 
   (* type bound = *)
   (* | LessThan of Var.t *)
@@ -98,13 +128,12 @@ module Type = struct
     | Bool -> Format.fprintf formatter "BOOL"
     | Set t -> Format.fprintf formatter "SET<%a>" pp t
     | Any t -> Var.pp formatter t
-
 end
 
 module Constraint = struct
   type t =
     | Equal of Type.t * Type.t (* a declaration that two types are equivalent, e.g. t1 = t2 *)
-    | BoundedBy of Type.t * Type.t (* declares that a numeric type is within the bounds of another *)
+    | BoundedBy of Type.t * Type.t (* a declaration that one type is a subset of another, e.g. t1 <= t2 *)
   [@@deriving eq, sexp, hash]
 
   let compare a b = if equal a b then 0 else 1
@@ -130,16 +159,16 @@ module Constraints = struct
 
   let add constraints c = match c with
     (* ignore trivial constraints *)
-    | Constraint.Equal (Type.Number n1, Type.Number n2) when Type.equal_number n1 n2 -> ()
-    | Equal (Type.Bool, Type.Bool) -> ()
+    | Constraint.Equal (Type.Bool, Type.Bool) -> ()
     | Equal (Type.Any t1, Type.Any t2) when Var.equal t1 t2 -> ()
     (* keep nontrivial constraints *)
     | Equal (Any _, _) | Equal (_, Any _)
     | Equal (Set _, Set _) -> (
       Hash_set.add constraints c
     )
-    (* numeric subtyping *)
-    | BoundedBy _ -> Hash_set.add constraints c
+    | BoundedBy _ -> (
+      Hash_set.add constraints c
+    )
     (* reject impossible constraints *)
     | _ -> raise (TypeError "Type error")
   
@@ -214,10 +243,10 @@ end
 let rec apply1 (sub: Substitution.t) (t: Type.t) =
   match t with
     | Number n -> Type.Number n
-    | Bound (a, op, b) -> Type.Bound (apply1 sub a, op, apply1 sub b)
     | Bool -> Type.Bool
     | Set u -> Type.Set (apply1 sub u)
     | Any u -> if Var.equal (snd sub) u then (fst sub) else Type.Any u
+    | Bound (a, op, b) -> Type.Bound (apply1 sub a, op, apply1 sub b)
 
 (* t (S1; S2) = (t S1) S2 *)
 let rec apply (subs: Substitutions.t) (t: Type.t) =
@@ -250,12 +279,13 @@ let unify constraints =
     if (Constraints.length cs = 0) then
       acc
     else
+      (* let _ = Format.printf "Constraints: %a\n" Constraints.pp cs in *)
       (* pick out any element from the set of constraints *)
       let hd = Option.value_exn (Constraints.first cs) in
       Hash_set.remove cs hd;
       match hd with
         (* basic cases that don't require any logic *)
-        | Equal (Type.Number n1 , Type.Number n2) when Type.equal_number n1 n2 -> recurse cs acc
+        | Equal (Type.Number n1 , Type.Number n2) when Type.is_bounded_by n1 n2 -> recurse cs acc
         | Equal (Bool, Bool) -> recurse cs acc
         | Equal (Any t, Any u) when Var.equal t u -> recurse cs acc
         (* basic substitutions *)
@@ -278,22 +308,70 @@ let unify constraints =
           recurse cs acc
         )
         (* arithmetic and type promotion *)
-        (* TODO: finish type promotion (each steps needs to do 1 step of simplification) *)
-        | BoundedBy (Any t, Bound (b, op, c)) -> (
-          if not (occurs_in t (Bound (b, op, c))) then
-            let s = (Type.Bound (b, op, c), t) in
+        | BoundedBy (Any t, u) -> (
+          if not (occurs_in t u) then
+            let s = (u, t) in
+            recurse (apply_cs [s] cs) (s :: acc)
+          else
+            raise (TypeError "Could not unify types 3")
+        )
+        | BoundedBy (u, Any t) -> (
+          if not (occurs_in t u) then
+            let s = (u, t) in
             recurse (apply_cs [s] cs) (s :: acc)
           else
             raise (TypeError "Could not unify types 4")
         )
-        | BoundedBy (Number _, Bound _) -> (
-          recurse cs acc
-        )
-        | _ -> raise (TypeError "Could not unify types 3")
+        | _ -> raise (TypeError "Could not unify types 5")
   in
   let copy = Hash_set.copy constraints in (* prevent original set from being modified *)
   (* need to reverse list since it was built up in reverse in the above recursion *)
   List.rev (recurse copy [])
+
+(* apply arithmetic promotion when possible *)
+let simplify subs t =
+  let t = apply subs t in
+  let rec recurse t = match t with
+  | Type.Bound (a, Plus, b) -> (
+    match (recurse a, recurse b) with
+    | (Type.Number a, Number b) -> Number (Type.widen a b)
+    | _ ->  Number Real (* fallback when can't infer specific numeric type *)
+  )
+  | Type.Bound (a, Times, b) -> (
+    match (recurse a, recurse b) with
+    | (Type.Number a, Number b) -> Number (Type.widen a b)
+    | _ ->  Number Real
+  )
+  | Type.Bound (a, Minus, b) -> (
+    match (recurse a, recurse b) with
+      (* a - b could be negative unless we prove a > b *)
+    | (Type.Number Natural, Number Natural) -> Number Integer
+    | (Type.Number a, Number b) -> Number (Type.widen a b)
+    | _ ->  Number Real
+  )
+  | Type.Bound (a, Frac, b) -> (
+    match (recurse a, recurse b) with
+    | (Type.Number Natural, Number Natural)
+    | (Type.Number Natural, Number Integer)
+    | (Type.Number Integer, Number Natural)
+    | (Type.Number Integer, Number Integer) -> Number Rational
+    | (Type.Number a, Number b) -> Number (Type.widen a b)
+    | _ ->  Number Real
+  )
+  | Type.Bound (a, Pow, b) -> (
+    match (recurse a, recurse b) with
+    | (Type.Number Natural, Number Natural) -> Number Natural
+    | (Type.Number Integer, Number Natural) -> Number Integer
+    | (Type.Number Natural, Number Integer)
+    | (Type.Number Integer, Number Integer) -> Number Rational
+    | (Type.Number Rational, Number Natural)
+    | (Type.Number Rational, Number Integer) -> Number Rational
+    | _ ->  Number Real
+  )
+  | Set u -> Set (recurse u)
+  | _ -> t
+  in
+  recurse t
 
 let test () =
   let t0 = Var.fresh () in

@@ -44,6 +44,7 @@
 %token <Lexing.position> UNDERSCORE
 %token <Lexing.position> FRAC
 %token <Lexing.position> SEPARATOR
+%token <Lexing.position * float> REAL
 %token <Lexing.position * int> INTEGER
 %token <Lexing.position * string> VARIABLE
 %token <Lexing.position> LE
@@ -193,8 +194,10 @@ unary:
 literal:
 (* allow interpreting concatenation as multiplication *)
 | lhs = INTEGER; WHITESPACE?; rhs = literal; { Ast.Math.Op (Ast.Math.IntLiteral (snd lhs), Ast.Math.Times, rhs) }
+| lhs = REAL; WHITESPACE?; rhs = literal; { Ast.Math.Op (Ast.Math.FloatLiteral (snd lhs), Ast.Math.Times, rhs) }
 | lhs = VARIABLE; WHITESPACE?; rhs = literal; { Ast.Math.Op (Ast.Math.Variable (snd lhs), Ast.Math.Times, rhs) }
 | num = INTEGER; WHITESPACE?; { Ast.Math.IntLiteral (snd num) }
+| num = REAL; WHITESPACE?; { Ast.Math.FloatLiteral (snd num) }
 | var = VARIABLE; WHITESPACE?; { Ast.Math.Variable (snd var) }
 | f = function_call; { f }
 | s = set_literal; { s }
