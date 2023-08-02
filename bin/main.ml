@@ -7,6 +7,7 @@ let print_position outx lexbuf =
   fprintf outx "%s:%d:%d" pos.pos_fname
     pos.pos_lnum (pos.pos_cnum - pos.pos_bol + 1)
 
+(*
 let parse_with_error parser lexer str =
   let lexbuf = (from_string str) in
   try parser lexer lexbuf with
@@ -20,7 +21,6 @@ let parse_with_error parser lexer str =
 (* TODO: add basic expansion step to expand user-defined macros *)
 let parse_latex = parse_with_error Parser.start Lexer.token
 
-let parse_math = parse_with_error Parser.math_mode Lexer.math_token
 
 (* TODO: write a test suite *)
 
@@ -33,7 +33,8 @@ let main () =
   (* let result = parse_latex "$f(x) = x^2 = x * x \\leq 0$" in *)
   (* let result = parse_latex "$\\forall \\epsilon > 0, \\exists \\delta < \\epsilon s.t. \\forall x, 0 < |x| < \\delta \\implies |f(x)| < \\epsilon$" in *)
   (* let result = parse_latex "$x \\in \\mathbb{R}$\n$y = \\{x, z\\}$" in *)
-  let result = parse_latex "$P(x, y) = x - N^y$\n$P(1, 2)$\n$N = \\frac{1}{2}$" in
+  (* let result = parse_latex "$P(x, y) = x - N^y$\n$P(1, 2)$\n$N = \\frac{1}{2}$" in *)
+  let result = parse_latex "$\\frac{a}{b} = \\sqrt{2}$" in
   match result with
   | Some ast -> (
     (* Format.printf "%a\n" (Format.pp_print_list Ast.Latex.pp) ast; *)
@@ -54,6 +55,40 @@ let main () =
     Ast.Math.type_check !math_nodes
   )
   | None -> print_endline "None"
+*)
+
+let main () =
+  let filename = "tex/sample.tex" in
+  let lexbuf = from_channel (In_channel.create filename) in
+  let result = try Parser.start Lexer.token lexbuf with
+  | Lexer.LexError msg -> (
+    fprintf stderr "Lex Error (%a): %s\n" print_position lexbuf msg;
+    None
+  )
+  | Parser.Error -> (
+    fprintf stderr "Parse Error (%a)\n" print_position lexbuf;
+    None
+  )
+  in
+  match result with
+  | None -> fprintf stderr "Unable to parse. Exiting...\n"; exit (-1)
+  | Some ast -> (
+    let math_strings = Ast.Latex.get_all_math ast in
+    let math_nodes = ref [] in
+    List.iter math_strings ~f:(fun str ->
+      let lexbuf = from_string str in
+      let result = Parser.math_mode Lexer.math_token lexbuf in
+      match result with
+      | Some math -> (
+        Format.printf "%a\n" Ast.Math.pp math;
+        math_nodes := math :: !math_nodes;
+      )
+      | None -> printf "No math\n"
+    );
+    (* Format.printf "%a\n" (Format.pp_print_list ~pp_sep:(string_sep ", ") Format.pp_print_string) math_nodes *)
+    Ast.Math.type_check !math_nodes
+  )
+
 
 let () = main ();;
 

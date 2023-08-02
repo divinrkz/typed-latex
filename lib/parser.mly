@@ -42,6 +42,7 @@
 %token <Lexing.position> TIMES
 %token <Lexing.position> CARET
 %token <Lexing.position> UNDERSCORE
+%token <Lexing.position> SQRT
 %token <Lexing.position> FRAC
 %token <Lexing.position> SEPARATOR
 %token <Lexing.position * float> REAL
@@ -71,32 +72,45 @@
 %token <Lexing.position> LNOT
 %token <Lexing.position * string> TEXT
 
-%start <Ast.Latex.t list option> start
+%start <Ast.Latex.t option> start
 %start <Ast.Math.t option> math_mode
 
-%type <Ast.Text.word> word
 %type <Ast.Latex.t> content
 %type <Ast.Environment.t> environment
 %type <string> curly_word
 %%
 
 start:
-| all = content+; EOF { Some all }
+| all = content+; EOF { Some {Ast.Node.pos = Ast.loc_zero; value = Ast.Latex.Latex all} }
 | EOF { None }
 
 content:
 | env = environment { {Ast.Node.pos = Ast.loc_zero; value = Ast.Latex.Environment env} }
  (* below leads to a shift/reduce conflict, but menhir seems to work fine anyway *)
-| text = word+ { {Ast.Node.pos = Ast.loc_zero; value = Ast.Latex.Text text} } 
+| text = word { {Ast.Node.pos = Ast.loc_zero; value = Ast.Latex.Word text} } 
 | math = MATHMODE { {Ast.Node.pos = Ast.loc_zero; value = Ast.Latex.Mathmode (snd math)} } 
+| command = command { {Ast.Node.pos = Ast.loc_zero; value = Ast.Latex.Command (fst command, snd command) } } 
 
 word:
-| word_data = WORD { Ast.Text.Word (snd word_data) }
-| LINE_BREAK { Ast.Text.Linebreak }
-| WHITESPACE { Ast.Text.Whitespace }
-| LINE_COMMENT { Ast.Text.Whitespace }
-| COMMA { Ast.Text.Comma }
-| PIPE { Ast.Text.Pipe }
+| word_data = WORD { (snd word_data) }
+| LINE_BREAK { "\n" }
+| WHITESPACE { " " }
+| COMMA { "," }
+| PIPE { "|" }
+| LEFT_PAREN { "(" }
+| RIGHT_PAREN { ")" }
+| LEFT_BRACKET { "[" }
+| RIGHT_BRACKET { "]" }
+| EQ { "=" }
+| AMPERSAND { "&" }
+
+command:
+| command = COMMAND; args = command_args; { (snd command, args) }
+
+command_args:
+| LEFT_CURLY; contents = content*; RIGHT_CURLY { contents }
+| LEFT_BRACKET; contents = content*; RIGHT_BRACKET { contents }
+| { [] }
 
 (* TODO: environment args *)
 environment:
@@ -203,6 +217,7 @@ literal:
 | s = set_literal; { s }
 (* either a list of expressions or a comprehension *)
 (* fraction *)
+| SQRT; LEFT_CURLY; WHITESPACE?; lhs = expr; RIGHT_CURLY; WHITESPACE?; { Ast.Math.Unary (Ast.Math.Sqrt, lhs) }
 | FRAC; LEFT_CURLY; WHITESPACE?; numerator = expr; RIGHT_CURLY; LEFT_CURLY; WHITESPACE?; denominator = expr; RIGHT_CURLY; WHITESPACE?; { Ast.Math.Op (numerator, Ast.Math.Frac, denominator) }
 (* command with arg *)
 | command = COMMAND; LEFT_CURLY; arg = expr; RIGHT_CURLY; WHITESPACE? { Ast.Math.Command ((snd command), Some arg)}

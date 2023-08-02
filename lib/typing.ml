@@ -132,14 +132,15 @@ end
 
 module Constraint = struct
   type t =
-    | Equal of Type.t * Type.t (* a declaration that two types are equivalent, e.g. t1 = t2 *)
+    (* I realize that BoundedBy and Equal are semantically equivalent in this type system, so... *)
+    (* | Equal of Type.t * Type.t (* a declaration that two types are equivalent, e.g. t1 = t2 *) *)
     | BoundedBy of Type.t * Type.t (* a declaration that one type is a subset of another, e.g. t1 <= t2 *)
   [@@deriving eq, sexp, hash]
 
   let compare a b = if equal a b then 0 else 1
 
   let pp formatter c = match c with
-    | Equal (a, b) -> Format.fprintf formatter "[ %a = %a ]" Type.pp a Type.pp b
+    (* | Equal (a, b) -> Format.fprintf formatter "[ %a = %a ]" Type.pp a Type.pp b *)
     | BoundedBy (a, b) -> Format.fprintf formatter "[ %a < %a ]" Type.pp a Type.pp b
 end
 
@@ -159,18 +160,19 @@ module Constraints = struct
 
   let add constraints c = match c with
     (* ignore trivial constraints *)
-    | Constraint.Equal (Type.Bool, Type.Bool) -> ()
-    | Equal (Type.Any t1, Type.Any t2) when Var.equal t1 t2 -> ()
+    | Constraint.BoundedBy (Type.Bool, Type.Bool) -> ()
+    | BoundedBy (Type.Any t1, Type.Any t2) when Var.equal t1 t2 -> ()
+    | BoundedBy (Type.Number n1 , Type.Number n2) when Type.is_bounded_by n1 n2 -> ()
     (* keep nontrivial constraints *)
-    | Equal (Any _, _) | Equal (_, Any _)
-    | Equal (Set _, Set _) -> (
+    | BoundedBy (Any _, _) | BoundedBy (_, Any _)
+    | BoundedBy (Set _, Set _) -> (
       Hash_set.add constraints c
     )
     | BoundedBy _ -> (
       Hash_set.add constraints c
     )
     (* reject impossible constraints *)
-    | _ -> raise (TypeError "Type error")
+    (* | _ -> raise (TypeError "Type error") *)
   
   let length = Hash_set.length
 end
@@ -257,7 +259,7 @@ let rec apply (subs: Substitutions.t) (t: Type.t) =
 (* (t1 = t2) S => t1 S = t2 S *)
 let apply_c (subs: Substitutions.t) (c: Constraint.t) =
   match c with
-  | Equal (a, b) -> Constraint.Equal (apply subs a, apply subs b)
+  (* | Equal (a, b) -> Constraint.Equal (apply subs a, apply subs b) *)
   | BoundedBy (a, b) -> Constraint.BoundedBy (apply subs a, apply subs b)
 
 let apply_cs (subs: Substitutions.t) (cs: Constraints.t) = Constraints.map ~f:(apply_c subs) cs
@@ -285,44 +287,45 @@ let unify constraints =
       Hash_set.remove cs hd;
       match hd with
         (* basic cases that don't require any logic *)
-        | Equal (Type.Number n1 , Type.Number n2) when Type.is_bounded_by n1 n2 -> recurse cs acc
-        | Equal (Bool, Bool) -> recurse cs acc
-        | Equal (Any t, Any u) when Var.equal t u -> recurse cs acc
+        (* | Equal (Type.Number n1 , Type.Number n2) when Type.equal_number n1 n2 -> recurse cs acc *)
+        | BoundedBy (Bool, Bool) -> recurse cs acc
+        | BoundedBy (Any t, Any u) when Var.equal t u -> recurse cs acc
         (* basic substitutions *)
-        | Equal (Any t, u) -> (
+        | BoundedBy (Any t, u) -> (
           if not (occurs_in t u) then
             let s = (u, t) in
             recurse (apply_cs [s] cs) (s :: acc)
           else
             raise (TypeError "Could not unify types 1")
         )
-        | Equal (u, Any t) -> (
+        | BoundedBy (u, Any t) -> (
           if not (occurs_in t u) then
             let s = (u, t) in
             recurse (apply_cs [s] cs) (s :: acc)
           else
             raise (TypeError "Could not unify types 2")
         )
-        | Equal (Set x, Set y) -> (
-          Hash_set.add cs (Equal (x, y));
+        | BoundedBy (Set x, Set y) -> (
+          Hash_set.add cs (BoundedBy (x, y));
           recurse cs acc
         )
         (* arithmetic and type promotion *)
-        | BoundedBy (Any t, u) -> (
-          if not (occurs_in t u) then
-            let s = (u, t) in
-            recurse (apply_cs [s] cs) (s :: acc)
-          else
-            raise (TypeError "Could not unify types 3")
+        | BoundedBy (Type.Number n1 , Type.Number n2) when Type.is_bounded_by n1 n2 -> recurse cs acc
+        (* these bounds are weaker, but it's probably the best we can reasonably do without backtracking *)
+        (* ex: if we have \frac{a}{b} = \sqrt{2}, we don't know if a is real, b is real, or both.*)
+        (* we will just assume that both are real*)
+        | BoundedBy (Bound(a, _, b), c) -> (
+          Hash_set.add cs (BoundedBy (a, c));
+          Hash_set.add cs (BoundedBy (b, c));
+          recurse cs acc
         )
-        | BoundedBy (u, Any t) -> (
-          if not (occurs_in t u) then
-            let s = (u, t) in
-            recurse (apply_cs [s] cs) (s :: acc)
-          else
-            raise (TypeError "Could not unify types 4")
+        | BoundedBy (c, Bound(a, _, b)) -> (
+          Hash_set.add cs (BoundedBy (a, c));
+          Hash_set.add cs (BoundedBy (b, c));
+          recurse cs acc
         )
-        | _ -> raise (TypeError "Could not unify types 5")
+        (* | _ -> recurse cs acc *)
+        | _ -> raise (TypeError (Format.asprintf "Could not unify types 5: %a" Constraint.pp hd))
   in
   let copy = Hash_set.copy constraints in (* prevent original set from being modified *)
   (* need to reverse list since it was built up in reverse in the above recursion *)
@@ -378,7 +381,7 @@ let test () =
   let x = Type.Any t0 in
   let y = Type.Number Integer in
   let constraints = Constraints.create () in
-  Constraints.add constraints (Equal (x, y));
+  Constraints.add constraints (BoundedBy (x, y));
   let subs = unify constraints in
   Format.printf "%a\n" Substitutions.pp subs;
   let p = apply subs x in

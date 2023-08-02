@@ -1,3 +1,5 @@
+(copy_files "../tex/*.tex")
+
 (executable
  (public_name typed_latex)
  (name main)

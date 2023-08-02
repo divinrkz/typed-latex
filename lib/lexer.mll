@@ -28,14 +28,15 @@ let end_env = "\\end{" ['a'-'z' 'A'-'Z']+ '}'
 
 let math_sep = "\\\\" | '&'
 (* does not check for matching begin/end, assume latex lsp will catch that *)
-let begin_math = '$' '$'? | "\\[" | "\\begin{math}"
-let end_math = '$' '$'? | "\\]" | "\\end{math}"
+let begin_math = '$' '$'? | "\\[" | "\\begin{math}" | "\\begin{equation}"
+let end_math = '$' '$'? | "\\]" | "\\end{math}" | "\\end{equation}"
 
 rule token =
   parse
-  | linebreak   { LINE_BREAK lexbuf.lex_curr_p }
+  | linebreak   { Lexing.new_line lexbuf; LINE_BREAK lexbuf.lex_curr_p }
   | whitespace  { WHITESPACE lexbuf.lex_curr_p }
-  | linecomment { LINE_COMMENT (lexbuf.lex_curr_p, Lexing.lexeme lexbuf) }
+  (* | linecomment { LINE_COMMENT (lexbuf.lex_curr_p, Lexing.lexeme lexbuf) } *)
+  | linecomment { token lexbuf } (* just ignore line comments for now *)
   | '{'         { LEFT_CURLY lexbuf.lex_curr_p }
   | '}'         { RIGHT_CURLY lexbuf.lex_curr_p }
   | '['         { LEFT_BRACKET lexbuf.lex_curr_p}
@@ -50,15 +51,18 @@ rule token =
   | begin_env   { BEGIN (lexbuf.lex_curr_p, Lexing.lexeme lexbuf) }
   | end_env     { END (lexbuf.lex_curr_p, Lexing.lexeme lexbuf) }
   | command     { COMMAND (lexbuf.lex_curr_p, Lexing.lexeme lexbuf) }
-  | word        { WORD (lexbuf.lex_curr_p, Lexing.lexeme lexbuf) }
+  | text        { WORD (lexbuf.lex_curr_p, Lexing.lexeme lexbuf) }
   | eof         { EOF lexbuf.lex_curr_p }
   | _           { raise (LexError ("Unexpected char: " ^ Lexing.lexeme lexbuf)) }
 and mathmode buf =
   parse
+  | linebreak   { Lexing.new_line lexbuf; mathmode buf lexbuf}
+  | whitespace  { Buffer.add_string buf (Lexing.lexeme lexbuf); mathmode buf lexbuf }
+  | linecomment { mathmode buf lexbuf}
   | end_math    { Buffer.contents buf }
-  | [^ '$']+    { Buffer.add_string buf (Lexing.lexeme lexbuf); mathmode buf lexbuf}
+  | [^ '$' '\n' '\r' '\t' ' ']+    { Buffer.add_string buf (Lexing.lexeme lexbuf); mathmode buf lexbuf}
   | _           { raise (LexError ("Unexpected char in math mode: " ^ Lexing.lexeme lexbuf)) }
-  | eof         { raise (LexError ("Math mode is not terminated")) }
+  | eof         { raise (LexError (Format.sprintf "Math mode is not terminated")) }
 and math_token =
   parse
   (* syntax *)
@@ -83,6 +87,7 @@ and math_token =
   | '>'         { GE lexbuf.lex_curr_p}
   | "\\leq"     { LEQ lexbuf.lex_curr_p}
   | "\\geq"     { GEQ lexbuf.lex_curr_p}
+  | "\\sqrt"    { SQRT lexbuf.lex_curr_p}
   | "\\frac"    { FRAC lexbuf.lex_curr_p}
   (* set ops *)
   | "\\{"       { SET_OPEN lexbuf.lex_curr_p }

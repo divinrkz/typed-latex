@@ -24,24 +24,6 @@ let loc_zero = {
   }
 }
 
-module Node = struct
-  type 'node t = {
-    pos: location;
-    value: 'node;
-  }
-end
-
-module Text = struct
-  type word =
-    | Word of string
-    | Comma
-    | Pipe
-    | Whitespace
-    | Linebreak
-
-  type t = word list
-
-end
 
 module rec Math : sig
   type operator =
@@ -54,6 +36,7 @@ module rec Math : sig
 
   type unary =
     | Negate
+    | Sqrt
     | Not
     | Abs
 
@@ -119,6 +102,7 @@ end = struct
 
   type unary =
     | Negate
+    | Sqrt
     | Not
     | Abs
 
@@ -168,6 +152,7 @@ end = struct
     | Negate -> "-"
     | Not -> "NOT"
     | Abs -> "ABS"
+    | Sqrt -> "SQRT"
 
   let string_of_operator = function
     | Plus -> "+"
@@ -335,7 +320,7 @@ end = struct
           if List.length args <> List.length args_t then
             raise (Typing.TypeError (Format.sprintf "Conflicting declarations for function %s" name))
           else
-            List.iter (List.zip_exn args args_t) ~f:(fun (x, y) -> add_constraint (Equal (recurse env x, Typing.Type.Any y)));
+            List.iter (List.zip_exn args args_t) ~f:(fun (x, y) -> add_constraint (BoundedBy (recurse env x, Typing.Type.Any y)));
             (args_t, return_t)
         )
       | None -> (
@@ -349,15 +334,15 @@ end = struct
       | LogicOp (lhs, _, rhs) -> (
         let lhs_t = recurse env lhs in
         let rhs_t = recurse env rhs in
-        add_constraint(Equal (lhs_t, Typing.Type.Bool));
-        add_constraint(Equal (rhs_t, Typing.Type.Bool));
+        add_constraint(BoundedBy (lhs_t, Typing.Type.Bool));
+        add_constraint(BoundedBy (rhs_t, Typing.Type.Bool));
         Typing.Type.Bool;
       )
       | Logic (lhs, _, rhs) -> (
           let lhs_t = recurse env lhs in
           let rhs_t = recurse env rhs in
-          add_constraint(Equal (lhs_t, Typing.Type.Bool));
-          add_constraint(Equal (rhs_t, Typing.Type.Bool));
+          add_constraint(BoundedBy (lhs_t, Typing.Type.Bool));
+          add_constraint(BoundedBy (rhs_t, Typing.Type.Bool));
           Typing.Type.Bool;
       )
       | Op (lhs, op, rhs) -> (match op with
@@ -393,8 +378,8 @@ end = struct
           let t = Typing.Var.fresh () in
           let lhs_t = recurse env lhs in
           let rhs_t = recurse env rhs in
-          add_constraint (Equal (lhs_t, Typing.Type.Set (Typing.Type.Any t)));
-          add_constraint (Equal (rhs_t, Typing.Type.Set (Typing.Type.Any t)));
+          add_constraint (BoundedBy (lhs_t, Typing.Type.Set (Typing.Type.Any t)));
+          add_constraint (BoundedBy (rhs_t, Typing.Type.Set (Typing.Type.Any t)));
           Typing.Type.Set (Typing.Type.Any t)
         )
       )
@@ -409,13 +394,21 @@ end = struct
         )
         | Not -> (
           let lhs_t = recurse env lhs in
-          add_constraint (Equal (lhs_t, Typing.Type.Bool));
+          add_constraint (BoundedBy (lhs_t, Typing.Type.Bool));
           Typing.Type.Bool
         )
         | Abs -> (
           let lhs_t = recurse env lhs in
           add_constraint (BoundedBy (lhs_t, Typing.Type.Number Natural));
           lhs_t
+        )
+        | Sqrt -> (
+          let t = Typing.Var.fresh () in
+          let lhs_t = recurse env lhs in
+          (* ensure that contents are numeric, but result is always real *)
+          add_constraint (BoundedBy (lhs_t, Typing.Type.Number Real));
+          add_constraint (BoundedBy (Typing.Type.Any t, Typing.Type.Number Real));
+          Typing.Type.Any t
         )
       )
       | IntLiteral _ -> Typing.Type.Number Natural
@@ -466,10 +459,10 @@ end = struct
                 seen.sup <- true;
                 (* ensure prev_t is a set *)
                 let u = Typing.Var.fresh () in
-                add_constraint (Equal (prev_t, Typing.Type.Set (Typing.Type.Any u)));
+                add_constraint (BoundedBy (prev_t, Typing.Type.Set (Typing.Type.Any u)));
                 (* next t should also a set of the same type *)
                 let t = recurse env expr in
-                add_constraint (Equal (prev_t, t));
+                add_constraint (BoundedBy (prev_t, t));
                 iter t tl
               )
               | (Subset, _) | (SubsetEq, _) when seen.sup -> raise (Typing.TypeError "Superset(eq) should not be followed by subset(eq)")
@@ -477,20 +470,20 @@ end = struct
                 seen.sub <- true;
                 (* ensure prev_t is a set *)
                 let u = Typing.Var.fresh () in
-                add_constraint (Equal (prev_t, Typing.Type.Set (Typing.Type.Any u)));
+                add_constraint (BoundedBy (prev_t, Typing.Type.Set (Typing.Type.Any u)));
                 (* next t should also a set of the same type *)
                 let t = recurse env expr in
-                add_constraint (Equal (prev_t, t));
+                add_constraint (BoundedBy (prev_t, t));
                 iter t tl
               )
               | (In, expr) | (NotIn, expr) -> (
                 let t = recurse env expr in
-                add_constraint (Equal (Typing.Type.Set prev_t, t));
+                add_constraint (BoundedBy (Typing.Type.Set prev_t, t));
                 iter (Typing.Type.Set prev_t) tl
               )
               | (Eq, expr) -> (
                 let t = recurse env expr in
-                add_constraint (Equal (prev_t, t));
+                add_constraint (BoundedBy (prev_t, t));
                 iter t tl
               )
             )
@@ -518,7 +511,7 @@ end = struct
           | Variable name -> recurse_fn env name args
           | _ -> raise (Typing.TypeError "Cannot apply non-function")
         ) in
-        List.iter (List.zip_exn args args_t) ~f:(fun (x, y) -> add_constraint (Equal (recurse env x, Typing.Type.Any y)));
+        List.iter (List.zip_exn args args_t) ~f:(fun (x, y) -> add_constraint (BoundedBy (recurse env x, Typing.Type.Any y)));
         Typing.Type.Any return_t
       )
       (* TODO: ignore subscripts for now *)
@@ -547,7 +540,8 @@ end = struct
             let t = Typing.Var.fresh () in
             Typing.Type.Any t
           )
-          | _ -> raise (Typing.TypeError "Command not yet implemented")
+          | _ -> Typing.Type.Any (Typing.Var.fresh ())
+          (* | _ -> raise (Typing.TypeError "Command not yet implemented") *)
       )
       | Forall (expr, next) -> (
         let child = capture env expr in
@@ -575,7 +569,7 @@ end = struct
         let t = Typing.Var.fresh () in
         List.iter ~f:(fun expr ->
           let u = recurse env expr in
-          add_constraint (Equal (u, Typing.Type.Any t))
+          add_constraint (BoundedBy (u, Typing.Type.Any t))
         ) lhs;
         Typing.Type.Set (Typing.Type.Any t)
       )
@@ -619,11 +613,12 @@ end = struct
 
     let subs = Typing.unify constraints in
 
+    (* everything in the top level environment is a free variable *)
     match top_level with
     | Env (vars, _) -> (
       Hashtbl.iteri vars ~f:(fun ~key ~data ->
         let principal_type = Typing.simplify subs (Typing.Type.Any data) in
-        Format.printf "val %s : %a\n" key Typing.Type.pp principal_type;
+        Format.printf "val (%a) %s : %a\n" Typing.Var.pp data key Typing.Type.pp principal_type;
       );
 
       Hashtbl.iteri functions ~f:(fun ~key ~data ->
@@ -652,7 +647,15 @@ and Statement: sig
       n = 2 * m
       m = 2 * n
       # n -> m -> n
-        *)
+
+      P(n) = 2n = 4 < 3n simplifies to:
+        P(n) = 2n
+        P(n) = 4
+        2n = 4 (where n is a captured variable, not free)
+        P(n) < 3n
+        2n < 3n
+        4 < 3n
+    *)
     (* 
        While walking the tree, generate a dependency graph linking nodes to free variables and (constant) functions.
        Then, after walking, go through all the constant nodes, evaluate them, and evaluate the nodes that depend on them recursively as far as possible.
@@ -669,6 +672,12 @@ end = struct
     | Definition of Math.t
 end
 
+module Node = struct
+  type 'node t = {
+    pos: location;
+    value: 'node;
+  }
+end
 
 module rec Environment : sig
   (* store both begin and end name to verify environment is valid *)
@@ -691,43 +700,52 @@ end = struct
 end
 and Latex: sig
   type latex =
-    | Text of Text.t
+    | Word of string
+    | Command of string * t list
     | Environment of Environment.t
     | Mathmode of Mathmode.t
-
-  type t = latex Node.t
+    | Latex of t list
+  and t = latex Node.t
 
   val pp: Format.formatter -> t -> unit
+  val pp_list: Format.formatter -> t list -> unit
+  val get_all_math: t -> string list
 end = struct
   type latex =
-    | Text of Text.t
+    | Word of string
+    | Command of string * t list
     | Environment of Environment.t
     | Mathmode of Mathmode.t
-
-  type t = latex Node.t
+    | Latex of t list
+  and t = latex Node.t
 
   module PrettyPrinter = struct
-    let pp_text formatter (text: Text.t) =
-      let string_of_word = function
-        | Text.Word x -> sprintf "WORD[%s]" x
-        | Text.Comma -> "COMMA"
-        | Text.Pipe -> "PIPE"
-        | Text.Whitespace -> " "
-        | Text.Linebreak -> "\n"
-      in
-      let strings = List.map ~f:string_of_word text in
-      Format.fprintf formatter "TEXT[%s]" (String.concat ~sep:"" strings)
-
     let rec pp_environment formatter (env: Environment.t) =
       let contents = Format.pp_print_list pp_latex in
-      Format.fprintf formatter "%s[\n%a\n]" (Environment.name env) contents (snd env)
+      Format.fprintf formatter "(%s %a)" (Environment.name env) contents (snd env)
     and pp_mathmode formatter math = Format.fprintf formatter "MATH[%s]" math
     and pp_latex formatter (latex: t) = match latex with
-    | {pos = _; value = Text text} -> pp_text formatter text
+    | {pos = _; value = Word word} -> Format.fprintf formatter "%s" word
     | {pos = _; value = Environment env} -> pp_environment formatter env
     | {pos = _; value = Mathmode math} -> pp_mathmode formatter math
+    | {pos = _; value = Command (name, args)} -> Format.fprintf formatter "(\\%s %a)" name (Format.pp_print_list ~pp_sep:(string_sep " ") pp_latex) args
+    | {pos = _; value = Latex contents} -> Format.fprintf formatter "(%a)" (Format.pp_print_list pp_latex) contents
 end
 
   let pp formatter latex = Format.fprintf formatter "%a" PrettyPrinter.pp_latex latex
+
+  let pp_list formatter asts = Format.fprintf formatter "%a\n" (Format.pp_print_list ~pp_sep:(string_sep "\n") pp) asts
+
+  let get_all_math node =
+    let acc = ref [] in
+    let rec recurse acc (node: t) = match node with
+    | {pos = _; value = Word _} -> ()
+    | {pos = _; value = Environment (_, contents)} -> List.iter ~f:(recurse acc) contents
+    | {pos = _; value = Mathmode math} -> acc := math :: !acc
+    | {pos = _; value = Command (_, args)} -> List.iter ~f:(recurse acc) args
+    | {pos = _; value = Latex contents} -> List.iter ~f:(recurse acc) contents
+    in
+    recurse acc node;
+    List.rev !acc
 end
 
