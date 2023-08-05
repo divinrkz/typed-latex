@@ -1,13 +1,13 @@
 open Core
 open Lexing
 open Typed_latex
+open Util
 
 let print_position outx lexbuf =
   let pos = lexbuf.lex_curr_p in
   fprintf outx "%s:%d:%d" pos.pos_fname
     pos.pos_lnum (pos.pos_cnum - pos.pos_bol + 1)
 
-(*
 let parse_with_error parser lexer str =
   let lexbuf = (from_string str) in
   try parser lexer lexbuf with
@@ -17,6 +17,7 @@ let parse_with_error parser lexer str =
   | Parser.Error ->
     fprintf stderr "%a: parse error\n" print_position lexbuf;
     exit (-1)
+(*
 
 (* TODO: add basic expansion step to expand user-defined macros *)
 let parse_latex = parse_with_error Parser.start Lexer.token
@@ -58,7 +59,8 @@ let main () =
 *)
 
 let main () =
-  let filename = "tex/sample.tex" in
+  let filename = "tex/sample2.tex" in
+  let () = Format.printf "here\n" in
   let lexbuf = from_channel (In_channel.create filename) in
   let result = try Parser.start Lexer.token lexbuf with
   | Lexer.LexError msg -> (
@@ -73,17 +75,32 @@ let main () =
   match result with
   | None -> fprintf stderr "Unable to parse. Exiting...\n"; exit (-1)
   | Some ast -> (
-    let math_strings = Ast.Latex.get_all_math ast in
+    (* Format.printf "%a" Ast.Latex.pp ast; *)
+    let math = Ast.Latex.get_all_math ast in
     let math_nodes = ref [] in
-    List.iter math_strings ~f:(fun str ->
-      let lexbuf = from_string str in
-      let result = Parser.math_mode Lexer.math_token lexbuf in
-      match result with
-      | Some math -> (
-        Format.printf "%a\n" Ast.Math.pp math;
-        math_nodes := math :: !math_nodes;
+    List.iter math ~f:(fun ast ->
+      match ast with
+      | Mathmode str -> (
+        Format.printf "Trying to parse math: %s\n" str;
+        let result = parse_with_error Parser.math_mode Lexer.math_token str in
+        match result with
+        | Some math -> (
+          Format.printf "%a\n" Ast.Math.pp math;
+          math_nodes := math :: !math_nodes;
+        )
+        | None -> printf "No math\n"
       )
-      | None -> printf "No math\n"
+      | Multiline str -> (
+        Format.printf "Trying to parse multiline: %s\n" str;
+        let result = parse_with_error Parser.multiline Lexer.math_token str in
+        match result with
+        | Some math -> (
+          Format.printf "%a\n" (Format.pp_print_list ~pp_sep:(string_sep "\n") Ast.Math.pp) math;
+          math_nodes := List.append math !math_nodes;
+        )
+        | None -> printf "No math\n"
+      )
+      | _ -> fprintf stderr "Math environment neither mathmode nor multiline. Exiting...\n"; exit (-1)
     );
     (* Format.printf "%a\n" (Format.pp_print_list ~pp_sep:(string_sep ", ") Format.pp_print_string) math_nodes *)
     Ast.Math.type_check !math_nodes

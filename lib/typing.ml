@@ -117,16 +117,20 @@ let widen a b = match (a, b) with
   type t =
     | Number of number
     | Bound of t * op * t
+    | Tuple of t
     | Bool
     | Set of t
+    | Sequence of t
     | Any of Var.t
   [@@deriving eq, sexp, hash]
 
   let rec pp formatter math = match math with
     | Number t -> Format.fprintf formatter "%a" pp_number t
     | Bound (t1, op, t2) -> Format.fprintf formatter "BOUND<%a %a %a>" pp t1 pp_op op pp t2
+    | Tuple t -> Format.fprintf formatter "TUPLE<%a>" pp t
     | Bool -> Format.fprintf formatter "BOOL"
     | Set t -> Format.fprintf formatter "SET<%a>" pp t
+    | Sequence t -> Format.fprintf formatter "SEQ[%a]" pp t
     | Any t -> Var.pp formatter t
 end
 
@@ -247,6 +251,8 @@ let rec apply1 (sub: Substitution.t) (t: Type.t) =
     | Number n -> Type.Number n
     | Bool -> Type.Bool
     | Set u -> Type.Set (apply1 sub u)
+    | Tuple u -> Type.Tuple (apply1 sub u)
+    | Sequence u -> Type.Sequence (apply1 sub u)
     | Any u -> if Var.equal (snd sub) u then (fst sub) else Type.Any u
     | Bound (a, op, b) -> Type.Bound (apply1 sub a, op, apply1 sub b)
 
@@ -274,6 +280,8 @@ let rec occurs_in t (u: Type.t) =
     | Bool -> false
     | Bound (a, _, b) -> occurs_in t a || occurs_in t b
     | Set v -> occurs_in t v
+    | Tuple v -> occurs_in t v
+    | Sequence v -> occurs_in t v
     | Any v -> Var.equal t v
 
 let unify constraints =
@@ -281,7 +289,7 @@ let unify constraints =
     if (Constraints.length cs = 0) then
       acc
     else
-      (* let _ = Format.printf "Constraints: %a\n" Constraints.pp cs in *)
+      let _ = Format.printf "Constraints: %a\n" Constraints.pp cs in
       (* pick out any element from the set of constraints *)
       let hd = Option.value_exn (Constraints.first cs) in
       Hash_set.remove cs hd;
@@ -290,6 +298,35 @@ let unify constraints =
         (* | Equal (Type.Number n1 , Type.Number n2) when Type.equal_number n1 n2 -> recurse cs acc *)
         | BoundedBy (Bool, Bool) -> recurse cs acc
         | BoundedBy (Any t, Any u) when Var.equal t u -> recurse cs acc
+        | BoundedBy (Set x, Set y) -> (
+          Constraints.add cs (BoundedBy (x, y));
+          recurse cs acc
+        )
+        | BoundedBy (Sequence x, Sequence y) -> (
+          Constraints.add cs (BoundedBy (x, y));
+          recurse cs acc
+        )
+        (* arithmetic and type promotion *)
+        | BoundedBy (Type.Number n1 , Type.Number n2) when Type.is_bounded_by n1 n2 -> recurse cs acc
+        (* these bounds are weaker, but it's probably the best we can reasonably do without backtracking *)
+        (* ex: if we have \frac{a}{b} = \sqrt{2}, we don't know if a is real, b is real, or both.*)
+        (* we will just assume that both are real*)
+        | BoundedBy (Bound(a, _, b), c) -> (
+          (* for now, bounds only include numeric ops *)
+          Constraints.add cs (BoundedBy (Type.Number Natural, a));
+          Constraints.add cs (BoundedBy (Type.Number Natural, b));
+          Constraints.add cs (BoundedBy (a, c));
+          Constraints.add cs (BoundedBy (b, c));
+          recurse cs acc
+        )
+        | BoundedBy (c, Bound(a, _, b)) -> (
+          (* for now, bounds only include numeric ops *)
+          Constraints.add cs (BoundedBy (Type.Number Natural, a));
+          Constraints.add cs (BoundedBy (Type.Number Natural, b));
+          Constraints.add cs (BoundedBy (a, c));
+          Constraints.add cs (BoundedBy (b, c));
+          recurse cs acc
+        )
         (* basic substitutions *)
         | BoundedBy (Any t, u) -> (
           if not (occurs_in t u) then
@@ -305,27 +342,8 @@ let unify constraints =
           else
             raise (TypeError "Could not unify types 2")
         )
-        | BoundedBy (Set x, Set y) -> (
-          Hash_set.add cs (BoundedBy (x, y));
-          recurse cs acc
-        )
-        (* arithmetic and type promotion *)
-        | BoundedBy (Type.Number n1 , Type.Number n2) when Type.is_bounded_by n1 n2 -> recurse cs acc
-        (* these bounds are weaker, but it's probably the best we can reasonably do without backtracking *)
-        (* ex: if we have \frac{a}{b} = \sqrt{2}, we don't know if a is real, b is real, or both.*)
-        (* we will just assume that both are real*)
-        | BoundedBy (Bound(a, _, b), c) -> (
-          Hash_set.add cs (BoundedBy (a, c));
-          Hash_set.add cs (BoundedBy (b, c));
-          recurse cs acc
-        )
-        | BoundedBy (c, Bound(a, _, b)) -> (
-          Hash_set.add cs (BoundedBy (a, c));
-          Hash_set.add cs (BoundedBy (b, c));
-          recurse cs acc
-        )
         (* | _ -> recurse cs acc *)
-        | _ -> raise (TypeError (Format.asprintf "Could not unify types 5: %a" Constraint.pp hd))
+        | _ -> raise (TypeError (Format.asprintf "Could not unify types 5: %a with constraints %a" Constraint.pp hd Constraints.pp cs))
   in
   let copy = Hash_set.copy constraints in (* prevent original set from being modified *)
   (* need to reverse list since it was built up in reverse in the above recursion *)
@@ -372,6 +390,7 @@ let simplify subs t =
     | _ ->  Number Real
   )
   | Set u -> Set (recurse u)
+  | Sequence u -> Sequence (recurse u)
   | _ -> t
   in
   recurse t

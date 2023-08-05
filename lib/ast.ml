@@ -24,7 +24,6 @@ let loc_zero = {
   }
 }
 
-
 module rec Math : sig
   type operator =
     | Plus
@@ -66,7 +65,7 @@ module rec Math : sig
     | Unary of unary * t
     | Relation of t * (relation * t) list (* LHS (= RHS)+ *)
     | LogicOp of t * logic_op * t
-    | Logic of t * logic * t
+    | Logic of t * (logic * t) list
     | IntLiteral of int
     | FloatLiteral of float
     | SetComprehension of t * t (* { expr | relation }*)
@@ -82,6 +81,8 @@ module rec Math : sig
     | Exists of t * t (* exists X, Y *)
     | Suchthat of t (* s.t. X *)
     | Text of string
+    | Summation of t * t * t
+    | Tuple of t list
 
   val pp: Format.formatter -> t -> unit
 
@@ -132,7 +133,7 @@ end = struct
     | Unary of unary * t
     | Relation of t * (relation * t) list
     | LogicOp of t * logic_op * t
-    | Logic of t * logic * t
+    | Logic of t * (logic * t) list
     | IntLiteral of int
     | FloatLiteral of float
     | SetComprehension of t * t (* { expr | relation }*)
@@ -147,6 +148,8 @@ end = struct
     | Exists of t * t
     | Suchthat of t
     | Text of string
+    | Summation of t * t * t
+    | Tuple of t list
 
   let string_of_unary = function
     | Negate -> "-"
@@ -209,7 +212,10 @@ end = struct
   let rec pp formatter math = match math with
     | Op (lhs, op, rhs) -> Format.fprintf formatter "(%s %a %a)" (string_of_operator op) pp lhs pp rhs
     | LogicOp (lhs, op, rhs) -> Format.fprintf formatter "(%s %a %a)" (string_of_logic_op op) pp lhs pp rhs
-    | Logic (lhs, op, rhs) -> Format.fprintf formatter "(%s %a %a)" (string_of_logic op) pp lhs pp rhs
+    | Logic (lhs, rhs) -> (
+      let pp_pair = fun formatter -> fun (rel, t) -> Format.fprintf formatter "%s %a" (string_of_logic rel) pp t in
+      Format.fprintf formatter "(%a %a)" pp lhs (Format.pp_print_list ~pp_sep:(string_sep " ") pp_pair) (List.rev rhs);
+    )
     | Unary (op, lhs) -> Format.fprintf formatter "(%s %a)" (string_of_unary op) pp lhs
     | IntLiteral num -> Format.fprintf formatter "%i" num
     | FloatLiteral num -> Format.fprintf formatter "%f" num
@@ -217,11 +223,11 @@ end = struct
     | Grouping expr -> Format.fprintf formatter "%a" pp expr
     | Relation (lhs, rhs) -> (
       let pp_pair = fun formatter -> fun (rel, t) -> Format.fprintf formatter "%s %a" (string_of_relation rel) pp t in
-      Format.fprintf formatter "(%a %a)" pp lhs (Format.pp_print_list ~pp_sep:(string_sep " ") pp_pair) rhs;
+      Format.fprintf formatter "(%a %a)" pp lhs (Format.pp_print_list ~pp_sep:(string_sep " ") pp_pair) (List.rev rhs);
     )
     | Apply (lhs, rhs) -> Format.fprintf formatter "(%a %a)"  pp lhs (Format.pp_print_list ~pp_sep:(string_sep " ") pp) rhs
     | Subscript (lhs, rhs) -> Format.fprintf formatter "%a_%a"  pp lhs pp rhs
-    | Superscript (lhs, rhs) -> Format.fprintf formatter "%a^%a"  pp lhs pp rhs
+    | Superscript (lhs, rhs) -> Format.fprintf formatter "(^ %a %a)"  pp lhs pp rhs
     | Command (name, arg) -> (match arg with
       | Some thing -> Format.fprintf formatter "%s{%a}" name pp thing
       | None -> Format.fprintf formatter "%s" name
@@ -232,6 +238,8 @@ end = struct
     | SetLiteral contents -> Format.fprintf formatter "{ %a }" (Format.pp_print_list ~pp_sep:(string_sep ", ") pp) contents
     | SetComprehension (lhs, rhs) -> Format.fprintf formatter "{ %a | %a }" pp lhs pp rhs
     | Text str -> Format.fprintf formatter "%s" str
+    | Summation (low, high, body) -> Format.fprintf formatter "(SUM_%a^%a %a)" pp low pp high pp body
+    | Tuple contents -> Format.fprintf formatter "(%a)" (Format.pp_print_list ~pp_sep:(string_sep ", ") pp) contents
 
   (* type statement = *)
   (*   | Logical of t * logic * t *)
@@ -314,6 +322,7 @@ end = struct
         child
     in
 
+    (* TODO: check if all the bounds are correct. Order matters now... *)
     let rec recurse_fn env name args =
       match get_fn functions name with
       | Some (args_t, return_t) -> (
@@ -338,12 +347,14 @@ end = struct
         add_constraint(BoundedBy (rhs_t, Typing.Type.Bool));
         Typing.Type.Bool;
       )
-      | Logic (lhs, _, rhs) -> (
-          let lhs_t = recurse env lhs in
-          let rhs_t = recurse env rhs in
-          add_constraint(BoundedBy (lhs_t, Typing.Type.Bool));
+      | Logic (lhs, rhs) -> (
+        let lhs_t = recurse env lhs in
+        List.iter (List.rev rhs) ~f:(fun x ->
+          let rhs_t = recurse env (snd x) in
           add_constraint(BoundedBy (rhs_t, Typing.Type.Bool));
-          Typing.Type.Bool;
+        );
+        add_constraint(BoundedBy (lhs_t, Typing.Type.Bool));
+        Typing.Type.Bool;
       )
       | Op (lhs, op, rhs) -> (match op with
         | Plus -> (
@@ -399,14 +410,14 @@ end = struct
         )
         | Abs -> (
           let lhs_t = recurse env lhs in
-          add_constraint (BoundedBy (lhs_t, Typing.Type.Number Natural));
+          add_constraint (BoundedBy (Typing.Type.Number Natural, lhs_t));
           lhs_t
         )
         | Sqrt -> (
           let t = Typing.Var.fresh () in
           let lhs_t = recurse env lhs in
           (* ensure that contents are numeric, but result is always real *)
-          add_constraint (BoundedBy (lhs_t, Typing.Type.Number Real));
+          add_constraint (BoundedBy (Typing.Type.Number Natural, lhs_t));
           add_constraint (BoundedBy (Typing.Type.Any t, Typing.Type.Number Real));
           Typing.Type.Any t
         )
@@ -442,16 +453,16 @@ end = struct
               | (Le, expr) | (Leq, expr) -> (
                 seen.le <- true;
                 let t = recurse env expr in
-                add_constraint (BoundedBy (prev_t, Typing.Type.Number Natural));
-                add_constraint (BoundedBy (t, Typing.Type.Number Natural));
+                add_constraint (BoundedBy (Typing.Type.Number Natural, prev_t));
+                add_constraint (BoundedBy (Typing.Type.Number Natural, t));
                 iter t tl
               )
               | (Ge, _) | (Geq, _) when seen.le -> raise (Typing.TypeError "< and <= should be followed by > or >=")
               | (Ge, expr) | (Geq, expr) -> (
                 seen.ge <- true;
                 let t = recurse env expr in
-                add_constraint (BoundedBy (prev_t, Typing.Type.Number Natural));
-                add_constraint (BoundedBy (t, Typing.Type.Number Natural));
+                add_constraint (BoundedBy (Typing.Type.Number Natural, prev_t));
+                add_constraint (BoundedBy (Typing.Type.Number Natural, t));
                 iter t tl
               )
               | (Superset, _) | (SupersetEq, _) when seen.sub -> raise (Typing.TypeError "Subset(eq) should not be followed by superset(eq)")
@@ -460,9 +471,9 @@ end = struct
                 (* ensure prev_t is a set *)
                 let u = Typing.Var.fresh () in
                 add_constraint (BoundedBy (prev_t, Typing.Type.Set (Typing.Type.Any u)));
-                (* next t should also a set of the same type *)
+                (* next t should be bounded by the previous t *)
                 let t = recurse env expr in
-                add_constraint (BoundedBy (prev_t, t));
+                add_constraint (BoundedBy (t, prev_t));
                 iter t tl
               )
               | (Subset, _) | (SubsetEq, _) when seen.sup -> raise (Typing.TypeError "Superset(eq) should not be followed by subset(eq)")
@@ -471,7 +482,7 @@ end = struct
                 (* ensure prev_t is a set *)
                 let u = Typing.Var.fresh () in
                 add_constraint (BoundedBy (prev_t, Typing.Type.Set (Typing.Type.Any u)));
-                (* next t should also a set of the same type *)
+                (* the previous t should be bounded by the next t *)
                 let t = recurse env expr in
                 add_constraint (BoundedBy (prev_t, t));
                 iter t tl
@@ -490,7 +501,7 @@ end = struct
           in
           iter (recurse env first) arr
         in
-        verify lhs rhs;
+        verify lhs (List.rev rhs);
         Typing.Type.Bool
       )
       (*
@@ -514,9 +525,14 @@ end = struct
         List.iter (List.zip_exn args args_t) ~f:(fun (x, y) -> add_constraint (BoundedBy (recurse env x, Typing.Type.Any y)));
         Typing.Type.Any return_t
       )
-      (* TODO: ignore subscripts for now *)
-      | Subscript (lhs, _) ->
-          recurse env lhs
+      | Subscript (lhs, rhs) -> (
+        let t = Typing.Var.fresh () in
+        let lhs_t = recurse env lhs in
+        let rhs_t = recurse env rhs in
+        add_constraint (BoundedBy (rhs_t, Typing.Type.Number Natural));
+        add_constraint (BoundedBy (lhs_t, Typing.Type.Sequence (Typing.Type.Any t)));
+        Typing.Type.Any t
+      )
       (* TODO: alternative interpretations? *)
       | Superscript (lhs, rhs) -> (
           let t = Typing.Var.fresh () in
@@ -559,10 +575,17 @@ end = struct
         let _ = recurse env expr in
         Typing.Type.Bool
       )
+      | Summation (low, high, body) -> (
+        let child = capture env low in
+        let _ = recurse child low in
+        let _ = recurse child high in
+        let t = recurse child body in
+        t
+      )
       | SetComprehension (lhs, rhs) -> (
         let child = capture env rhs in
-        let t = recurse child lhs in
         let _ = recurse child rhs in
+        let t = recurse child lhs in
         Typing.Type.Set t
       )
       | SetLiteral lhs -> (
@@ -572,6 +595,14 @@ end = struct
           add_constraint (BoundedBy (u, Typing.Type.Any t))
         ) lhs;
         Typing.Type.Set (Typing.Type.Any t)
+      )
+      | Tuple lhs -> (
+        let t = Typing.Var.fresh () in
+        List.iter ~f:(fun expr ->
+          let u = recurse env expr in
+          add_constraint (BoundedBy (u, Typing.Type.Any t))
+        ) lhs;
+        Typing.Type.Tuple (Typing.Type.Any t)
       )
       (* assign text an arbitrary type - could be useful in future? *)
       | Text _ -> (
@@ -680,54 +711,52 @@ module Node = struct
 end
 
 module rec Environment : sig
-  (* store both begin and end name to verify environment is valid *)
-  type t = (string * string) * Latex.t list
+  (* name * arglist * contents *)
+  type t = string * Latex.t list * Latex.t list
 
   val name: Environment.t -> string
-  val name_end: Environment.t -> string
+  val args: Environment.t -> Latex.t list
   val body: Environment.t -> Latex.t list
 end = struct
-  type t = (string * string) * Latex.t list
+  type t = string * Latex.t list * Latex.t list
 
-  let name env = fst (fst env)
-  let name_end env = snd (fst env)
-  let body = snd
-end
-and Mathmode: sig
-  type t = string
-end = struct
-  type t = string
+  let name (a, _, _) = a
+  let args (_, a, _) = a
+  let body (_, _, a) = a
 end
 and Latex: sig
   type latex =
     | Word of string
     | Command of string * t list
     | Environment of Environment.t
-    | Mathmode of Mathmode.t
+    | Mathmode of string
+    | Multiline of string
     | Latex of t list
   and t = latex Node.t
 
   val pp: Format.formatter -> t -> unit
   val pp_list: Format.formatter -> t list -> unit
-  val get_all_math: t -> string list
+  val get_all_math: t -> latex list
 end = struct
   type latex =
     | Word of string
     | Command of string * t list
     | Environment of Environment.t
-    | Mathmode of Mathmode.t
+    | Mathmode of string
+    | Multiline of string
     | Latex of t list
   and t = latex Node.t
 
   module PrettyPrinter = struct
     let rec pp_environment formatter (env: Environment.t) =
       let contents = Format.pp_print_list pp_latex in
-      Format.fprintf formatter "(%s %a)" (Environment.name env) contents (snd env)
+      Format.fprintf formatter "(%s %a)" (Environment.name env) contents (Environment.body env)
     and pp_mathmode formatter math = Format.fprintf formatter "MATH[%s]" math
     and pp_latex formatter (latex: t) = match latex with
     | {pos = _; value = Word word} -> Format.fprintf formatter "%s" word
     | {pos = _; value = Environment env} -> pp_environment formatter env
     | {pos = _; value = Mathmode math} -> pp_mathmode formatter math
+    | {pos = _; value = Multiline math} -> pp_mathmode formatter math
     | {pos = _; value = Command (name, args)} -> Format.fprintf formatter "(\\%s %a)" name (Format.pp_print_list ~pp_sep:(string_sep " ") pp_latex) args
     | {pos = _; value = Latex contents} -> Format.fprintf formatter "(%a)" (Format.pp_print_list pp_latex) contents
 end
@@ -740,8 +769,9 @@ end
     let acc = ref [] in
     let rec recurse acc (node: t) = match node with
     | {pos = _; value = Word _} -> ()
-    | {pos = _; value = Environment (_, contents)} -> List.iter ~f:(recurse acc) contents
-    | {pos = _; value = Mathmode math} -> acc := math :: !acc
+    | {pos = _; value = Environment (_, _, contents)} -> List.iter ~f:(recurse acc) contents
+    | {pos = _; value = Mathmode _ as math} -> acc := math :: !acc
+    | {pos = _; value = Multiline _ as math} -> acc := math :: !acc
     | {pos = _; value = Command (_, args)} -> List.iter ~f:(recurse acc) args
     | {pos = _; value = Latex contents} -> List.iter ~f:(recurse acc) contents
     in

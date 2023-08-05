@@ -2,6 +2,16 @@
   open Parser
 
   exception LexError of string
+
+  let math_delimiter = function
+  | "$" -> "$"
+  | "$$" -> "$$"
+  | "\\begin{math}" -> "\\end{math}"
+  | "\\begin{equation}" -> "\\end{equation}"
+  | "\\begin{align*}" -> "\\end{align*}"
+  | "\\[" -> "\\]"
+  | s -> raise (LexError (Format.sprintf "Invalid delimiter: %s" s))
+
 }
 
 let newline = '\r' | '\n' | "\r\n"
@@ -19,17 +29,21 @@ let dollar = '$'
 let alpha = ['a'-'z' 'A'-'Z']
 let not_alpha = [^ 'a'-'z' 'A'-'Z']
 let command = '\\' not_alpha | '\\' alpha+
+let variable = alpha alpha+
 
-let integer = ['0'-'9']+
+let digit = ['0'-'9']
+let integer = digit digit+
 let real = ['0'-'9']+ '.' ['0'-'9']+
 
 let begin_env = "\\begin{" ['a'-'z' 'A'-'Z']+ '}'
 let end_env = "\\end{" ['a'-'z' 'A'-'Z']+ '}'
 
-let math_sep = "\\\\" | '&'
+let math_sep = "\\\\" newline*
 (* does not check for matching begin/end, assume latex lsp will catch that *)
-let begin_math = '$' '$'? | "\\[" | "\\begin{math}" | "\\begin{equation}"
-let end_math = '$' '$'? | "\\]" | "\\end{math}" | "\\end{equation}"
+let begin_math = "$$" | "$" | "\\[" | "\\begin{math}" | "\\begin{equation}"
+let end_math = "$$" | "$" | "\\]" | "\\end{math}" | "\\end{equation}"
+let begin_multiline = "\\begin{align*}"
+let end_multiline = "\\end{align*}"
 
 rule token =
   parse
@@ -47,33 +61,49 @@ rule token =
   | '|'         { PIPE lexbuf.lex_curr_p}
   | '='         { EQ lexbuf.lex_curr_p}
   | '&'         { AMPERSAND lexbuf.lex_curr_p}
-  | begin_math  { MATHMODE (lexbuf.lex_curr_p, mathmode (Buffer.create 80) lexbuf) }
+  | begin_multiline  { MULTILINE (lexbuf.lex_curr_p, mathmode (Buffer.create 80) (math_delimiter (Lexing.lexeme lexbuf)) lexbuf) }
+  | begin_math  { MATHMODE (lexbuf.lex_curr_p, mathmode (Buffer.create 80) (math_delimiter (Lexing.lexeme lexbuf)) lexbuf) }
   | begin_env   { BEGIN (lexbuf.lex_curr_p, Lexing.lexeme lexbuf) }
   | end_env     { END (lexbuf.lex_curr_p, Lexing.lexeme lexbuf) }
   | command     { COMMAND (lexbuf.lex_curr_p, Lexing.lexeme lexbuf) }
   | text        { WORD (lexbuf.lex_curr_p, Lexing.lexeme lexbuf) }
   | eof         { EOF lexbuf.lex_curr_p }
   | _           { raise (LexError ("Unexpected char: " ^ Lexing.lexeme lexbuf)) }
-and mathmode buf =
+and mathmode buf delim =
   parse
-  | linebreak   { Lexing.new_line lexbuf; mathmode buf lexbuf}
-  | whitespace  { Buffer.add_string buf (Lexing.lexeme lexbuf); mathmode buf lexbuf }
-  | linecomment { mathmode buf lexbuf}
-  | end_math    { Buffer.contents buf }
-  | [^ '$' '\n' '\r' '\t' ' ']+    { Buffer.add_string buf (Lexing.lexeme lexbuf); mathmode buf lexbuf}
+  | linebreak   { Lexing.new_line lexbuf; mathmode buf delim lexbuf}
+  | whitespace  { Buffer.add_string buf (Lexing.lexeme lexbuf); mathmode buf delim lexbuf }
+  | linecomment { mathmode buf delim lexbuf}
+  | end_multiline{ if (String.equal (Lexing.lexeme lexbuf) delim) then
+                    Buffer.contents buf
+                  else (
+                    Buffer.add_string buf (Lexing.lexeme lexbuf);
+                  mathmode buf delim lexbuf)
+                  }
+  | end_math    { if (String.equal (Lexing.lexeme lexbuf) delim) then
+                    Buffer.contents buf
+                  else (
+                    Buffer.add_string buf (Lexing.lexeme lexbuf);
+                  mathmode buf delim lexbuf)
+                  }
+  | [^ '$' '\n' '\r' '\t' ' ']+    { Buffer.add_string buf (Lexing.lexeme lexbuf); mathmode buf delim lexbuf}
   | _           { raise (LexError ("Unexpected char in math mode: " ^ Lexing.lexeme lexbuf)) }
   | eof         { raise (LexError (Format.sprintf "Math mode is not terminated")) }
 and math_token =
   parse
   (* syntax *)
   | math_sep    { SEPARATOR lexbuf.lex_curr_p }
+  | '&'         { math_token lexbuf }
   | whitespace  { WHITESPACE lexbuf.lex_curr_p }
+  | "\\displaystyle"  { WHITESPACE lexbuf.lex_curr_p }
   | '{'         { LEFT_CURLY lexbuf.lex_curr_p }
   | '}'         { RIGHT_CURLY lexbuf.lex_curr_p }
   | '['         { LEFT_BRACKET lexbuf.lex_curr_p}
   | ']'         { RIGHT_BRACKET lexbuf.lex_curr_p}
   | '('         { LEFT_PAREN lexbuf.lex_curr_p}
   | ')'         { RIGHT_PAREN lexbuf.lex_curr_p}
+  | "\\left"    { LEFT_PAREN lexbuf.lex_curr_p}
+  | "\\right"   { RIGHT_PAREN lexbuf.lex_curr_p}
   | ','         { COMMA lexbuf.lex_curr_p}
   | '|'         { PIPE lexbuf.lex_curr_p}
   | '='         { EQ lexbuf.lex_curr_p}
@@ -112,14 +142,24 @@ and math_token =
   | "\\:"       { SUCHTHAT lexbuf.lex_curr_p}
   | "s.t."      { SUCHTHAT lexbuf.lex_curr_p}
   (* misc *)
+  | "\\sum"     { SUM lexbuf.lex_curr_p}
   | '_'         { UNDERSCORE lexbuf.lex_curr_p}
   | '^'         { CARET lexbuf.lex_curr_p}
   | real        { REAL (lexbuf.lex_curr_p, float_of_string (Lexing.lexeme lexbuf)) }
   | integer     { INTEGER (lexbuf.lex_curr_p, int_of_string (Lexing.lexeme lexbuf)) }
-  | "\\text{"   { TEXT (lexbuf.lex_curr_p, math_text (Buffer.create 80) lexbuf) }
+  | digit       { DIGIT (lexbuf.lex_curr_p, int_of_string (Lexing.lexeme lexbuf)) }
+  | "\\text{"   { 
+    let contents = math_text (Buffer.create 80) lexbuf in
+    if (String.contains contents ' ') then
+      TEXT (lexbuf.lex_curr_p, contents)
+    else
+      VARIABLE (lexbuf.lex_curr_p, contents)
+  }
   | "\\textit{" { TEXT (lexbuf.lex_curr_p, math_text (Buffer.create 80) lexbuf) }
   | "\\textrm{" { TEXT (lexbuf.lex_curr_p, math_text (Buffer.create 80) lexbuf) }
-  | alpha+      { VARIABLE (lexbuf.lex_curr_p, Lexing.lexeme lexbuf) }
+  | "\\texttt{" { VARIABLE (lexbuf.lex_curr_p, math_text (Buffer.create 80) lexbuf) }
+  | alpha       { CHAR (lexbuf.lex_curr_p, Lexing.lexeme lexbuf) }
+  | variable    { VARIABLE (lexbuf.lex_curr_p, Lexing.lexeme lexbuf) }
   | command     { COMMAND (lexbuf.lex_curr_p, Lexing.lexeme lexbuf) }
   | _           { raise (LexError ("Unexpected char: " ^ Lexing.lexeme lexbuf)) }
   | eof         { EOF lexbuf.lex_curr_p }
