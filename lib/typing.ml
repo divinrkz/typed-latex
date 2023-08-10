@@ -42,6 +42,8 @@ module Var = struct
       let t = { id = !counter } in
       counter := !counter + 1;
       t
+
+  let compare a b = compare_int a.id b.id
 end
 
 module Type = struct
@@ -130,7 +132,7 @@ let widen a b = match (a, b) with
     | Tuple t -> Format.fprintf formatter "TUPLE<%a>" pp t
     | Bool -> Format.fprintf formatter "BOOL"
     | Set t -> Format.fprintf formatter "SET<%a>" pp t
-    | Sequence t -> Format.fprintf formatter "SEQ[%a]" pp t
+    | Sequence t -> Format.fprintf formatter "SEQ<%a>" pp t
     | Any t -> Var.pp formatter t
 end
 
@@ -153,88 +155,94 @@ module ConstraintHashSet = Hash_set.Make (Constraint)
 module Constraints = struct
   include ConstraintHashSet
 
-  let pp formatter (subs: t) = Format.fprintf formatter "%a" (Format.pp_print_list ~pp_sep:(string_sep ", ") Constraint.pp) (Hash_set.to_list subs)
+  (* a list of constraints along with upper/lower bounds for each variable *)
+  type t = Constraint.t Hash_set.t * (Var.t, Type.t list) Hashtbl.t * (Var.t, Type.t list) Hashtbl.t
 
-  let map ~f t =
-    let new_t = create () in
+  (* let lower_bounds = Hashtbl.create (module Var) in *)
+  (* let upper_bounds = Hashtbl.create (module Var) in *)
+
+  let create () = (Hash_set.create (module Constraint), Hashtbl.create (module Var), Hashtbl.create (module Var))
+
+  let length (x, _, _) = Hash_set.length x
+
+  let add_bound tbl var bound =
+    match Hashtbl.find tbl var with
+    | Some arr -> Hashtbl.set tbl ~key:var ~data:(bound :: arr)
+    | None -> Hashtbl.set tbl ~key:var ~data:[bound]
+
+  let get_bounds tbl var =
+    match Hashtbl.find tbl var with
+    | Some arr -> arr
+    | None -> []
+
+  let pp formatter (subs, _, _) = Format.fprintf formatter "%a" (Format.pp_print_list ~pp_sep:(string_sep ", ") Constraint.pp) (Hash_set.to_list subs)
+
+  let map ~f (t, u, l) =
+    let new_t = Hash_set.create (module Constraint) in
     Hash_set.iter ~f:(fun a -> Hash_set.add new_t (f a)) t;
-    new_t
+    (new_t, u, l)
 
-  let first t = Hash_set.find t ~f:(fun _ -> true)
+  let first (t, _, _) = match Hash_set.to_list t
+    with
+    | hd :: _ -> Some hd
+    | [] -> None
 
-  let add constraints c = match c with
+  let remove (t, _, _) e = Hash_set.strict_remove_exn t e
+
+  let find (t, _, _) = Hash_set.find t
+
+  let rec add (constraints, lower, upper) c =
+    (* Format.printf "adding %a\n" Constraint.pp c; *)
+    match c with
     (* ignore trivial constraints *)
-    | Constraint.BoundedBy (Type.Bool, Type.Bool) -> ()
-    | BoundedBy (Type.Any t1, Type.Any t2) when Var.equal t1 t2 -> ()
+    | Constraint.BoundedBy (x, y) when Type.equal x y -> ()
     | BoundedBy (Type.Number n1 , Type.Number n2) when Type.is_bounded_by n1 n2 -> ()
     (* keep nontrivial constraints *)
-    | BoundedBy (Any _, _) | BoundedBy (_, Any _)
-    | BoundedBy (Set _, Set _) -> (
-      Hash_set.add constraints c
+    | BoundedBy (Set x, Set y) -> (
+      add (constraints, lower, upper) (BoundedBy (x, y))
     )
+    | BoundedBy (Sequence x, Sequence y) -> (
+      add (constraints, lower, upper) (BoundedBy (x, y))
+    )
+    (* TODO: add extra constraints for lower/upper bounds *)
+    (* TODO: add cache to remember which have been added (since infinite loop might form) *)
+    (* | BoundedBy (Any t, u) -> ( *)
+    (*   (* install u as upper bound to t *) *)
+    (*   add_bound upper t u; *)
+    (*   (* for each lower bound of t, constrain them above by u *) *)
+    (*   List.iter (get_bounds lower t) ~f:(fun x -> *)
+    (*     add (constraints, lower, upper) (BoundedBy (x, u)); *)
+    (*   ); *)
+    (*   Hash_set.add constraints c *)
+    (* ) *)
+    (* | BoundedBy (u, Any t) -> ( *)
+    (*   (* install u as upper bound to t *) *)
+    (*   add_bound lower t u; *)
+    (*   (* for each upper bound of t, constrain them below by u *) *)
+    (*   List.iter (get_bounds upper t) ~f:(fun x -> *)
+    (*     add (constraints, lower, upper) (BoundedBy (u, x)); *)
+    (*   ); *)
+    (*   Hash_set.add constraints c *)
+    (* ) *)
     | BoundedBy _ -> (
       Hash_set.add constraints c
     )
-    (* reject impossible constraints *)
     (* | _ -> raise (TypeError "Type error") *)
   
-  let length = Hash_set.length
 end
-
-  (* (* used for addiiton and multiplication *) *)
-  (* let promote t1 t2 = *)
-  (*   match (t1, t2) with *)
-  (*   | (Typing.Type.Number Natural, Typing.Type.Number Natural) -> Typing.Type.Number Natural *)
-
-  (*   | (Typing.Type.Number Integer, Typing.Type.Number Natural) *)
-  (*   | (Typing.Type.Number Natural, Typing.Type.Number Integer) -> Typing.Type.Number Integer *)
-
-  (*   | (Typing.Type.Number Rational, Typing.Type.Number Natural) *)
-  (*   | (Typing.Type.Number Natural, Typing.Type.Number Rational) *)
-  (*   | (Typing.Type.Number Rational, Typing.Type.Number Integer) *)
-  (*   | (Typing.Type.Number Integer, Typing.Type.Number Rational) -> Typing.Type.Number Rational *)
-
-  (*   | (Typing.Type.Number Real, _) *)
-  (*   | (_, Typing.Type.Number Real) -> Typing.Type.Number Real *)
-
-  (*   | _ -> raise (Typing.TypeError "invalid arithmetic promotion (this should not happen)") *)
-
-  (* let promote_sub t1 t2 = *)
-  (*   match (t1, t2) with *)
-  (*   (* we may not be able to prove if t1 > t2 *) *)
-  (*   | (Typing.Type.Number Natural, Typing.Type.Number Natural) -> Typing.Type.Number Integer *)
-  (*   | _ -> promote t1 t2 *)
-  (*  *)
-
-  (* let promote_frac t1 t2 = *)
-  (*   match (t1, t2) with *)
-  (*   | (Typing.Type.Number Natural, Typing.Type.Number Natural) *)
-  (*   | (Typing.Type.Number Natural, Typing.Type.Number Integer) *)
-  (*   | (Typing.Type.Number Integer, Typing.Type.Number Natural) *)
-  (*   | (Typing.Type.Number Integer, Typing.Type.Number Integer) -> Typing.Type.Number Rational *)
-  (*   | _ -> promote t1 t2 *)
-
-  (* let promote_exp t1 t2 = *)
-  (*   match (t1, t2) with *)
-  (*   | (Typing.Type.Number Natural, Typing.Type.Number Natural) -> Typing.Type.Number Natural *)
-  (*   | (Typing.Type.Number Integer, Typing.Type.Number Natural) -> Typing.Type.Number Integer *)
-  (*   | (Typing.Type.Number Natural, Typing.Type.Number Integer) *)
-  (*   | (Typing.Type.Number Integer, Typing.Type.Number Integer) -> Typing.Type.Number Rational *)
-  (*   | (Typing.Type.Number _, Typing.Type.Number _) -> Typing.Type.Number Real *)
-  (*   | _ -> raise (Typing.TypeError "invalid arithmetic promotion (this should not happen)") *)
-
 
 (* maps type variables to types *)
 (* the goal of type checking is to come up with substitutions to satisfy every
    constraint *)
 module Substitution = struct
-  type t = Type.t * Var.t (* {t / 'x}, e.g. substitute 'x with type t *)
+  (* {t / 'x}, e.g. substitute 'x with type t *)
+  (* sub (x, y) should replace all instances of y (usually a type variable) with x *)
+  type t = Type.t * Type.t
   [@@deriving eq, sexp, hash]
 
   let compare a b = if equal a b then 0 else 1
 
-  let pp formatter sub = Format.fprintf formatter "{ %a / %a }" Type.pp (fst
-    sub) Var.pp (snd sub)
+  let pp formatter sub = Format.fprintf formatter "{ %a / %a }" Type.pp (fst sub) Type.pp (snd sub)
 end
 
 module SubstitutionList = Hash_set.Make (Substitution)
@@ -243,17 +251,20 @@ module Substitutions = struct
   type t = Substitution.t list
 
   let pp formatter subs = Format.fprintf formatter "%a" (Format.pp_print_list ~pp_sep:(string_sep ", ") Substitution.pp) subs
+
+  let filter = List.filter
 end
 
 (* applies a type substitution to a type *)
 let rec apply1 (sub: Substitution.t) (t: Type.t) =
   match t with
+    | _ when Type.equal (snd sub) t -> fst sub
     | Number n -> Type.Number n
     | Bool -> Type.Bool
     | Set u -> Type.Set (apply1 sub u)
     | Tuple u -> Type.Tuple (apply1 sub u)
     | Sequence u -> Type.Sequence (apply1 sub u)
-    | Any u -> if Var.equal (snd sub) u then (fst sub) else Type.Any u
+    | Any u -> Type.Any u
     | Bound (a, op, b) -> Type.Bound (apply1 sub a, op, apply1 sub b)
 
 (* t (S1; S2) = (t S1) S2 *)
@@ -274,101 +285,157 @@ let exists = function
   | Some _ -> true
   | None -> false
 
-let rec occurs_in t (u: Type.t) =
+let rec simplifiable (t: Type.t) =
+  match t with
+  | Number _ -> true
+  | Bool -> true
+  | Bound (Number _, _, Number _) -> true
+  | Bound (a, _, b) -> simplifiable a && simplifiable b
+  | Set v -> simplifiable v
+  | Tuple v -> simplifiable v
+  | Sequence v -> simplifiable v
+  | Any _ -> false
+
+(* returns true if t occurs within u *)
+let rec occurs_in (t: Type.t) (u: Type.t) =
   match u with
+    | _ when Type.equal t u -> true
     | Number _ -> false
     | Bool -> false
     | Bound (a, _, b) -> occurs_in t a || occurs_in t b
     | Set v -> occurs_in t v
     | Tuple v -> occurs_in t v
     | Sequence v -> occurs_in t v
-    | Any v -> Var.equal t v
+    | Any _ -> Type.equal t u
 
-let unify constraints =
+let unify (constraints, lower, upper) =
   let rec recurse (cs: Constraints.t) (acc: Substitutions.t) =
     if (Constraints.length cs = 0) then
       acc
     else
-      let _ = Format.printf "Constraints: %a\n" Constraints.pp cs in
+      (* let _ = Format.printf "Constraints: %a\n" Constraints.pp cs in *)
       (* pick out any element from the set of constraints *)
       let hd = Option.value_exn (Constraints.first cs) in
-      Hash_set.remove cs hd;
+      Format.printf "hd: %a\n" Constraint.pp hd;
+      Constraints.remove cs hd;
+      let () = match Constraints.find cs ~f:(fun x -> Constraint.equal x hd) with
+        | Some _ -> Format.printf "wtf\n"
+        | None -> ()
+      in
       match hd with
-        (* basic cases that don't require any logic *)
-        (* | Equal (Type.Number n1 , Type.Number n2) when Type.equal_number n1 n2 -> recurse cs acc *)
-        | BoundedBy (Bool, Bool) -> recurse cs acc
-        | BoundedBy (Any t, Any u) when Var.equal t u -> recurse cs acc
-        | BoundedBy (Set x, Set y) -> (
-          Constraints.add cs (BoundedBy (x, y));
+      (* basic cases that don't require any logic *)
+      (* | Equal (Type.Number n1 , Type.Number n2) when Type.equal_number n1 n2 -> recurse cs acc *)
+      | BoundedBy (x, y) when Type.equal x y -> recurse cs acc
+
+      | BoundedBy (Bool, Bool) -> recurse cs acc
+      | BoundedBy (Any t, Any u) when Var.equal t u -> recurse cs acc
+      | BoundedBy (Set x, Set y) -> (
+        Constraints.add cs (BoundedBy (x, y));
+        recurse cs acc
+      )
+      | BoundedBy (Tuple x, y) -> (
+        Constraints.add cs (BoundedBy (x, y));
+        recurse cs acc
+      )
+      | BoundedBy (x, Tuple y) -> (
+        Constraints.add cs (BoundedBy (x, y));
+        recurse cs acc
+      )
+      | BoundedBy (Sequence x, Sequence y) -> (
+        Constraints.add cs (BoundedBy (x, y));
+        recurse cs acc
+      )
+      (* arithmetic and type promotion *)
+      | BoundedBy (Type.Number n1 , Type.Number n2) when Type.is_bounded_by n1 n2 -> recurse cs acc
+      (* these bounds are weaker, but it's probably the best we can reasonably do without backtracking *)
+      (* ex: if we have \frac{a}{b} = \sqrt{2}, we don't know if a is real, b is real, or both.*)
+      (* we will just assume that both are real*)
+      (* TODO: Ok actually, what if we just disallow reverse inference altogether? *)
+      (* are there any cases where reverse inference would actually be useful? *)
+      (* | BoundedBy (Bound (a, op, b), c) when not (simplifiable (Bound (a, op, b))) -> ( *)
+      (*   (* only if Bound cannot be simplified *) *)
+      (*   if not (occurs_in (Bound (a, op, b)) c) then *)
+      (*     let s = (c, Type.Bound (a, op, b)) in *)
+      (*     recurse (apply_cs [s] cs) (s :: acc) *)
+      (*   else *)
+      (*     raise (TypeError "Could not unify types 2") *)
+      (* ) *)
+      (* | BoundedBy (c, Bound (a, op, b)) when not (simplifiable (Bound (a, op, b))) -> ( *)
+      (*   if not (occurs_in (Bound (a, op, b)) c) then *)
+      (*     let s = (c, Type.Bound (a, op, b)) in *)
+      (*     recurse (apply_cs [s] cs) (s :: acc) *)
+      (*   else *)
+      (*     raise (TypeError "Could not unify types 2") *)
+      (* ) *)
+      (* | BoundedBy (Bound(a, _, b), c) -> ( *)
+      (*   Constraints.add cs (BoundedBy (a, c)); *)
+      (*   Constraints.add cs (BoundedBy (b, c)); *)
+      (*   recurse cs acc *)
+      (* ) *)
+      (* | BoundedBy (c, Bound(a, _, b)) -> ( *)
+      (*   Format.printf "Solving %a < Bound<%a, %a>\n" Type.pp c Type.pp a Type.pp b; *)
+      (*   Constraints.add cs (BoundedBy (c, a)); *)
+      (*   Constraints.add cs (BoundedBy (c, b)); *)
+      (*   recurse cs acc *)
+      (* ) *)
+      | BoundedBy (Any t, u) -> (
+        (* TODO: need to check variable bounds *)
+        (* Format.printf "Replacing %a with %a (>)\n" Var.pp t Type.pp u; *)
+        if not (occurs_in (Any t) u) then
+          (* let hi = Constraints.get_bounds upper t in *)
+          (* Format.printf "Current upper bounds: [%a]\n" (Format.pp_print_list ~pp_sep:(string_sep ", ") Type.pp) hi; *)
+          (* let lo = Constraints.get_bounds lower t in *)
+          (* Format.printf "Current lower bounds: [%a]\n" (Format.pp_print_list ~pp_sep:(string_sep ", ") Type.pp) lo; *)
+          let s = (u, Type.Any t) in
+          (* TODO: also apply substitutions within lower/upper bounds? *)
+          recurse (apply_cs [s] cs) (s :: acc)
+        else
+          (* raise (TypeError "Could not unify types 1") *)
           recurse cs acc
-        )
-        | BoundedBy (Sequence x, Sequence y) -> (
-          Constraints.add cs (BoundedBy (x, y));
+      )
+      | BoundedBy (u, Any t) -> (
+        (* Format.printf "Replacing %a with %a (<)\n" Var.pp t Type.pp u; *)
+        (* let hi = Constraints.get_bounds upper t in *)
+        (* Format.printf "Current upper bounds: [%a]\n" (Format.pp_print_list ~pp_sep:(string_sep ", ") Type.pp) hi; *)
+        (* let lo = Constraints.get_bounds lower t in *)
+        (* Format.printf "Current lower bounds: [%a]\n" (Format.pp_print_list ~pp_sep:(string_sep ", ") Type.pp) lo; *)
+        if not (occurs_in (Any t) u) then
+          let s = (u, Type.Any t) in
+          recurse (apply_cs [s] cs) (s :: acc)
+        else
+          (* raise (TypeError "Could not unify types 2") *)
           recurse cs acc
-        )
-        (* arithmetic and type promotion *)
-        | BoundedBy (Type.Number n1 , Type.Number n2) when Type.is_bounded_by n1 n2 -> recurse cs acc
-        (* these bounds are weaker, but it's probably the best we can reasonably do without backtracking *)
-        (* ex: if we have \frac{a}{b} = \sqrt{2}, we don't know if a is real, b is real, or both.*)
-        (* we will just assume that both are real*)
-        | BoundedBy (Bound(a, _, b), c) -> (
-          (* for now, bounds only include numeric ops *)
-          Constraints.add cs (BoundedBy (Type.Number Natural, a));
-          Constraints.add cs (BoundedBy (Type.Number Natural, b));
-          Constraints.add cs (BoundedBy (a, c));
-          Constraints.add cs (BoundedBy (b, c));
-          recurse cs acc
-        )
-        | BoundedBy (c, Bound(a, _, b)) -> (
-          (* for now, bounds only include numeric ops *)
-          Constraints.add cs (BoundedBy (Type.Number Natural, a));
-          Constraints.add cs (BoundedBy (Type.Number Natural, b));
-          Constraints.add cs (BoundedBy (a, c));
-          Constraints.add cs (BoundedBy (b, c));
-          recurse cs acc
-        )
-        (* basic substitutions *)
-        | BoundedBy (Any t, u) -> (
-          if not (occurs_in t u) then
-            let s = (u, t) in
-            recurse (apply_cs [s] cs) (s :: acc)
-          else
-            raise (TypeError "Could not unify types 1")
-        )
-        | BoundedBy (u, Any t) -> (
-          if not (occurs_in t u) then
-            let s = (u, t) in
-            recurse (apply_cs [s] cs) (s :: acc)
-          else
-            raise (TypeError "Could not unify types 2")
-        )
-        (* | _ -> recurse cs acc *)
-        | _ -> raise (TypeError (Format.asprintf "Could not unify types 5: %a with constraints %a" Constraint.pp hd Constraints.pp cs))
+      )
+      | _ -> recurse cs acc
+      (* | _ -> raise (TypeError (Format.asprintf "Could not unify types 5: %a with constraints %a" Constraint.pp hd Constraints.pp cs)) *)
   in
-  let copy = Hash_set.copy constraints in (* prevent original set from being modified *)
+  (* Format.printf "Lower: %a\n" (pp_hashtbl ~pp_key:Var.pp ~pp_data:(Format.pp_print_list ~pp_sep:(string_sep ", ") Type.pp)) lower; *)
+  (* Format.printf "Upper: %a\n" (pp_hashtbl ~pp_key:Var.pp ~pp_data:(Format.pp_print_list ~pp_sep:(string_sep ", ") Type.pp)) upper; *)
+  let copy = Constraints.map ~f:id (constraints, lower, upper) in (* prevent original set from being modified *)
   (* need to reverse list since it was built up in reverse in the above recursion *)
   List.rev (recurse copy [])
 
 (* apply arithmetic promotion when possible *)
 let simplify subs t =
   let t = apply subs t in
+  (* Format.printf "Simplifying %a\n" Type.pp t; *)
   let rec recurse t = match t with
   | Type.Bound (a, Plus, b) -> (
     match (recurse a, recurse b) with
     | (Type.Number a, Number b) -> Number (Type.widen a b)
-    | _ ->  Number Real (* fallback when can't infer specific numeric type *)
+    | _ -> raise (TypeError (Format.asprintf "Could not infer numeric type for %a + %a" Type.pp a Type.pp b))
   )
   | Type.Bound (a, Times, b) -> (
     match (recurse a, recurse b) with
     | (Type.Number a, Number b) -> Number (Type.widen a b)
-    | _ ->  Number Real
+    | _ -> raise (TypeError (Format.asprintf "Could not infer numeric type for %a * %a" Type.pp a Type.pp b))
   )
   | Type.Bound (a, Minus, b) -> (
     match (recurse a, recurse b) with
       (* a - b could be negative unless we prove a > b *)
     | (Type.Number Natural, Number Natural) -> Number Integer
     | (Type.Number a, Number b) -> Number (Type.widen a b)
-    | _ ->  Number Real
+    | _ -> raise (TypeError (Format.asprintf "Could not infer numeric type for %a - %a" Type.pp a Type.pp b))
   )
   | Type.Bound (a, Frac, b) -> (
     match (recurse a, recurse b) with
@@ -377,7 +444,7 @@ let simplify subs t =
     | (Type.Number Integer, Number Natural)
     | (Type.Number Integer, Number Integer) -> Number Rational
     | (Type.Number a, Number b) -> Number (Type.widen a b)
-    | _ ->  Number Real
+    | _ -> raise (TypeError (Format.asprintf "Could not infer numeric type for %a / %a" Type.pp a Type.pp b))
   )
   | Type.Bound (a, Pow, b) -> (
     match (recurse a, recurse b) with
@@ -387,23 +454,14 @@ let simplify subs t =
     | (Type.Number Integer, Number Integer) -> Number Rational
     | (Type.Number Rational, Number Natural)
     | (Type.Number Rational, Number Integer) -> Number Rational
-    | _ ->  Number Real
+    | _ -> raise (TypeError (Format.asprintf "Could not infer numeric type for %a ^ %a" Type.pp a Type.pp b))
   )
   | Set u -> Set (recurse u)
   | Sequence u -> Sequence (recurse u)
+  | Any _ -> (
+      (* Format.printf "Inferring %a to be Real\n" Var.pp t; *)
+      Number Real
+    )
   | _ -> t
   in
   recurse t
-
-let test () =
-  let t0 = Var.fresh () in
-  let x = Type.Any t0 in
-  let y = Type.Number Integer in
-  let constraints = Constraints.create () in
-  Constraints.add constraints (BoundedBy (x, y));
-  let subs = unify constraints in
-  Format.printf "%a\n" Substitutions.pp subs;
-  let p = apply subs x in
-  Format.printf "%a\n" Type.pp p;
-  ()
-

@@ -254,7 +254,14 @@ unary:
 | LNOT; WHITESPACE*; rhs = literal; { Ast.Math.Unary (Ast.Math.Not, rhs) }
 (* absolute value *)
 | PIPE; WHITESPACE*; expr = expr; PIPE; WHITESPACE*; { Ast.Math.Unary (Ast.Math.Abs, expr) }
-| rhs = literal { rhs }
+| rhs = tuple { rhs }
+
+tuple:
+| lhs = literal; rest = tuple_aux+; { Ast.Math.Tuple (lhs :: rest) }
+| lhs = literal { lhs }
+
+tuple_aux:
+| COMMA; WHITESPACE*; rhs = literal; { rhs }
 
 (* TODO: make each char a separate variable - e.g. abc = a * b * c, not one variable called abc *)
 literal:
@@ -291,13 +298,6 @@ literal:
 | LEFT_CURLY; WHITESPACE*; expr = expr; RIGHT_CURLY; WHITESPACE*; { Ast.Math.Grouping expr }
 | LEFT_BRACKET; WHITESPACE*; expr = expr; RIGHT_BRACKET; WHITESPACE*; { Ast.Math.Grouping expr }
 (* | text = TEXT; WHITESPACE*; { Ast.Math.Command ("\\text", Some (Ast.Math.Text (snd text))) } *)
-| t = tuple; { t }
-
-tuple:
-| lhs = literal; rest = tuple_aux+; { Ast.Math.Tuple (lhs :: rest) }
-
-tuple_aux:
-| COMMA; WHITESPACE*; rhs = literal; { rhs }
 
 function_call:
 | lhs = VARIABLE; LEFT_PAREN; WHITESPACE*; rhs = separated_list(comma_sep, expr); RIGHT_PAREN; WHITESPACE*; { Ast.Math.Apply (Ast.Math.Variable (snd lhs), rhs) }

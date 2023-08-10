@@ -410,14 +410,14 @@ end = struct
         )
         | Abs -> (
           let lhs_t = recurse env lhs in
-          add_constraint (BoundedBy (Typing.Type.Number Natural, lhs_t));
+          add_constraint (BoundedBy (lhs_t, Typing.Type.Number Real));
           lhs_t
         )
         | Sqrt -> (
           let t = Typing.Var.fresh () in
           let lhs_t = recurse env lhs in
           (* ensure that contents are numeric, but result is always real *)
-          add_constraint (BoundedBy (Typing.Type.Number Natural, lhs_t));
+          add_constraint (BoundedBy (lhs_t, Typing.Type.Number Real));
           add_constraint (BoundedBy (Typing.Type.Any t, Typing.Type.Number Real));
           Typing.Type.Any t
         )
@@ -453,16 +453,16 @@ end = struct
               | (Le, expr) | (Leq, expr) -> (
                 seen.le <- true;
                 let t = recurse env expr in
-                add_constraint (BoundedBy (Typing.Type.Number Natural, prev_t));
-                add_constraint (BoundedBy (Typing.Type.Number Natural, t));
+                add_constraint (BoundedBy (prev_t, Typing.Type.Number Real));
+                add_constraint (BoundedBy (t, Typing.Type.Number Real));
                 iter t tl
               )
               | (Ge, _) | (Geq, _) when seen.le -> raise (Typing.TypeError "< and <= should be followed by > or >=")
               | (Ge, expr) | (Geq, expr) -> (
                 seen.ge <- true;
                 let t = recurse env expr in
-                add_constraint (BoundedBy (Typing.Type.Number Natural, prev_t));
-                add_constraint (BoundedBy (Typing.Type.Number Natural, t));
+                add_constraint (BoundedBy (prev_t, Typing.Type.Number Real));
+                add_constraint (BoundedBy (t, Typing.Type.Number Real));
                 iter t tl
               )
               | (Superset, _) | (SupersetEq, _) when seen.sub -> raise (Typing.TypeError "Subset(eq) should not be followed by superset(eq)")
@@ -489,12 +489,16 @@ end = struct
               )
               | (In, expr) | (NotIn, expr) -> (
                 let t = recurse env expr in
-                add_constraint (BoundedBy (Typing.Type.Set prev_t, t));
-                iter (Typing.Type.Set prev_t) tl
+                (* ensure t is a set *)
+                let u = Typing.Var.fresh () in
+                add_constraint (BoundedBy (t, Typing.Type.Set (Typing.Type.Any u)));
+                add_constraint (BoundedBy (prev_t, Typing.Type.Any u));
+                iter t tl
               )
               | (Eq, expr) -> (
                 let t = recurse env expr in
                 add_constraint (BoundedBy (prev_t, t));
+                add_constraint (BoundedBy (t, prev_t));
                 iter t tl
               )
             )
@@ -517,6 +521,14 @@ end = struct
           Set comprehensions can also capture variables
 
       *)
+      | Apply (lhs, [Tuple args]) -> (
+        let args_t, return_t = (match lhs with
+          | Variable name -> recurse_fn env name args
+          | _ -> raise (Typing.TypeError "Cannot apply non-function")
+        ) in
+        List.iter (List.zip_exn args args_t) ~f:(fun (x, y) -> add_constraint (BoundedBy (recurse env x, Typing.Type.Any y)));
+        Typing.Type.Any return_t
+      )
       | Apply (lhs, args) -> (
         let args_t, return_t = (match lhs with
           | Variable name -> recurse_fn env name args
@@ -642,7 +654,23 @@ end = struct
 
     Format.printf "Constraints: %a\n" Typing.Constraints.pp constraints;
 
+    (* print variables and their type variables *)
+    (* let () = match top_level with *)
+    (* | Env (vars, _) -> ( *)
+    (*   Hashtbl.iteri vars ~f:(fun ~key ~data -> *)
+    (*     Format.printf "val (%a) %s\n" Typing.Var.pp data key; *)
+    (*   ); *)
+    (* ) *)
+    (* | Empty -> () *)
+    (* in *)
+
     let subs = Typing.unify constraints in
+
+    (* let (_, lower, upper) = constraints in *)
+    (* Format.printf "Lower: %a\n" (pp_hashtbl ~pp_key:Typing.Var.pp ~pp_data:(Format.pp_print_list ~pp_sep:(string_sep ", ") Typing.Type.pp)) lower; *)
+    (* Format.printf "Upper: %a\n" (pp_hashtbl ~pp_key:Typing.Var.pp ~pp_data:(Format.pp_print_list ~pp_sep:(string_sep ", ") Typing.Type.pp)) upper; *)
+
+    Format.printf "Subs: %a\n" Typing.Substitutions.pp subs;
 
     (* everything in the top level environment is a free variable *)
     match top_level with
