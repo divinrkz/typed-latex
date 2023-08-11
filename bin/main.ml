@@ -60,7 +60,6 @@ let main () =
 
 let main () =
   let filename = "tex/sample2.tex" in
-  let () = Format.printf "here\n" in
   let lexbuf = from_channel (In_channel.create filename) in
   let result = try Parser.start Lexer.token lexbuf with
   | Lexer.LexError msg -> (

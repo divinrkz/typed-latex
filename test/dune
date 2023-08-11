@@ -1,2 +1,5 @@
-(test
- (name typed_latex_ocaml))
+(library
+  (libraries core typed_latex)
+  (preprocess (pps ppx_inline_test))
+  (inline_tests)
+  (name typed_latex_test))

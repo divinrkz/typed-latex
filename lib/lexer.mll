@@ -141,6 +141,8 @@ and math_token =
   | "\\mid"     { SUCHTHAT lexbuf.lex_curr_p}
   | "\\:"       { SUCHTHAT lexbuf.lex_curr_p}
   | "s.t."      { SUCHTHAT lexbuf.lex_curr_p}
+  (* number theory *)
+  | "\\equiv"   { EQUIV lexbuf.lex_curr_p}
   (* misc *)
   | "\\sum"     { SUM lexbuf.lex_curr_p}
   | '_'         { UNDERSCORE lexbuf.lex_curr_p}

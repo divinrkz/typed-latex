@@ -1,5 +1,6 @@
 open Core
 open Util
+open Typing
 
 type position = {
   row: int;
@@ -39,6 +40,14 @@ module rec Math : sig
     | Not
     | Abs
 
+  type logic_op =
+    | And
+    | Or
+
+  type logic =
+    | Implies
+    | Iff
+
   type relation =
     | Le
     | Leq
@@ -51,16 +60,8 @@ module rec Math : sig
     | Superset
     | SubsetEq
     | SupersetEq
-
-  type logic_op =
-    | And
-    | Or
-
-  type logic =
-    | Implies
-    | Iff
-
-  type t =
+    | Equiv of t
+  and t =
     | Op of t * operator * t
     | Unary of unary * t
     | Relation of t * (relation * t) list (* LHS (= RHS)+ *)
@@ -90,8 +91,6 @@ module rec Math : sig
 
   val string_of_logic: logic -> string
 
-  val string_of_relation: relation -> string
-
 end = struct
   type operator =
     | Plus
@@ -107,6 +106,15 @@ end = struct
     | Not
     | Abs
 
+
+  type logic_op =
+    | And
+    | Or
+
+  type logic =
+    | Implies
+    | Iff
+
   type relation =
     | Le
     | Leq
@@ -119,16 +127,8 @@ end = struct
     | Superset
     | SubsetEq
     | SupersetEq
-
-  type logic_op =
-    | And
-    | Or
-
-  type logic =
-    | Implies
-    | Iff
-
-  type t =
+    | Equiv of t
+  and t =
     | Op of t * operator * t
     | Unary of unary * t
     | Relation of t * (relation * t) list
@@ -165,19 +165,6 @@ end = struct
     | Union -> "UNION"
     | Inter -> "INTER"
 
-  let string_of_relation = function
-    | Le -> "<"
-    | Leq -> "<="
-    | Ge -> ">"
-    | Geq -> ">="
-    | Eq -> "="
-    | In -> "IN"
-    | NotIn -> "NOTIN"
-    | Subset -> "SUBSET"
-    | Superset -> "SUPERSET"
-    | SubsetEq -> "SUBSETEQ"
-    | SupersetEq -> "SUPERSETEQ"
-
   let string_of_logic_op = function
     | And -> "AND"
     | Or -> "OR"
@@ -209,7 +196,20 @@ end = struct
     | "\\mu" | "\\omega" | "\\Omega" -> true
     | _ -> false
 
-  let rec pp formatter math = match math with
+  let rec pp_relation formatter rel = match rel with
+    | Le -> Format.fprintf formatter "<"
+    | Leq -> Format.fprintf formatter "<="
+    | Ge -> Format.fprintf formatter ">"
+    | Geq -> Format.fprintf formatter ">="
+    | Eq -> Format.fprintf formatter "="
+    | In -> Format.fprintf formatter "IN"
+    | NotIn -> Format.fprintf formatter "NOTIN"
+    | Subset -> Format.fprintf formatter "SUBSET"
+    | Superset -> Format.fprintf formatter "SUPERSET"
+    | SubsetEq -> Format.fprintf formatter "SUBSETEQ"
+    | SupersetEq -> Format.fprintf formatter "SUPERSETEQ"
+    | Equiv x -> Format.fprintf formatter "EQUIV_%a" pp x
+  and pp formatter math = match math with
     | Op (lhs, op, rhs) -> Format.fprintf formatter "(%s %a %a)" (string_of_operator op) pp lhs pp rhs
     | LogicOp (lhs, op, rhs) -> Format.fprintf formatter "(%s %a %a)" (string_of_logic_op op) pp lhs pp rhs
     | Logic (lhs, rhs) -> (
@@ -222,7 +222,7 @@ end = struct
     | Variable var -> Format.fprintf formatter "%s" var
     | Grouping expr -> Format.fprintf formatter "%a" pp expr
     | Relation (lhs, rhs) -> (
-      let pp_pair = fun formatter -> fun (rel, t) -> Format.fprintf formatter "%s %a" (string_of_relation rel) pp t in
+      let pp_pair = fun formatter -> fun (rel, t) -> Format.fprintf formatter "%a %a" pp_relation rel pp t in
       Format.fprintf formatter "(%a %a)" pp lhs (Format.pp_print_list ~pp_sep:(string_sep " ") pp_pair) (List.rev rhs);
     )
     | Apply (lhs, rhs) -> Format.fprintf formatter "(%a %a)"  pp lhs (Format.pp_print_list ~pp_sep:(string_sep " ") pp) rhs
@@ -241,14 +241,6 @@ end = struct
     | Summation (low, high, body) -> Format.fprintf formatter "(SUM_%a^%a %a)" pp low pp high pp body
     | Tuple contents -> Format.fprintf formatter "(%a)" (Format.pp_print_list ~pp_sep:(string_sep ", ") pp) contents
 
-  (* type statement = *)
-  (*   | Logical of t * logic * t *)
-  (*   | Equational of t * relation * t *)
-
-  (* let pp_statement formatter statement = match statement with *)
-  (*   | Logical (lhs, logic, rhs) -> Format.fprintf formatter "%a %s %a" pp lhs (string_of_logic logic) pp rhs *)
-  (*   | Equational (lhs, relation, rhs) -> Format.fprintf formatter "%a %s %a" pp lhs (string_of_relation relation) pp rhs *)
-
   (* an environment containing type variables for variables *)
   type env =
     | Env of (string, Typing.Var.t) Hashtbl.t * env
@@ -259,7 +251,7 @@ end = struct
   let add_var env name data =
     match env with
     | Env (vars, _) -> Hashtbl.set vars ~key:name ~data:data
-    | Empty -> raise (Typing.TypeError "Empty environment (this should not ever happen)")
+    | Empty -> raise (TypeError "Empty environment (this should not ever happen)")
 
   let rec get_var env (name: string) =
     match env with
@@ -284,11 +276,11 @@ end = struct
 
     let recurse_var env (name: string) = 
         match get_var env name with
-        | Some t -> Typing.Type.Any t
+        | Some t -> Type.Any t
         | None -> (
           let t = Typing.Var.fresh () in
           add_var top_level name t; (* free variables go straight to the top level environment *)
-          Typing.Type.Any t
+          Type.Any t
         )
     in
 
@@ -317,7 +309,7 @@ end = struct
           match v with
           | Variable name -> add_var child name (Typing.Var.fresh ())
           | Command (name, _) -> add_var child name (Typing.Var.fresh ())
-          | _ -> raise (Typing.TypeError "This should not happen")
+          | _ -> raise (TypeError "This should not happen")
         );
         child
     in
@@ -327,9 +319,9 @@ end = struct
       match get_fn functions name with
       | Some (args_t, return_t) -> (
           if List.length args <> List.length args_t then
-            raise (Typing.TypeError (Format.sprintf "Conflicting declarations for function %s" name))
+            raise (TypeError (Format.sprintf "Conflicting declarations for function %s" name))
           else
-            List.iter (List.zip_exn args args_t) ~f:(fun (x, y) -> add_constraint (BoundedBy (recurse env x, Typing.Type.Any y)));
+            List.iter (List.zip_exn args args_t) ~f:(fun (x, y) -> add_constraint (recurse env x, Type.Any y));
             (args_t, return_t)
         )
       | None -> (
@@ -343,55 +335,55 @@ end = struct
       | LogicOp (lhs, _, rhs) -> (
         let lhs_t = recurse env lhs in
         let rhs_t = recurse env rhs in
-        add_constraint(BoundedBy (lhs_t, Typing.Type.Bool));
-        add_constraint(BoundedBy (rhs_t, Typing.Type.Bool));
-        Typing.Type.Bool;
+        add_constraint (lhs_t, Type.Bool);
+        add_constraint (rhs_t, Type.Bool);
+        Type.Bool;
       )
       | Logic (lhs, rhs) -> (
         let lhs_t = recurse env lhs in
         List.iter (List.rev rhs) ~f:(fun x ->
           let rhs_t = recurse env (snd x) in
-          add_constraint(BoundedBy (rhs_t, Typing.Type.Bool));
+          add_constraint (rhs_t, Type.Bool);
         );
-        add_constraint(BoundedBy (lhs_t, Typing.Type.Bool));
-        Typing.Type.Bool;
+        add_constraint (lhs_t, Type.Bool);
+        Type.Bool;
       )
       | Op (lhs, op, rhs) -> (match op with
         | Plus -> (
           let t = Typing.Var.fresh () in
           let lhs_t = recurse env lhs in
           let rhs_t = recurse env rhs in
-          add_constraint (BoundedBy (Typing.Type.Any t, (Bound (lhs_t, Plus, rhs_t))));
-          Typing.Type.Any t
+          add_constraint (Type.Any t, (Bound (lhs_t, Plus, rhs_t)));
+          Type.Any t
         )
         | Times -> (
           let t = Typing.Var.fresh () in
           let lhs_t = recurse env lhs in
           let rhs_t = recurse env rhs in
-          add_constraint (BoundedBy (Typing.Type.Any t, (Bound (lhs_t, Times, rhs_t))));
-          Typing.Type.Any t
+          add_constraint (Type.Any t, (Bound (lhs_t, Times, rhs_t)));
+          Type.Any t
         )
         | Minus -> (
           let t = Typing.Var.fresh () in
           let lhs_t = recurse env lhs in
           let rhs_t = recurse env rhs in
-          add_constraint (BoundedBy (Typing.Type.Any t, (Bound (lhs_t, Minus, rhs_t))));
-          Typing.Type.Any t
+          add_constraint (Type.Any t, (Bound (lhs_t, Minus, rhs_t)));
+          Type.Any t
         )
         | Frac -> (
           let t = Typing.Var.fresh () in
           let lhs_t = recurse env lhs in
           let rhs_t = recurse env rhs in
-          add_constraint (BoundedBy (Typing.Type.Any t, (Bound (lhs_t, Frac, rhs_t))));
-          Typing.Type.Any t
+          add_constraint (Type.Any t, (Bound (lhs_t, Frac, rhs_t)));
+          Type.Any t
         )
         | Union | Inter -> (
           let t = Typing.Var.fresh () in
           let lhs_t = recurse env lhs in
           let rhs_t = recurse env rhs in
-          add_constraint (BoundedBy (lhs_t, Typing.Type.Set (Typing.Type.Any t)));
-          add_constraint (BoundedBy (rhs_t, Typing.Type.Set (Typing.Type.Any t)));
-          Typing.Type.Set (Typing.Type.Any t)
+          add_constraint (lhs_t, Type.Set (Type.Any t));
+          add_constraint (rhs_t, Type.Set (Type.Any t));
+          Type.Set (Type.Any t)
         )
       )
       | Unary (op, lhs) -> (match op with
@@ -399,31 +391,31 @@ end = struct
           let t = Typing.Var.fresh () in
           let lhs_t = recurse env lhs in
           (* same type constraints as minus, since -x is 0 - x (e.g. negative of a natural is an integer)*)
-          add_constraint (BoundedBy (Typing.Type.Any t, (Bound (Number Natural, Minus, lhs_t))));
-          Typing.Type.Any t
+          add_constraint (Type.Any t, (Bound (Number Natural, Minus, lhs_t)));
+          Type.Any t
 
         )
         | Not -> (
           let lhs_t = recurse env lhs in
-          add_constraint (BoundedBy (lhs_t, Typing.Type.Bool));
-          Typing.Type.Bool
+          add_constraint (lhs_t, Type.Bool);
+          Type.Bool
         )
         | Abs -> (
           let lhs_t = recurse env lhs in
-          add_constraint (BoundedBy (lhs_t, Typing.Type.Number Real));
+          add_constraint (lhs_t, Type.Number Real);
           lhs_t
         )
         | Sqrt -> (
           let t = Typing.Var.fresh () in
           let lhs_t = recurse env lhs in
           (* ensure that contents are numeric, but result is always real *)
-          add_constraint (BoundedBy (lhs_t, Typing.Type.Number Real));
-          add_constraint (BoundedBy (Typing.Type.Any t, Typing.Type.Number Real));
-          Typing.Type.Any t
+          add_constraint (lhs_t, Type.Number Real);
+          add_constraint (Type.Any t, Type.Number Real);
+          Type.Any t
         )
       )
-      | IntLiteral _ -> Typing.Type.Number Natural
-      | FloatLiteral _ -> Typing.Type.Number Real
+      | IntLiteral _ -> Type.Number Natural
+      | FloatLiteral _ -> Type.Number Real
       | Variable name -> (
         recurse_var env name
       )
@@ -449,56 +441,65 @@ end = struct
             | [] -> ()
             | hd :: tl -> (
               match hd with
-              | (Le, _) | (Leq, _) when seen.ge -> raise (Typing.TypeError "> and >= should be followed by < or <=")
+              | (Le, _) | (Leq, _) when seen.ge -> raise (TypeError "> and >= should be followed by < or <=")
               | (Le, expr) | (Leq, expr) -> (
                 seen.le <- true;
                 let t = recurse env expr in
-                add_constraint (BoundedBy (prev_t, Typing.Type.Number Real));
-                add_constraint (BoundedBy (t, Typing.Type.Number Real));
+                (* TODO: is this correct? *)
+                (* add_constraint (prev_t, Type.Number Natural); *)
+                (* add_constraint (t, Type.Number Natural); *)
                 iter t tl
               )
-              | (Ge, _) | (Geq, _) when seen.le -> raise (Typing.TypeError "< and <= should be followed by > or >=")
+              | (Ge, _) | (Geq, _) when seen.le -> raise (TypeError "< and <= should be followed by > or >=")
               | (Ge, expr) | (Geq, expr) -> (
                 seen.ge <- true;
                 let t = recurse env expr in
-                add_constraint (BoundedBy (prev_t, Typing.Type.Number Real));
-                add_constraint (BoundedBy (t, Typing.Type.Number Real));
+                (* add_constraint (prev_t, Type.Number Natural); *)
+                (* add_constraint (t, Type.Number Natural); *)
                 iter t tl
               )
-              | (Superset, _) | (SupersetEq, _) when seen.sub -> raise (Typing.TypeError "Subset(eq) should not be followed by superset(eq)")
+              | (Superset, _) | (SupersetEq, _) when seen.sub -> raise (TypeError "Subset(eq) should not be followed by superset(eq)")
               | (Superset, expr) | (SupersetEq, expr) -> (
                 seen.sup <- true;
                 (* ensure prev_t is a set *)
                 let u = Typing.Var.fresh () in
-                add_constraint (BoundedBy (prev_t, Typing.Type.Set (Typing.Type.Any u)));
+                add_constraint (prev_t, Type.Set (Type.Any u));
                 (* next t should be bounded by the previous t *)
                 let t = recurse env expr in
-                add_constraint (BoundedBy (t, prev_t));
+                add_constraint (t, prev_t);
                 iter t tl
               )
-              | (Subset, _) | (SubsetEq, _) when seen.sup -> raise (Typing.TypeError "Superset(eq) should not be followed by subset(eq)")
+              | (Subset, _) | (SubsetEq, _) when seen.sup -> raise (TypeError "Superset(eq) should not be followed by subset(eq)")
               | (Subset, expr) | (SubsetEq, expr) -> (
                 seen.sub <- true;
                 (* ensure prev_t is a set *)
                 let u = Typing.Var.fresh () in
-                add_constraint (BoundedBy (prev_t, Typing.Type.Set (Typing.Type.Any u)));
+                add_constraint (prev_t, Type.Set (Type.Any u));
                 (* the previous t should be bounded by the next t *)
                 let t = recurse env expr in
-                add_constraint (BoundedBy (prev_t, t));
+                add_constraint (prev_t, t);
                 iter t tl
               )
               | (In, expr) | (NotIn, expr) -> (
                 let t = recurse env expr in
                 (* ensure t is a set *)
                 let u = Typing.Var.fresh () in
-                add_constraint (BoundedBy (t, Typing.Type.Set (Typing.Type.Any u)));
-                add_constraint (BoundedBy (prev_t, Typing.Type.Any u));
+                add_constraint (t, Type.Set (Type.Any u));
+                add_constraint (prev_t, Type.Any u);
                 iter t tl
               )
               | (Eq, expr) -> (
                 let t = recurse env expr in
-                add_constraint (BoundedBy (prev_t, t));
-                add_constraint (BoundedBy (t, prev_t));
+                add_constraint (prev_t, t);
+                add_constraint (t, prev_t);
+                iter t tl
+              )
+              | (Equiv m, expr) -> (
+                let t = recurse env expr in
+                let m_t = recurse env m in
+                add_constraint (m_t, Type.Number Natural);
+                add_constraint (prev_t, Type.Number Integer);
+                add_constraint (t, Type.Number Integer);
                 iter t tl
               )
             )
@@ -506,86 +507,73 @@ end = struct
           iter (recurse env first) arr
         in
         verify lhs (List.rev rhs);
-        Typing.Type.Bool
+        Type.Bool
       )
-      (*
-        Rules for scoping:
-          if LHS is Apply, and all args are variables, assume to be function call.
-            If any args share a name with free variables, print a warning (due to possible ambiguity)
-            All args get captured as bound variables in RHS of Relation
-            In RHS, if any free variables detected that have not been assigned any values, print warning (undefined variable).
-            (possible extension: defining piecewise functions (could even make this the default later))
-
-          Exists/Forall capture variables in body
-
-          Set comprehensions can also capture variables
-
-      *)
       | Apply (lhs, [Tuple args]) -> (
         let args_t, return_t = (match lhs with
           | Variable name -> recurse_fn env name args
-          | _ -> raise (Typing.TypeError "Cannot apply non-function")
+          | _ -> raise (TypeError "Cannot apply non-function")
         ) in
-        List.iter (List.zip_exn args args_t) ~f:(fun (x, y) -> add_constraint (BoundedBy (recurse env x, Typing.Type.Any y)));
-        Typing.Type.Any return_t
+        List.iter (List.zip_exn args args_t) ~f:(fun (x, y) -> add_constraint (recurse env x, Type.Any y));
+        Type.Any return_t
       )
       | Apply (lhs, args) -> (
         let args_t, return_t = (match lhs with
           | Variable name -> recurse_fn env name args
-          | _ -> raise (Typing.TypeError "Cannot apply non-function")
+          | _ -> raise (TypeError "Cannot apply non-function")
         ) in
-        List.iter (List.zip_exn args args_t) ~f:(fun (x, y) -> add_constraint (BoundedBy (recurse env x, Typing.Type.Any y)));
-        Typing.Type.Any return_t
+        List.iter (List.zip_exn args args_t) ~f:(fun (x, y) -> add_constraint (recurse env x, Type.Any y));
+        Type.Any return_t
       )
       | Subscript (lhs, rhs) -> (
         let t = Typing.Var.fresh () in
         let lhs_t = recurse env lhs in
         let rhs_t = recurse env rhs in
-        add_constraint (BoundedBy (rhs_t, Typing.Type.Number Natural));
-        add_constraint (BoundedBy (lhs_t, Typing.Type.Sequence (Typing.Type.Any t)));
-        Typing.Type.Any t
+        add_constraint (rhs_t, Type.Number Natural);
+        add_constraint (lhs_t, Type.Sequence (Type.Any t));
+        Type.Any t
       )
       (* TODO: alternative interpretations? *)
       | Superscript (lhs, rhs) -> (
           let t = Typing.Var.fresh () in
           let lhs_t = recurse env lhs in
           let rhs_t = recurse env rhs in
-          add_constraint (BoundedBy (Typing.Type.Any t, (Bound (lhs_t, Pow, rhs_t))));
-          Typing.Type.Any t
+          add_constraint (Type.Any t, (Bound (lhs_t, Pow, rhs_t)));
+          Type.Any t
       )
       | Command (name, arg) -> (
           match (name, arg) with
           (* this is kind of a hack, maybe fix later? *)
-          | ("\\mathbb", Some (Variable "N")) -> Typing.Type.Set (Typing.Type.Number Natural)
-          | ("\\mathbb", Some (Variable "Z")) -> Typing.Type.Set (Typing.Type.Number Integer)
-          | ("\\mathbb", Some (Variable "Q")) -> Typing.Type.Set (Typing.Type.Number Rational)
-          | ("\\mathbb", Some (Variable "R")) -> Typing.Type.Set (Typing.Type.Number Real)
+          | ("\\mathbb", Some (Variable "N")) -> Type.Set (Type.Number Natural)
+          | ("\\mathbb", Some (Variable "Z")) -> Type.Set (Type.Number Integer)
+          | ("\\mathbb", Some (Variable "Q")) -> Type.Set (Type.Number Rational)
+          | ("\\mathbb", Some (Variable "R")) -> Type.Set (Type.Number Real)
           (* treat greek letters and math terms as variables *)
           | (name, _) when is_greek_letter name -> recurse_var env name
           | ("\\mathit", _) | ("\\mathrm", _) -> recurse_var env name
           (* assign text an arbitrary type - could be useful in future? *)
           | ("\\text", _) -> (
             let t = Typing.Var.fresh () in
-            Typing.Type.Any t
+            Type.Any t
           )
-          | _ -> Typing.Type.Any (Typing.Var.fresh ())
-          (* | _ -> raise (Typing.TypeError "Command not yet implemented") *)
+          | _ -> Type.Any (Typing.Var.fresh ())
+          (* | _ -> raise (TypeError "Command not yet implemented") *)
       )
       | Forall (expr, next) -> (
         let child = capture env expr in
         let _ = recurse child expr in
         let _ = recurse child next in
-        Typing.Type.Bool
+        Type.Bool
       )
       | Exists (expr, next) -> (
         let child = capture env expr in
         let _ = recurse child expr in
         let _ = recurse child next in
-        Typing.Type.Bool
+        Type.Bool
       )
       | Suchthat expr -> (
         let _ = recurse env expr in
-        Typing.Type.Bool
+        Type.Bool
       )
       | Summation (low, high, body) -> (
         let child = capture env low in
@@ -598,28 +586,28 @@ end = struct
         let child = capture env rhs in
         let _ = recurse child rhs in
         let t = recurse child lhs in
-        Typing.Type.Set t
+        Type.Set t
       )
       | SetLiteral lhs -> (
         let t = Typing.Var.fresh () in
         List.iter ~f:(fun expr ->
           let u = recurse env expr in
-          add_constraint (BoundedBy (u, Typing.Type.Any t))
+          add_constraint (u, Type.Any t)
         ) lhs;
-        Typing.Type.Set (Typing.Type.Any t)
+        Type.Set (Type.Any t)
       )
       | Tuple lhs -> (
         let t = Typing.Var.fresh () in
         List.iter ~f:(fun expr ->
           let u = recurse env expr in
-          add_constraint (BoundedBy (u, Typing.Type.Any t))
+          add_constraint (u, Type.Any t)
         ) lhs;
-        Typing.Type.Tuple (Typing.Type.Any t)
+        Type.Tuple (Type.Any t)
       )
       (* assign text an arbitrary type - could be useful in future? *)
       | Text _ -> (
         let t = Typing.Var.fresh () in
-        Typing.Type.Any t
+        Type.Any t
       )
     in
 
@@ -640,7 +628,7 @@ end = struct
               let child = new_env env in
               List.iter args ~f:(fun arg -> match arg with
                 | Variable a -> add_var child a (Typing.Var.fresh ())
-                | _ -> raise (Typing.TypeError "Invalid function declaration (this should not happen)")
+                | _ -> raise (TypeError "Invalid function declaration (this should not happen)")
               );
               let _ = recurse_fn child name args in
               recurse child node
@@ -652,7 +640,7 @@ end = struct
 
     List.iter ~f:(fun x -> let _ = recurse0 top_level x in ()) math;
 
-    Format.printf "Constraints: %a\n" Typing.Constraints.pp constraints;
+    (* Format.printf "Constraints: %a\n" Typing.Constraints.pp constraints; *)
 
     (* print variables and their type variables *)
     (* let () = match top_level with *)
@@ -667,24 +655,24 @@ end = struct
     let subs = Typing.unify constraints in
 
     (* let (_, lower, upper) = constraints in *)
-    (* Format.printf "Lower: %a\n" (pp_hashtbl ~pp_key:Typing.Var.pp ~pp_data:(Format.pp_print_list ~pp_sep:(string_sep ", ") Typing.Type.pp)) lower; *)
-    (* Format.printf "Upper: %a\n" (pp_hashtbl ~pp_key:Typing.Var.pp ~pp_data:(Format.pp_print_list ~pp_sep:(string_sep ", ") Typing.Type.pp)) upper; *)
+    (* Format.printf "Lower: %a\n" (pp_hashtbl ~pp_key:Typing.Var.pp ~pp_data:(Format.pp_print_list ~pp_sep:(string_sep ", ") Type.pp)) lower; *)
+    (* Format.printf "Upper: %a\n" (pp_hashtbl ~pp_key:Typing.Var.pp ~pp_data:(Format.pp_print_list ~pp_sep:(string_sep ", ") Type.pp)) upper; *)
 
-    Format.printf "Subs: %a\n" Typing.Substitutions.pp subs;
+    (* Format.printf "Subs: %a\n" Typing.Substitutions.pp subs; *)
 
     (* everything in the top level environment is a free variable *)
     match top_level with
     | Env (vars, _) -> (
       Hashtbl.iteri vars ~f:(fun ~key ~data ->
-        let principal_type = Typing.simplify subs (Typing.Type.Any data) in
-        Format.printf "val (%a) %s : %a\n" Typing.Var.pp data key Typing.Type.pp principal_type;
+        let principal_type = Typing.simplify ~final:true (Typing.apply subs (Type.Any data)) in
+        Format.printf "val (%a) %s : %a\n" Typing.Var.pp data key Type.pp principal_type;
       );
 
       Hashtbl.iteri functions ~f:(fun ~key ~data ->
         let (args_t, ret_t) = data in
-        let arg_types = List.map args_t ~f:(fun a -> Typing.simplify subs (Typing.Type.Any a)) in
-        let return_type  = Typing.simplify subs (Typing.Type.Any ret_t) in
-        Format.printf "fun %s : %a -> %a\n" key (Format.pp_print_list ~pp_sep:(string_sep " -> ") Typing.Type.pp) arg_types Typing.Type.pp return_type
+        let arg_types = List.map args_t ~f:(fun a -> Typing.simplify ~final:true (Typing.apply subs (Type.Any a))) in
+        let return_type  = Typing.simplify ~final:true (Typing.apply subs (Type.Any ret_t)) in
+        Format.printf "fun %s : %a -> %a\n" key (Format.pp_print_list ~pp_sep:(string_sep " -> ") Type.pp) arg_types Type.pp return_type
       );
     );
     | Empty -> ();

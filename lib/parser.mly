@@ -73,6 +73,7 @@
 %token <Lexing.position> LAND
 %token <Lexing.position> LOR
 %token <Lexing.position> LNOT
+%token <Lexing.position> EQUIV
 %token <Lexing.position * string> TEXT
 %token <Lexing.position> SUM
 
@@ -179,6 +180,7 @@ relation1:
 (* | lhs = relation1; spacing*; IMPLIES; WHITESPACE*; rhs = relation2; { Ast.Math.Logic (lhs, Ast.Math.Implies, rhs) } *)
 (* to support chaining *)
 (* Note: this results in the relation list being reversed - it should be un-reversed when walking the AST *)
+(* It's possible there's a better way to do this in a way that still appeases the parser *)
 | lhs = relation1; spacing*; IMPLIES; WHITESPACE*; spacing*; rhs = relation2; spacing*; {
     match lhs with
     | Logic (x, y) -> Logic (x, (Ast.Math.Implies, rhs) :: y)
@@ -324,3 +326,6 @@ comma_sep:
 | SUPERSETEQ; WHITESPACE*; { Ast.Math.SupersetEq }
 | SET_IN; WHITESPACE*; { Ast.Math.In }
 | SET_NOTIN; WHITESPACE*; { Ast.Math.NotIn }
+| EQUIV; UNDERSCORE; d = DIGIT; WHITESPACE* { Ast.Math.Equiv (Ast.Math.IntLiteral (snd d)) }
+| EQUIV; UNDERSCORE; d = CHAR; WHITESPACE* { Ast.Math.Equiv (Ast.Math.Variable (snd d)) }
+| EQUIV; UNDERSCORE; LEFT_CURLY; e = expr; RIGHT_CURLY; WHITESPACE* { Ast.Math.Equiv e }
