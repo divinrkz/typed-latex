@@ -82,7 +82,6 @@
 %start <Ast.Math.t list option> multiline
 
 %type <Ast.Latex.t> content
-%type <Ast.Environment.t> environment
 
 %%
 
@@ -91,63 +90,63 @@ start:
 | EOF { None }
 
 latex:
-| all = content*; { {Ast.Node.pos = Ast.loc_zero; value = Ast.Latex.Latex all} }
+| all = content*; { {Ast.Node.pos = Lexing.dummy_pos; value = Ast.Latex.Latex all} }
 
 content:
-| env = environment { {Ast.Node.pos = Ast.loc_zero; value = Ast.Latex.Environment env} }
- (* below leads to a shift/reduce conflict, but menhir seems to work fine anyway *)
-| text = word { {Ast.Node.pos = Ast.loc_zero; value = Ast.Latex.Word text} } 
-| math = MATHMODE { {Ast.Node.pos = Ast.loc_zero; value = Ast.Latex.Mathmode (snd math)} } 
-| math = MULTILINE { {Ast.Node.pos = Ast.loc_zero; value = Ast.Latex.Multiline (snd math)} } 
-| command = command { {Ast.Node.pos = Ast.loc_zero; value = Ast.Latex.Command (fst command, snd command) } } 
+| env = environment { env }
+| text = word { text } 
+| math = MATHMODE { {Ast.Node.pos = fst math; value = Ast.Latex.Mathmode (snd math)} } 
+| math = MULTILINE { {Ast.Node.pos = fst math; value = Ast.Latex.Multiline (snd math)} } 
+| command = command { command } 
 
+(* TODO: convert into variant for more semantic information *)
 word:
-| word_data = WORD { (snd word_data) }
-| LINE_BREAK { "\n" }
-| WHITESPACE { " " }
-| COMMA { "," }
-| PIPE { "|" }
-| LEFT_PAREN { "(" }
-| RIGHT_PAREN { ")" }
-| LEFT_BRACKET { "[" }
-| RIGHT_BRACKET { "]" }
-| EQ { "=" }
-| AMPERSAND { "&" }
+| word_data = WORD; { {Ast.Node.pos = fst word_data; value = Ast.Latex.Word (snd word_data)} }
+| data = LINE_BREAK { {Ast.Node.pos = data; value = Ast.Latex.Word "\n"} }
+| data = WHITESPACE { {Ast.Node.pos = data; value = Ast.Latex.Word " "} }
+| data = COMMA { {Ast.Node.pos = data; value = Ast.Latex.Word ","} }
+| data = PIPE { {Ast.Node.pos = data; value = Ast.Latex.Word "|"} }
+| data = LEFT_PAREN { {Ast.Node.pos = data; value = Ast.Latex.Word "("} }
+| data = RIGHT_PAREN { {Ast.Node.pos = data; value = Ast.Latex.Word ")"} }
+| data = LEFT_BRACKET { {Ast.Node.pos = data; value = Ast.Latex.Word "["} }
+| data = RIGHT_BRACKET { {Ast.Node.pos = data; value = Ast.Latex.Word "]"} }
+| data = EQ { {Ast.Node.pos = data; value = Ast.Latex.Word "="} }
+| data = AMPERSAND { {Ast.Node.pos = data; value = Ast.Latex.Word "&"} }
 
 (* a dumb hack to prevent the parser from failing when "]" is located inside of bracketed command arguments *)
 (* otherwise, in something like \command[asdf], the parser would recognize the "]" not as the end of the grouping but as a word instead *)
-latex1:
-| all = content1*; { {Ast.Node.pos = Ast.loc_zero; value = Ast.Latex.Latex all} }
+latex_no_rbracket:
+| all = content1*; { {Ast.Node.pos = Lexing.dummy_pos; value = Ast.Latex.Latex all} }
 content1:
-| env = environment { {Ast.Node.pos = Ast.loc_zero; value = Ast.Latex.Environment env} }
+| env = environment { env }
  (* below leads to a shift/reduce conflict, but menhir seems to work fine anyway *)
-| text = word1 { {Ast.Node.pos = Ast.loc_zero; value = Ast.Latex.Word text} } 
-| math = MATHMODE { {Ast.Node.pos = Ast.loc_zero; value = Ast.Latex.Mathmode (snd math)} } 
-| command = command { {Ast.Node.pos = Ast.loc_zero; value = Ast.Latex.Command (fst command, snd command) } } 
-word1:
-| word_data = WORD { (snd word_data) }
-| LINE_BREAK { "\n" }
-| WHITESPACE { " " }
-| COMMA { "," }
-| PIPE { "|" }
-| LEFT_PAREN { "(" }
-| RIGHT_PAREN { ")" }
-| LEFT_BRACKET { "[" }
-| EQ { "=" }
-| AMPERSAND { "&" }
+| text = word_no_rbracket { text } 
+| math = MATHMODE { {Ast.Node.pos = fst math; value = Ast.Latex.Mathmode (snd math)} } 
+| command = command { command } 
+word_no_rbracket:
+| word_data = WORD; { {Ast.Node.pos = fst word_data; value = Ast.Latex.Word (snd word_data)} }
+| data = LINE_BREAK { {Ast.Node.pos = data; value = Ast.Latex.Word "\n"} }
+| data = WHITESPACE { {Ast.Node.pos = data; value = Ast.Latex.Word " "} }
+| data = COMMA { {Ast.Node.pos = data; value = Ast.Latex.Word ","} }
+| data = PIPE { {Ast.Node.pos = data; value = Ast.Latex.Word "|"} }
+| data = LEFT_PAREN { {Ast.Node.pos = data; value = Ast.Latex.Word "("} }
+| data = RIGHT_PAREN { {Ast.Node.pos = data; value = Ast.Latex.Word ")"} }
+| data = LEFT_BRACKET { {Ast.Node.pos = data; value = Ast.Latex.Word "["} }
+| data = EQ { {Ast.Node.pos = data; value = Ast.Latex.Word "="} }
+| data = AMPERSAND { {Ast.Node.pos = data; value = Ast.Latex.Word "&"} }
 
 command:
-| command = COMMAND; args = command_args; { (snd command, args) }
+| command = COMMAND; args = command_args; { {Ast.Node.pos = fst command; value = Ast.Latex.Command (snd command, args) } } 
 
 command_args:
-| LEFT_BRACKET; contents = latex1; RIGHT_BRACKET; rest = curly_args* { contents :: rest }
+| LEFT_BRACKET; contents = latex_no_rbracket; RIGHT_BRACKET; rest = curly_args* { contents :: rest }
 | rest = curly_args* { rest }
 
 curly_args:
 | LEFT_CURLY; contents = latex; RIGHT_CURLY { contents }
 
 environment:
-| name1 = BEGIN; args = command_args; body = content+; END; { snd name1, args, body }
+| name1 = BEGIN; args = command_args; body = content+; END; { {Ast.Node.pos = fst name1; value = Ast.Latex.Environment (snd name1, args, body)} }
 
 (* TODO: figure out a better way of dealing with whitespace *)
 (* for now, I'm just doing whitespace right-recursively to appease the parser *)

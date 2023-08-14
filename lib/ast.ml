@@ -2,29 +2,6 @@ open Core
 open Util
 open Typing
 
-type position = {
-  row: int;
-  col: int;
-}
-[@@deriving eq, sexp, show]
-
-type location = {
-  start: position;
-  stop: position;
-}
-[@@deriving eq, sexp, show]
-
-let loc_zero = {
-  start = {
-    row = 0;
-    col = 0;
-  };
-  stop = {
-    row = 0;
-    col = 0;
-  }
-}
-
 module rec Math : sig
   type operator =
     | Plus
@@ -721,7 +698,7 @@ end
 
 module Node = struct
   type 'node t = {
-    pos: location;
+    pos: Lexing.position;
     value: 'node;
   }
 end
@@ -781,13 +758,21 @@ end
 
   let pp_list formatter asts = Format.fprintf formatter "%a\n" (Format.pp_print_list ~pp_sep:(string_sep "\n") pp) asts
 
+  let pp_position formatter (pos: Lexing.position) = Format.fprintf formatter "%i:%i" pos.pos_lnum (pos.pos_cnum - pos.pos_bol + 1)
+
   let get_all_math node =
     let acc = ref [] in
     let rec recurse acc (node: t) = match node with
     | {pos = _; value = Word _} -> ()
     | {pos = _; value = Environment (_, _, contents)} -> List.iter ~f:(recurse acc) contents
-    | {pos = _; value = Mathmode _ as math} -> acc := math :: !acc
-    | {pos = _; value = Multiline _ as math} -> acc := math :: !acc
+    | {pos = p; value = Mathmode _ as math} -> (
+        acc := math :: !acc;
+        Format.printf "Found math at %a\n" pp_position p;
+      )
+    | {pos = p; value = Multiline _ as math} -> (
+        acc := math :: !acc;
+        Format.printf "Found math at %a\n" pp_position p;
+      )
     | {pos = _; value = Command (_, args)} -> List.iter ~f:(recurse acc) args
     | {pos = _; value = Latex contents} -> List.iter ~f:(recurse acc) contents
     in

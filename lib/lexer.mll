@@ -14,9 +14,7 @@
 
 }
 
-let newline = '\r' | '\n' | "\r\n"
-let linebreak = newline+
-
+let linebreak = '\r' | '\n' | "\r\n"
 let whitespace = [' ' '\t']+
 
 let linecomment = '%' [^ '\r' '\n']*
@@ -38,7 +36,7 @@ let real = ['0'-'9']+ '.' ['0'-'9']+
 let begin_env = "\\begin{" ['a'-'z' 'A'-'Z']+ '}'
 let end_env = "\\end{" ['a'-'z' 'A'-'Z']+ '}'
 
-let math_sep = "\\\\" newline*
+let math_sep = "\\\\"
 (* does not check for matching begin/end, assume latex lsp will catch that *)
 let begin_math = "$$" | "$" | "\\[" | "\\begin{math}" | "\\begin{equation}"
 let end_math = "$$" | "$" | "\\]" | "\\end{math}" | "\\end{equation}"
@@ -50,7 +48,8 @@ rule token =
   | linebreak   { Lexing.new_line lexbuf; LINE_BREAK lexbuf.lex_curr_p }
   | whitespace  { WHITESPACE lexbuf.lex_curr_p }
   (* | linecomment { LINE_COMMENT (lexbuf.lex_curr_p, Lexing.lexeme lexbuf) } *)
-  | linecomment { token lexbuf } (* just ignore line comments for now *)
+  (* just ignore line comments for now *)
+  | linecomment { token lexbuf } 
   | '{'         { LEFT_CURLY lexbuf.lex_curr_p }
   | '}'         { RIGHT_CURLY lexbuf.lex_curr_p }
   | '['         { LEFT_BRACKET lexbuf.lex_curr_p}
@@ -61,37 +60,44 @@ rule token =
   | '|'         { PIPE lexbuf.lex_curr_p}
   | '='         { EQ lexbuf.lex_curr_p}
   | '&'         { AMPERSAND lexbuf.lex_curr_p}
-  | begin_multiline  { MULTILINE (lexbuf.lex_curr_p, mathmode (Buffer.create 80) (math_delimiter (Lexing.lexeme lexbuf)) lexbuf) }
-  | begin_math  { MATHMODE (lexbuf.lex_curr_p, mathmode (Buffer.create 80) (math_delimiter (Lexing.lexeme lexbuf)) lexbuf) }
+  | begin_multiline  { 
+    let (a, b) = mathmode (Buffer.create 80) (math_delimiter (Lexing.lexeme lexbuf)) (lexbuf.lex_start_p) lexbuf in
+    MULTILINE (a, b)
+  }
+  | begin_math  { 
+    let (a, b) = mathmode (Buffer.create 80) (math_delimiter (Lexing.lexeme lexbuf)) (lexbuf.lex_start_p) lexbuf in
+    MATHMODE (a, b)
+  }
   | begin_env   { BEGIN (lexbuf.lex_curr_p, Lexing.lexeme lexbuf) }
   | end_env     { END (lexbuf.lex_curr_p, Lexing.lexeme lexbuf) }
   | command     { COMMAND (lexbuf.lex_curr_p, Lexing.lexeme lexbuf) }
   | text        { WORD (lexbuf.lex_curr_p, Lexing.lexeme lexbuf) }
   | eof         { EOF lexbuf.lex_curr_p }
   | _           { raise (LexError ("Unexpected char: " ^ Lexing.lexeme lexbuf)) }
-and mathmode buf delim =
+and mathmode buf delim start =
   parse
-  | linebreak   { Lexing.new_line lexbuf; mathmode buf delim lexbuf}
-  | whitespace  { Buffer.add_string buf (Lexing.lexeme lexbuf); mathmode buf delim lexbuf }
-  | linecomment { mathmode buf delim lexbuf}
+  | linebreak   { Lexing.new_line lexbuf; mathmode buf delim start lexbuf}
+  | whitespace  { Buffer.add_string buf (Lexing.lexeme lexbuf); mathmode buf delim start lexbuf }
+  | linecomment { mathmode buf delim start lexbuf}
   | end_multiline{ if (String.equal (Lexing.lexeme lexbuf) delim) then
-                    Buffer.contents buf
+                    (start, Buffer.contents buf)
                   else (
                     Buffer.add_string buf (Lexing.lexeme lexbuf);
-                  mathmode buf delim lexbuf)
+                    mathmode buf delim start lexbuf)
                   }
   | end_math    { if (String.equal (Lexing.lexeme lexbuf) delim) then
-                    Buffer.contents buf
+                    (start, Buffer.contents buf)
                   else (
                     Buffer.add_string buf (Lexing.lexeme lexbuf);
-                  mathmode buf delim lexbuf)
+                    mathmode buf delim start lexbuf)
                   }
-  | [^ '$' '\n' '\r' '\t' ' ']+    { Buffer.add_string buf (Lexing.lexeme lexbuf); mathmode buf delim lexbuf}
+  | [^ '$' '\n' '\r' '\t' ' ']+    { Buffer.add_string buf (Lexing.lexeme lexbuf); mathmode buf delim start lexbuf}
   | _           { raise (LexError ("Unexpected char in math mode: " ^ Lexing.lexeme lexbuf)) }
   | eof         { raise (LexError (Format.sprintf "Math mode is not terminated")) }
 and math_token =
   parse
   (* syntax *)
+  | linebreak   { Lexing.new_line lexbuf; LINE_BREAK lexbuf.lex_curr_p }
   | math_sep    { SEPARATOR lexbuf.lex_curr_p }
   | '&'         { math_token lexbuf }
   | whitespace  { WHITESPACE lexbuf.lex_curr_p }
