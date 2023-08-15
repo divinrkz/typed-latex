@@ -619,21 +619,7 @@ end = struct
 
     (* Format.printf "Constraints: %a\n" Typing.Constraints.pp constraints; *)
 
-    (* print variables and their type variables *)
-    (* let () = match top_level with *)
-    (* | Env (vars, _) -> ( *)
-    (*   Hashtbl.iteri vars ~f:(fun ~key ~data -> *)
-    (*     Format.printf "val (%a) %s\n" Typing.Var.pp data key; *)
-    (*   ); *)
-    (* ) *)
-    (* | Empty -> () *)
-    (* in *)
-
     let subs = Typing.unify constraints in
-
-    (* let (_, lower, upper) = constraints in *)
-    (* Format.printf "Lower: %a\n" (pp_hashtbl ~pp_key:Typing.Var.pp ~pp_data:(Format.pp_print_list ~pp_sep:(string_sep ", ") Type.pp)) lower; *)
-    (* Format.printf "Upper: %a\n" (pp_hashtbl ~pp_key:Typing.Var.pp ~pp_data:(Format.pp_print_list ~pp_sep:(string_sep ", ") Type.pp)) upper; *)
 
     (* Format.printf "Subs: %a\n" Typing.Substitutions.pp subs; *)
 
@@ -722,8 +708,8 @@ and Latex: sig
     | Word of string
     | Command of string * t list
     | Environment of Environment.t
-    | Mathmode of string
-    | Multiline of string
+    | Mathmode of string (* encompasses equations, formula, and display mode *)
+    | Multiline of string (* encompasses only align* (for now) *)
     | Latex of t list
   and t = latex Node.t
 
@@ -758,20 +744,18 @@ end
 
   let pp_list formatter asts = Format.fprintf formatter "%a\n" (Format.pp_print_list ~pp_sep:(string_sep "\n") pp) asts
 
-  let pp_position formatter (pos: Lexing.position) = Format.fprintf formatter "%i:%i" pos.pos_lnum (pos.pos_cnum - pos.pos_bol + 1)
+  (* let pp_position formatter (pos: Lexing.position) = Format.fprintf formatter "%s:%i:%i" pos.pos_fname pos.pos_lnum (pos.pos_cnum - pos.pos_bol + 1) *)
 
   let get_all_math node =
     let acc = ref [] in
     let rec recurse acc (node: t) = match node with
     | {pos = _; value = Word _} -> ()
     | {pos = _; value = Environment (_, _, contents)} -> List.iter ~f:(recurse acc) contents
-    | {pos = p; value = Mathmode _ as math} -> (
+    | {pos = _; value = Mathmode _ as math} -> (
         acc := math :: !acc;
-        Format.printf "Found math at %a\n" pp_position p;
       )
-    | {pos = p; value = Multiline _ as math} -> (
+    | {pos = _; value = Multiline _ as math} -> (
         acc := math :: !acc;
-        Format.printf "Found math at %a\n" pp_position p;
       )
     | {pos = _; value = Command (_, args)} -> List.iter ~f:(recurse acc) args
     | {pos = _; value = Latex contents} -> List.iter ~f:(recurse acc) contents
