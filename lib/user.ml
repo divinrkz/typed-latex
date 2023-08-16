@@ -236,4 +236,4 @@ let type_check ast =
     );
     Ast.Math.type_check !math_nodes
 
-let message = Parser_messages.message
+(* let message = Parser_messages.message *)

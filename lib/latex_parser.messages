@@ -1,0 +1,225 @@
+start: RIGHT_CURLY
+##
+## Ends in an error in state: 0.
+##
+## start' -> . start [ # ]
+##
+## The known suffix of the stack is as follows:
+##
+##
+
+Unexpected '}'
+
+start: LEFT_CURLY EOF
+##
+## Ends in an error in state: 10.
+##
+## content -> LEFT_CURLY . latex RIGHT_CURLY [ WORD WHITESPACE RIGHT_PAREN RIGHT_CURLY RIGHT_BRACKET PIPE MULTILINE MATHMODE LINE_BREAK LEFT_PAREN LEFT_CURLY LEFT_BRACKET EQ EOF END COMMAND COMMA BEGIN ]
+##
+## The known suffix of the stack is as follows:
+## LEFT_CURLY
+##
+
+'{' not closed
+
+start: COMMAND AMPERSAND
+##
+## Ends in an error in state: 13.
+##
+## command -> COMMAND . command_args [ WORD WHITESPACE RIGHT_PAREN RIGHT_CURLY RIGHT_BRACKET PIPE MULTILINE MATHMODE LINE_BREAK LEFT_PAREN LEFT_CURLY LEFT_BRACKET EQ EOF END COMMAND COMMA BEGIN ]
+##
+## The known suffix of the stack is as follows:
+## COMMAND
+##
+
+Unexpected '&'
+
+start: BEGIN LEFT_CURLY EOF
+##
+## Ends in an error in state: 14.
+##
+## curly_args -> LEFT_CURLY . latex RIGHT_CURLY [ WORD WHITESPACE RIGHT_PAREN RIGHT_CURLY RIGHT_BRACKET PIPE MULTILINE MATHMODE LINE_BREAK LEFT_PAREN LEFT_CURLY LEFT_BRACKET EQ EOF END COMMAND COMMA BEGIN ]
+##
+## The known suffix of the stack is as follows:
+## LEFT_CURLY
+##
+
+'{' not closed
+
+start: BEGIN RIGHT_CURLY
+##
+## Ends in an error in state: 16.
+##
+## environment -> BEGIN . command_args nonempty_list(content) END [ WORD WHITESPACE RIGHT_PAREN RIGHT_CURLY RIGHT_BRACKET PIPE MULTILINE MATHMODE LINE_BREAK LEFT_PAREN LEFT_CURLY LEFT_BRACKET EQ EOF END COMMAND COMMA BEGIN ]
+##
+## The known suffix of the stack is as follows:
+## BEGIN
+##
+
+Unexpected '}'
+
+start: BEGIN LEFT_BRACKET RIGHT_CURLY
+##
+## Ends in an error in state: 17.
+##
+## command_args -> LEFT_BRACKET . latex_no_rbracket RIGHT_BRACKET list(curly_args) [ WORD WHITESPACE RIGHT_PAREN RIGHT_CURLY RIGHT_BRACKET PIPE MULTILINE MATHMODE LINE_BREAK LEFT_PAREN LEFT_CURLY LEFT_BRACKET EQ EOF END COMMAND COMMA BEGIN ]
+##
+## The known suffix of the stack is as follows:
+## LEFT_BRACKET
+##
+
+Unexpected '}'
+
+start: BEGIN LEFT_BRACKET RIGHT_BRACKET AMPERSAND
+##
+## Ends in an error in state: 32.
+##
+## command_args -> LEFT_BRACKET latex_no_rbracket RIGHT_BRACKET . list(curly_args) [ WORD WHITESPACE RIGHT_PAREN RIGHT_CURLY RIGHT_BRACKET PIPE MULTILINE MATHMODE LINE_BREAK LEFT_PAREN LEFT_CURLY LEFT_BRACKET EQ EOF END COMMAND COMMA BEGIN ]
+##
+## The known suffix of the stack is as follows:
+## LEFT_BRACKET latex_no_rbracket RIGHT_BRACKET
+##
+
+Unexpected '&'
+
+start: BEGIN LEFT_CURLY RIGHT_CURLY AMPERSAND
+##
+## Ends in an error in state: 34.
+##
+## list(curly_args) -> curly_args . list(curly_args) [ WORD WHITESPACE RIGHT_PAREN RIGHT_CURLY RIGHT_BRACKET PIPE MULTILINE MATHMODE LINE_BREAK LEFT_PAREN LEFT_CURLY LEFT_BRACKET EQ EOF END COMMAND COMMA BEGIN ]
+##
+## The known suffix of the stack is as follows:
+## curly_args
+##
+
+Unexpected '&'
+
+start: BEGIN LEFT_BRACKET COMMA LEFT_CURLY
+##
+## Ends in an error in state: 37.
+##
+## list(content1) -> content1 . list(content1) [ RIGHT_BRACKET ]
+##
+## The known suffix of the stack is as follows:
+## content1
+##
+
+Invalid \begin declaration - '[' not closed.
+
+start: BEGIN LEFT_CURLY RIGHT_CURLY RIGHT_CURLY
+##
+## Ends in an error in state: 41.
+##
+## environment -> BEGIN command_args . nonempty_list(content) END [ WORD WHITESPACE RIGHT_PAREN RIGHT_CURLY RIGHT_BRACKET PIPE MULTILINE MATHMODE LINE_BREAK LEFT_PAREN LEFT_CURLY LEFT_BRACKET EQ EOF END COMMAND COMMA BEGIN ]
+##
+## The known suffix of the stack is as follows:
+## BEGIN command_args
+##
+## WARNING: This example involves spurious reductions.
+## This implies that, although the LR(1) items shown above provide an
+## accurate view of the past (what has been recognized so far), they
+## may provide an INCOMPLETE view of the future (what was expected next).
+## In state 34, spurious reduction of production list(curly_args) ->
+## In state 35, spurious reduction of production list(curly_args) -> curly_args list(curly_args)
+## In state 40, spurious reduction of production command_args -> list(curly_args)
+##
+
+Unexpected '}'
+
+start: BEGIN COMMA AMPERSAND
+##
+## Ends in an error in state: 46.
+##
+## nonempty_list(content) -> content . [ END ]
+## nonempty_list(content) -> content . nonempty_list(content) [ END ]
+##
+## The known suffix of the stack is as follows:
+## content
+##
+
+Unexpected '&'
+
+start: BEGIN LEFT_CURLY COMMAND EOF
+##
+## Ends in an error in state: 50.
+##
+## curly_args -> LEFT_CURLY latex . RIGHT_CURLY [ WORD WHITESPACE RIGHT_PAREN RIGHT_CURLY RIGHT_BRACKET PIPE MULTILINE MATHMODE LINE_BREAK LEFT_PAREN LEFT_CURLY LEFT_BRACKET EQ EOF END COMMAND COMMA BEGIN ]
+##
+## The known suffix of the stack is as follows:
+## LEFT_CURLY latex
+##
+## WARNING: This example involves spurious reductions.
+## This implies that, although the LR(1) items shown above provide an
+## accurate view of the past (what has been recognized so far), they
+## may provide an INCOMPLETE view of the future (what was expected next).
+## In state 13, spurious reduction of production list(curly_args) ->
+## In state 40, spurious reduction of production command_args -> list(curly_args)
+## In state 54, spurious reduction of production command -> COMMAND command_args
+## In state 48, spurious reduction of production content -> command
+## In state 52, spurious reduction of production list(content) ->
+## In state 53, spurious reduction of production list(content) -> content list(content)
+## In state 49, spurious reduction of production latex -> list(content)
+##
+
+Invalid \begin declaration - unclosed '{'
+
+start: COMMA AMPERSAND
+##
+## Ends in an error in state: 52.
+##
+## list(content) -> content . list(content) [ RIGHT_CURLY EOF ]
+##
+## The known suffix of the stack is as follows:
+## content
+##
+
+Unexpected '&'
+
+start: LEFT_CURLY COMMAND EOF
+##
+## Ends in an error in state: 55.
+##
+## content -> LEFT_CURLY latex . RIGHT_CURLY [ WORD WHITESPACE RIGHT_PAREN RIGHT_CURLY RIGHT_BRACKET PIPE MULTILINE MATHMODE LINE_BREAK LEFT_PAREN LEFT_CURLY LEFT_BRACKET EQ EOF END COMMAND COMMA BEGIN ]
+##
+## The known suffix of the stack is as follows:
+## LEFT_CURLY latex
+##
+## WARNING: This example involves spurious reductions.
+## This implies that, although the LR(1) items shown above provide an
+## accurate view of the past (what has been recognized so far), they
+## may provide an INCOMPLETE view of the future (what was expected next).
+## In state 13, spurious reduction of production list(curly_args) ->
+## In state 40, spurious reduction of production command_args -> list(curly_args)
+## In state 54, spurious reduction of production command -> COMMAND command_args
+## In state 48, spurious reduction of production content -> command
+## In state 52, spurious reduction of production list(content) ->
+## In state 53, spurious reduction of production list(content) -> content list(content)
+## In state 49, spurious reduction of production latex -> list(content)
+##
+
+Unclosed '{'
+
+start: COMMAND RIGHT_CURLY
+##
+## Ends in an error in state: 59.
+##
+## start -> latex . EOF [ # ]
+##
+## The known suffix of the stack is as follows:
+## latex
+##
+## WARNING: This example involves spurious reductions.
+## This implies that, although the LR(1) items shown above provide an
+## accurate view of the past (what has been recognized so far), they
+## may provide an INCOMPLETE view of the future (what was expected next).
+## In state 13, spurious reduction of production list(curly_args) ->
+## In state 40, spurious reduction of production command_args -> list(curly_args)
+## In state 54, spurious reduction of production command -> COMMAND command_args
+## In state 48, spurious reduction of production content -> command
+## In state 52, spurious reduction of production list(content) ->
+## In state 53, spurious reduction of production list(content) -> content list(content)
+## In state 49, spurious reduction of production latex -> list(content)
+##
+
+Unexpected '}'
+

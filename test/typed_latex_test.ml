@@ -1,5 +1,5 @@
-open Core
-open Typed_latex
+(* open Core *)
+(* open Typed_latex *)
 
 (* a latex parser test suite *)
 
