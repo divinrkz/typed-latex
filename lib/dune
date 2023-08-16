@@ -6,9 +6,13 @@
  (flags --explain --inspection --table --dump)
  (modules parser))
 
+(rule
+ (targets parser_messages.ml)
+ (deps parser.messages parser.mly)
+ (action (with-stdout-to %{targets} (run menhir --compile-errors %{deps}))))
+
 (library
  (name typed_latex)
- (modules parser lexer ast typing math user util)
+ (modules parser lexer ast typing math user util parser_messages)
  (libraries core menhirLib)
- (preprocess (pps ppx_sexp_conv ppx_deriving.show ppx_deriving.eq ppx_deriving.ord ppx_hash))
- )
+ (preprocess (pps ppx_sexp_conv ppx_deriving.show ppx_deriving.eq ppx_deriving.ord ppx_hash)))

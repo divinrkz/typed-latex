@@ -7,4 +7,7 @@ test:
 build:
 	dune build
 
-.PHONY: run build test
+error:
+	menhir --list-errors lib/parser.mly > lib/parser.messages
+
+.PHONY: run build test error

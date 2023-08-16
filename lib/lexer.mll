@@ -123,7 +123,6 @@ and math_token =
   | '>'         { GE lexbuf.lex_curr_p}
   | "\\leq"     { LEQ lexbuf.lex_curr_p}
   | "\\geq"     { GEQ lexbuf.lex_curr_p}
-  | "\\sqrt"    { SQRT lexbuf.lex_curr_p}
   | "\\frac"    { FRAC lexbuf.lex_curr_p}
   (* set ops *)
   | "\\{"       { SET_OPEN lexbuf.lex_curr_p }

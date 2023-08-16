@@ -16,15 +16,16 @@ open Typed_latex
   (* let result = parse_latex "$P(x, y) = x - N^y$\n$P(1, 2)$\n$N = \\frac{1}{2}$" in *)
 
 let main () =
-  let filename = "tex/sample2.tex" in
+  let filename = "tex/sample3.tex" in
   let result = try User.parse_latex_file filename with
   | User.Error _ as e -> fprintf stderr "%s\n" (User.error_message e); exit (-1)
   in
   match result with
   | None -> fprintf stderr "Unable to parse. Exiting...\n"; exit (-1)
-  | Some ast -> (try User.type_check ast with
+  | Some ast -> (
+    (* Format.printf "Parsed latex: %a" Ast.Latex.pp ast; *)
+    try User.type_check ast with
     | User.Error _ as e -> fprintf stderr "%s\n" (User.error_message e); exit (-1)
   )
-
 
 let () = main ();;

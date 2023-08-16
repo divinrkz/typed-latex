@@ -13,7 +13,6 @@ module rec Math : sig
 
   type unary =
     | Negate
-    | Sqrt
     | Not
     | Abs
 
@@ -79,7 +78,6 @@ end = struct
 
   type unary =
     | Negate
-    | Sqrt
     | Not
     | Abs
 
@@ -132,7 +130,6 @@ end = struct
     | Negate -> "-"
     | Not -> "NOT"
     | Abs -> "ABS"
-    | Sqrt -> "SQRT"
 
   let string_of_operator = function
     | Plus -> "+"
@@ -382,14 +379,14 @@ end = struct
           add_constraint (lhs_t, Type.Number Real);
           lhs_t
         )
-        | Sqrt -> (
-          let t = Typing.Var.fresh () in
-          let lhs_t = recurse env lhs in
-          (* ensure that contents are numeric, but result is always real *)
-          add_constraint (lhs_t, Type.Number Real);
-          add_constraint (Type.Any t, Type.Number Real);
-          Type.Any t
-        )
+        (* | Sqrt -> ( *)
+        (*   let t = Typing.Var.fresh () in *)
+        (*   let lhs_t = recurse env lhs in *)
+        (*   (* ensure that contents are numeric, but result is always real *) *)
+        (*   add_constraint (lhs_t, Type.Number Real); *)
+        (*   add_constraint (Type.Any t, Type.Number Real); *)
+        (*   Type.Any t *)
+        (* ) *)
       )
       | IntLiteral _ -> Type.Number Natural
       | FloatLiteral _ -> Type.Number Real
@@ -533,6 +530,15 @@ end = struct
             let t = Typing.Var.fresh () in
             Type.Any t
           )
+          | ("\\sqrt", Some lhs) -> (
+            let t = Typing.Var.fresh () in
+            let lhs_t = recurse env lhs in
+            (* ensure that contents are numeric, but result is always real *)
+            add_constraint (lhs_t, Type.Number Real);
+            add_constraint (Type.Any t, Type.Number Real);
+            Type.Any t
+          )
+          | ("\\sqrt", None) -> raise (TypeError "sqrt not provided with an argument")
           | _ -> Type.Any (Typing.Var.fresh ())
           (* | _ -> raise (TypeError "Command not yet implemented") *)
       )
@@ -726,21 +732,17 @@ end = struct
     | Latex of t list
   and t = latex Node.t
 
-  module PrettyPrinter = struct
-    let rec pp_environment formatter (env: Environment.t) =
-      let contents = Format.pp_print_list pp_latex in
-      Format.fprintf formatter "(%s %a)" (Environment.name env) contents (Environment.body env)
-    and pp_mathmode formatter math = Format.fprintf formatter "MATH[%s]" math
-    and pp_latex formatter (latex: t) = match latex with
+  let rec pp_environment formatter (env: Environment.t) =
+    let contents = Format.pp_print_list pp in
+    Format.fprintf formatter "(%s %a)" (Environment.name env) contents (Environment.body env)
+  and pp_mathmode formatter math = Format.fprintf formatter "MATH[%s]" math
+  and pp formatter (latex: t) = match latex with
     | {pos = _; value = Word word} -> Format.fprintf formatter "%s" word
     | {pos = _; value = Environment env} -> pp_environment formatter env
     | {pos = _; value = Mathmode math} -> pp_mathmode formatter math
     | {pos = _; value = Multiline math} -> pp_mathmode formatter math
-    | {pos = _; value = Command (name, args)} -> Format.fprintf formatter "(\\%s %a)" name (Format.pp_print_list ~pp_sep:(string_sep " ") pp_latex) args
-    | {pos = _; value = Latex contents} -> Format.fprintf formatter "(%a)" (Format.pp_print_list pp_latex) contents
-end
-
-  let pp formatter latex = Format.fprintf formatter "%a" PrettyPrinter.pp_latex latex
+    | {pos = _; value = Command (name, args)} -> Format.fprintf formatter "(\\%s %a)" name (Format.pp_print_list ~pp_sep:(string_sep " ") pp) args
+    | {pos = _; value = Latex contents} -> Format.fprintf formatter "(%a)" (Format.pp_print_list pp) contents
 
   let pp_list formatter asts = Format.fprintf formatter "%a\n" (Format.pp_print_list ~pp_sep:(string_sep "\n") pp) asts
 

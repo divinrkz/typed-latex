@@ -43,7 +43,6 @@
 %token <Lexing.position> TIMES
 %token <Lexing.position> CARET
 %token <Lexing.position> UNDERSCORE
-%token <Lexing.position> SQRT
 %token <Lexing.position> FRAC
 %token <Lexing.position> SEPARATOR
 %token <Lexing.position * float> REAL
@@ -98,6 +97,7 @@ content:
 | math = MATHMODE { {Ast.Node.pos = fst math; value = Ast.Latex.Mathmode (snd math)} } 
 | math = MULTILINE { {Ast.Node.pos = fst math; value = Ast.Latex.Multiline (snd math)} } 
 | command = command { command } 
+| LEFT_CURLY; latex = latex; RIGHT_CURLY { latex } 
 
 (* TODO: convert into variant for more semantic information *)
 word:
@@ -160,7 +160,7 @@ multiline:
 | EOF { None }
 
 multiline_aux:
-| relation = relation; SEPARATOR*; WHITESPACE*; { relation }
+| relation = relation; spacing* { relation }
 
 (* just specify precedence as part of the grammar bc idk exactly how menhir precedence annotations work *)
 statement:
@@ -242,12 +242,12 @@ infix1:
 | infix = infix2; { infix }
 
 infix2:
-| lhs = infix2; PLUS; WHITESPACE*; rhs = infix3; WHITESPACE*; { Ast.Math.Op (lhs, Ast.Math.Plus, rhs) }
-| lhs = infix2; MINUS; WHITESPACE*; rhs = infix3; WHITESPACE*; { Ast.Math.Op (lhs, Ast.Math.Minus, rhs) }
+| lhs = infix2; PLUS; WHITESPACE*; rhs = infix3; { Ast.Math.Op (lhs, Ast.Math.Plus, rhs) }
+| lhs = infix2; MINUS; WHITESPACE*; rhs = infix3; { Ast.Math.Op (lhs, Ast.Math.Minus, rhs) }
 | infix = infix3; { infix }
 
 infix3:
-| lhs = infix3; TIMES; WHITESPACE*; rhs = unary; WHITESPACE*; { Ast.Math.Op (lhs, Ast.Math.Times, rhs) }
+| lhs = infix3; TIMES; WHITESPACE*; rhs = unary; { Ast.Math.Op (lhs, Ast.Math.Times, rhs) }
 | unary = unary; { unary }
 
 unary:
@@ -281,12 +281,13 @@ literal:
 | num = REAL; WHITESPACE*; { Ast.Math.FloatLiteral (snd num) }
 (* variables *)
 | var = VARIABLE; WHITESPACE*; { Ast.Math.Variable (snd var) }
+| var = WORD; WHITESPACE*; { Ast.Math.Variable (snd var) } (* this should never happen due to lexer *)
 | var = CHAR; WHITESPACE*; { Ast.Math.Variable (snd var) }
 | f = function_call; { f }
 (* either a list of expressions or a comprehension *)
 | s = set_literal; { s }
 (* fraction *)
-| SQRT; LEFT_CURLY; WHITESPACE*; lhs = expr; RIGHT_CURLY; WHITESPACE*; { Ast.Math.Unary (Ast.Math.Sqrt, lhs) }
+(* | SQRT; LEFT_CURLY; WHITESPACE*; lhs = expr; RIGHT_CURLY; WHITESPACE*; { Ast.Math.Unary (Ast.Math.Sqrt, lhs) } *)
 | FRAC; LEFT_CURLY; WHITESPACE*; numerator = expr; RIGHT_CURLY; LEFT_CURLY; WHITESPACE*; denominator = expr; RIGHT_CURLY; WHITESPACE*; { Ast.Math.Op (numerator, Ast.Math.Frac, denominator) }
 (* summation *)
 | SUM; UNDERSCORE; LEFT_CURLY; WHITESPACE*; rel1 = relation; RIGHT_CURLY; CARET; LEFT_CURLY; WHITESPACE*; rel2 = expr; RIGHT_CURLY; WHITESPACE*; body = expr; { Ast.Math.Summation (rel1, rel2, body) }
