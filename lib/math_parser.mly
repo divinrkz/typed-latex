@@ -22,7 +22,6 @@
 %token <Lexing.position> COMMA
 %token <Lexing.position> AMPERSAND
 %token <Lexing.position> PIPE
-%token <Lexing.position * string> WORD
 %token <Lexing.position * string> COMMAND
 %token <Lexing.position> EOF
 
@@ -204,7 +203,6 @@ literal:
 | num = REAL; WHITESPACE*; { Ast.Math.FloatLiteral (snd num) }
 (* variables *)
 | var = VARIABLE; WHITESPACE*; { Ast.Math.Variable (snd var) }
-| var = WORD; WHITESPACE*; { Ast.Math.Variable (snd var) } (* this should never happen due to lexer *)
 | var = CHAR; WHITESPACE*; { Ast.Math.Variable (snd var) }
 | f = function_call; { f }
 (* either a list of expressions or a comprehension *)

@@ -91,6 +91,8 @@ and mathmode buf delim start =
                     Buffer.add_string buf (Lexing.lexeme lexbuf);
                     mathmode buf delim start lexbuf)
                   }
-  | [^ '$' '\n' '\r' '\t' ' ']+    { Buffer.add_string buf (Lexing.lexeme lexbuf); mathmode buf delim start lexbuf}
+  | [^ '$' '\n' '\r' '\t' ' ' '\\']+    { Buffer.add_string buf (Lexing.lexeme lexbuf); mathmode buf delim start lexbuf}
+  (* ensure backslashes don't get lexed as part of another string (e.g. "asdf\command") *)
+  | '\\'        { Buffer.add_string buf (Lexing.lexeme lexbuf); mathmode buf delim start lexbuf}
   | _           { raise (LexError ("Unexpected char in math mode: " ^ Lexing.lexeme lexbuf)) }
   | eof         { raise (LexError (Format.sprintf "Math mode is not terminated")) }

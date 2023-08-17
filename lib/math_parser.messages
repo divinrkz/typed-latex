@@ -8,7 +8,7 @@ math_mode: UNDERSCORE
 ##
 ##
 
-<YOUR SYNTAX ERROR MESSAGE HERE>
+This should not happen.
 
 math_mode: WHITESPACE AMPERSAND
 ##
@@ -20,7 +20,7 @@ math_mode: WHITESPACE AMPERSAND
 ## WHITESPACE
 ##
 
-<YOUR SYNTAX ERROR MESSAGE HERE>
+This should not happen.
 
 math_mode: WHITESPACE UNDERSCORE
 ##
@@ -40,7 +40,7 @@ math_mode: WHITESPACE UNDERSCORE
 ## In state 2, spurious reduction of production list(WHITESPACE) -> WHITESPACE list(WHITESPACE)
 ##
 
-<YOUR SYNTAX ERROR MESSAGE HERE>
+Invalid syntax for '_'
 
 math_mode: WORD FORALL
 ##
@@ -52,7 +52,7 @@ math_mode: WORD FORALL
 ## WORD
 ##
 
-<YOUR SYNTAX ERROR MESSAGE HERE>
+Unexpected \forall.
 
 math_mode: VARIABLE FORALL
 ##
@@ -65,7 +65,7 @@ math_mode: VARIABLE FORALL
 ## VARIABLE
 ##
 
-<YOUR SYNTAX ERROR MESSAGE HERE>
+Unexpected \forall.
 
 math_mode: VARIABLE LEFT_PAREN UNDERSCORE
 ##
@@ -77,7 +77,7 @@ math_mode: VARIABLE LEFT_PAREN UNDERSCORE
 ## VARIABLE LEFT_PAREN
 ##
 
-<YOUR SYNTAX ERROR MESSAGE HERE>
+Unclosed '('
 
 math_mode: VARIABLE LEFT_PAREN WHITESPACE UNDERSCORE
 ##
@@ -96,7 +96,7 @@ math_mode: VARIABLE LEFT_PAREN WHITESPACE UNDERSCORE
 ## In state 2, spurious reduction of production list(WHITESPACE) -> WHITESPACE list(WHITESPACE)
 ##
 
-<YOUR SYNTAX ERROR MESSAGE HERE>
+Unclosed '('
 
 math_mode: SUM WORD
 ##
@@ -389,7 +389,7 @@ math_mode: FRAC WORD
 ## FRAC
 ##
 
-<YOUR SYNTAX ERROR MESSAGE HERE>
+\frac is missing a numerator.
 
 math_mode: FRAC LEFT_CURLY UNDERSCORE
 ##
@@ -401,7 +401,7 @@ math_mode: FRAC LEFT_CURLY UNDERSCORE
 ## FRAC LEFT_CURLY
 ##
 
-<YOUR SYNTAX ERROR MESSAGE HERE>
+\frac is missing a numerator.
 
 math_mode: FRAC LEFT_CURLY WHITESPACE UNDERSCORE
 ##
@@ -420,7 +420,7 @@ math_mode: FRAC LEFT_CURLY WHITESPACE UNDERSCORE
 ## In state 2, spurious reduction of production list(WHITESPACE) -> WHITESPACE list(WHITESPACE)
 ##
 
-<YOUR SYNTAX ERROR MESSAGE HERE>
+\frac is incomplete
 
 math_mode: DIGIT FORALL
 ##
@@ -497,7 +497,7 @@ math_mode: VARIABLE WHITESPACE FORALL
 ## In state 270, spurious reduction of production literal -> VARIABLE list(WHITESPACE)
 ##
 
-<YOUR SYNTAX ERROR MESSAGE HERE>
+Unexpected \forall.
 
 math_mode: VARIABLE UNDERSCORE WORD
 ##
@@ -1089,7 +1089,7 @@ math_mode: FRAC LEFT_CURLY VARIABLE RIGHT_CURLY WORD
 ## FRAC LEFT_CURLY list(WHITESPACE) expr RIGHT_CURLY
 ##
 
-<YOUR SYNTAX ERROR MESSAGE HERE>
+\frac is missing a denominator.
 
 math_mode: FRAC LEFT_CURLY VARIABLE RIGHT_CURLY LEFT_CURLY UNDERSCORE
 ##
@@ -1101,7 +1101,7 @@ math_mode: FRAC LEFT_CURLY VARIABLE RIGHT_CURLY LEFT_CURLY UNDERSCORE
 ## FRAC LEFT_CURLY list(WHITESPACE) expr RIGHT_CURLY LEFT_CURLY
 ##
 
-<YOUR SYNTAX ERROR MESSAGE HERE>
+\frac is missing a denominator.
 
 math_mode: FRAC LEFT_CURLY VARIABLE RIGHT_CURLY LEFT_CURLY WHITESPACE UNDERSCORE
 ##
@@ -1120,7 +1120,7 @@ math_mode: FRAC LEFT_CURLY VARIABLE RIGHT_CURLY LEFT_CURLY WHITESPACE UNDERSCORE
 ## In state 2, spurious reduction of production list(WHITESPACE) -> WHITESPACE list(WHITESPACE)
 ##
 
-<YOUR SYNTAX ERROR MESSAGE HERE>
+\frac is incomplete.
 
 math_mode: FRAC LEFT_CURLY VARIABLE RIGHT_CURLY LEFT_CURLY VARIABLE TEXT
 ##
@@ -1145,7 +1145,7 @@ math_mode: FRAC LEFT_CURLY VARIABLE RIGHT_CURLY LEFT_CURLY VARIABLE TEXT
 ## In state 60, spurious reduction of production expr -> infix1
 ##
 
-<YOUR SYNTAX ERROR MESSAGE HERE>
+\frac is incomplete.
 
 math_mode: FRAC LEFT_CURLY VARIABLE RIGHT_CURLY LEFT_CURLY VARIABLE RIGHT_CURLY FORALL
 ##
@@ -1157,7 +1157,7 @@ math_mode: FRAC LEFT_CURLY VARIABLE RIGHT_CURLY LEFT_CURLY VARIABLE RIGHT_CURLY 
 ## FRAC LEFT_CURLY list(WHITESPACE) expr RIGHT_CURLY LEFT_CURLY list(WHITESPACE) expr RIGHT_CURLY
 ##
 
-<YOUR SYNTAX ERROR MESSAGE HERE>
+Unexpected \forall.
 
 math_mode: VARIABLE LEFT_BRACKET VARIABLE TEXT
 ##
@@ -1194,7 +1194,7 @@ math_mode: LEFT_BRACKET VARIABLE RIGHT_BRACKET FORALL
 ## LEFT_BRACKET list(WHITESPACE) expr RIGHT_BRACKET
 ##
 
-<YOUR SYNTAX ERROR MESSAGE HERE>
+Unexpected \forall.
 
 math_mode: VARIABLE LEFT_CURLY VARIABLE TEXT
 ##
@@ -3325,7 +3325,7 @@ math_mode: LEFT_PAREN VARIABLE SUCHTHAT
 ## In state 60, spurious reduction of production expr -> infix1
 ##
 
-<YOUR SYNTAX ERROR MESSAGE HERE>
+Unclosed '('
 
 math_mode: VARIABLE RIGHT_PAREN
 ##
@@ -3396,7 +3396,7 @@ math_mode: SET_OPEN VARIABLE SUCHTHAT VARIABLE SET_CLOSE FORALL
 ## SET_OPEN list(WHITESPACE) expr SUCHTHAT list(WHITESPACE) relation SET_CLOSE
 ##
 
-<YOUR SYNTAX ERROR MESSAGE HERE>
+Unexpected \forall.
 
 math_mode: SET_OPEN VARIABLE PIPE UNDERSCORE
 ##
@@ -3468,7 +3468,7 @@ math_mode: SET_OPEN VARIABLE PIPE VARIABLE SET_CLOSE FORALL
 ## SET_OPEN list(WHITESPACE) expr PIPE list(WHITESPACE) relation SET_CLOSE
 ##
 
-<YOUR SYNTAX ERROR MESSAGE HERE>
+Unexpected \forall.
 
 math_mode: SET_OPEN MINUS VARIABLE COMMA UNDERSCORE
 ##
@@ -3705,7 +3705,7 @@ math_mode: VARIABLE LEFT_PAREN RIGHT_PAREN FORALL
 ## VARIABLE LEFT_PAREN list(WHITESPACE) loption(separated_nonempty_list(comma_sep,expr)) RIGHT_PAREN
 ##
 
-<YOUR SYNTAX ERROR MESSAGE HERE>
+Unexpected \forall.
 
 math_mode: FORALL UNDERSCORE
 ##
@@ -3718,7 +3718,7 @@ math_mode: FORALL UNDERSCORE
 ## FORALL
 ##
 
-<YOUR SYNTAX ERROR MESSAGE HERE>
+Incomplete \forall.
 
 math_mode: FORALL WHITESPACE UNDERSCORE
 ##
@@ -3738,7 +3738,7 @@ math_mode: FORALL WHITESPACE UNDERSCORE
 ## In state 2, spurious reduction of production list(WHITESPACE) -> WHITESPACE list(WHITESPACE)
 ##
 
-<YOUR SYNTAX ERROR MESSAGE HERE>
+Incomplete \forall.
 
 math_mode: FORALL VARIABLE SUCHTHAT
 ##

@@ -28,13 +28,15 @@ let latex_parse_error env =
   match I_latex.stack env with
   | lazy Nil -> "Invalid syntax"
   | lazy (Cons (I_latex.Element (state, _, _, _), _)) ->
-      Latex_parser_messages.message (I_latex.number state)
+    let n = I_latex.number state in
+      Format.sprintf "Latex error state %i: %s" n (Latex_parser_messages.message n)
 
 let math_parse_error env =
   match I_math.stack env with
   | lazy Nil -> "Invalid syntax"
   | lazy (Cons (I_math.Element (state, _, _, _), _)) ->
-      Math_parser_messages.message (I_math.number state)
+    let n = I_math.number state in
+      Format.sprintf "Math error state %i: %s" n (Math_parser_messages.message n)
 
 let rec parse_latex lexbuf checkpoint =
   let open Lexing in
