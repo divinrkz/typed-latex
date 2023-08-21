@@ -67,6 +67,8 @@ rule math_token =
   | "\\{"       { SET_OPEN lexbuf.lex_curr_p }
   | "\\}"       { SET_CLOSE lexbuf.lex_curr_p }
   | "\\in"      { SET_IN lexbuf.lex_curr_p}
+(* TODO: factor these all out into a "binary relation" token instead of hardcoding names *)
+(* will reduce error states, make AST simpler *)
   | "\\notin"   { SET_NOTIN lexbuf.lex_curr_p}
   | "\\cup"     { SET_UNION lexbuf.lex_curr_p}
   | "\\cap"     { SET_INTER lexbuf.lex_curr_p}

@@ -385,7 +385,7 @@ math_mode: DIGIT FORALL
 ## DIGIT
 ##
 
-<YOUR SYNTAX ERROR MESSAGE HERE>
+Unexpected \forall.
 
 math_mode: COMMAND FORALL
 ##
@@ -740,7 +740,7 @@ math_mode: VARIABLE UNDERSCORE LEFT_CURLY VARIABLE RIGHT_CURLY FORALL
 ## literal UNDERSCORE LEFT_CURLY list(WHITESPACE) expr RIGHT_CURLY
 ##
 
-<YOUR SYNTAX ERROR MESSAGE HERE>
+Unexpected \forall.
 
 math_mode: VARIABLE UNDERSCORE DIGIT FORALL
 ##
@@ -752,7 +752,7 @@ math_mode: VARIABLE UNDERSCORE DIGIT FORALL
 ## literal UNDERSCORE DIGIT
 ##
 
-<YOUR SYNTAX ERROR MESSAGE HERE>
+Unexpected \forall.
 
 math_mode: VARIABLE UNDERSCORE CHAR FORALL
 ##
@@ -764,7 +764,7 @@ math_mode: VARIABLE UNDERSCORE CHAR FORALL
 ## literal UNDERSCORE CHAR
 ##
 
-<YOUR SYNTAX ERROR MESSAGE HERE>
+Unexpected \forall.
 
 math_mode: VARIABLE COMMA UNDERSCORE
 ##
@@ -776,7 +776,7 @@ math_mode: VARIABLE COMMA UNDERSCORE
 ## COMMA
 ##
 
-<YOUR SYNTAX ERROR MESSAGE HERE>
+Unexpected ','.
 
 math_mode: VARIABLE COMMA WHITESPACE UNDERSCORE
 ##
@@ -795,7 +795,7 @@ math_mode: VARIABLE COMMA WHITESPACE UNDERSCORE
 ## In state 2, spurious reduction of production list(WHITESPACE) -> WHITESPACE list(WHITESPACE)
 ##
 
-<YOUR SYNTAX ERROR MESSAGE HERE>
+Unexpected ','.
 
 math_mode: VARIABLE COMMA VARIABLE WHITESPACE FORALL
 ##
@@ -822,8 +822,7 @@ math_mode: VARIABLE COMMA VARIABLE WHITESPACE FORALL
 ## In state 268, spurious reduction of production literal -> VARIABLE list(WHITESPACE)
 ##
 
-<YOUR SYNTAX ERROR MESSAGE HERE>
-
+Unexpected \forall.
 
 math_mode: VARIABLE CARET LEFT_CURLY UNDERSCORE
 ##
@@ -835,7 +834,7 @@ math_mode: VARIABLE CARET LEFT_CURLY UNDERSCORE
 ## literal CARET LEFT_CURLY
 ##
 
-<YOUR SYNTAX ERROR MESSAGE HERE>
+Unclosed '{'.
 
 math_mode: VARIABLE CARET LEFT_CURLY WHITESPACE UNDERSCORE
 ##
@@ -854,7 +853,7 @@ math_mode: VARIABLE CARET LEFT_CURLY WHITESPACE UNDERSCORE
 ## In state 2, spurious reduction of production list(WHITESPACE) -> WHITESPACE list(WHITESPACE)
 ##
 
-<YOUR SYNTAX ERROR MESSAGE HERE>
+Unclosed '{'.
 
 math_mode: VARIABLE CARET LEFT_CURLY VARIABLE TEXT
 ##
@@ -879,7 +878,7 @@ math_mode: VARIABLE CARET LEFT_CURLY VARIABLE TEXT
 ## In state 58, spurious reduction of production expr -> infix1
 ##
 
-<YOUR SYNTAX ERROR MESSAGE HERE>
+Unclosed '{'.
 
 math_mode: VARIABLE CARET LEFT_CURLY VARIABLE RIGHT_CURLY FORALL
 ##
@@ -891,7 +890,7 @@ math_mode: VARIABLE CARET LEFT_CURLY VARIABLE RIGHT_CURLY FORALL
 ## literal CARET LEFT_CURLY list(WHITESPACE) expr RIGHT_CURLY
 ##
 
-<YOUR SYNTAX ERROR MESSAGE HERE>
+Unexpected \forall.
 
 math_mode: VARIABLE CARET DIGIT FORALL
 ##
@@ -903,7 +902,7 @@ math_mode: VARIABLE CARET DIGIT FORALL
 ## literal CARET DIGIT
 ##
 
-<YOUR SYNTAX ERROR MESSAGE HERE>
+Unexpected \forall.
 
 math_mode: VARIABLE CARET CHAR FORALL
 ##
@@ -915,7 +914,7 @@ math_mode: VARIABLE CARET CHAR FORALL
 ## literal CARET CHAR
 ##
 
-<YOUR SYNTAX ERROR MESSAGE HERE>
+Unexpected \forall.
 
 math_mode: VARIABLE VARIABLE WHITESPACE FORALL
 ##
@@ -942,7 +941,7 @@ math_mode: VARIABLE VARIABLE WHITESPACE FORALL
 ## In state 268, spurious reduction of production literal -> VARIABLE list(WHITESPACE)
 ##
 
-<YOUR SYNTAX ERROR MESSAGE HERE>
+Unexpected \forall.
 
 math_mode: COMMAND LEFT_CURLY VARIABLE TEXT
 ##
@@ -967,7 +966,7 @@ math_mode: COMMAND LEFT_CURLY VARIABLE TEXT
 ## In state 58, spurious reduction of production expr -> infix1
 ##
 
-<YOUR SYNTAX ERROR MESSAGE HERE>
+Unclosed '{'.
 
 math_mode: COMMAND LEFT_CURLY VARIABLE RIGHT_CURLY FORALL
 ##
@@ -979,7 +978,7 @@ math_mode: COMMAND LEFT_CURLY VARIABLE RIGHT_CURLY FORALL
 ## COMMAND LEFT_CURLY expr RIGHT_CURLY
 ##
 
-<YOUR SYNTAX ERROR MESSAGE HERE>
+Unexpected \forall.
 
 math_mode: FRAC LEFT_CURLY VARIABLE TEXT
 ##
@@ -1004,7 +1003,7 @@ math_mode: FRAC LEFT_CURLY VARIABLE TEXT
 ## In state 58, spurious reduction of production expr -> infix1
 ##
 
-<YOUR SYNTAX ERROR MESSAGE HERE>
+Unclosed '{'.
 
 
 math_mode: FRAC LEFT_CURLY VARIABLE RIGHT_CURLY LEFT_CURLY UNDERSCORE
@@ -1098,7 +1097,7 @@ math_mode: VARIABLE LEFT_BRACKET VARIABLE TEXT
 ## In state 58, spurious reduction of production expr -> infix1
 ##
 
-<YOUR SYNTAX ERROR MESSAGE HERE>
+Unclosed '['.
 
 math_mode: LEFT_BRACKET VARIABLE RIGHT_BRACKET FORALL
 ##
@@ -1135,7 +1134,7 @@ math_mode: VARIABLE LEFT_CURLY VARIABLE TEXT
 ## In state 58, spurious reduction of production expr -> infix1
 ##
 
-<YOUR SYNTAX ERROR MESSAGE HERE>
+Unclosed '{'.
 
 math_mode: LEFT_CURLY VARIABLE RIGHT_CURLY FORALL
 ##
@@ -1147,7 +1146,7 @@ math_mode: LEFT_CURLY VARIABLE RIGHT_CURLY FORALL
 ## LEFT_CURLY list(WHITESPACE) expr RIGHT_CURLY
 ##
 
-<YOUR SYNTAX ERROR MESSAGE HERE>
+Unexpected \forall.
 
 math_mode: LNOT VARIABLE WHITESPACE FORALL
 ##
@@ -1174,7 +1173,7 @@ math_mode: LNOT VARIABLE WHITESPACE FORALL
 ## In state 268, spurious reduction of production literal -> VARIABLE list(WHITESPACE)
 ##
 
-<YOUR SYNTAX ERROR MESSAGE HERE>
+Unexpected \forall.
 
 math_mode: COMMAND LEFT_PAREN VARIABLE TEXT
 ##
@@ -1199,7 +1198,7 @@ math_mode: COMMAND LEFT_PAREN VARIABLE TEXT
 ## In state 58, spurious reduction of production expr -> infix1
 ##
 
-<YOUR SYNTAX ERROR MESSAGE HERE>
+Unclosed '('.
 
 math_mode: LEFT_PAREN VARIABLE RIGHT_PAREN FORALL
 ##
@@ -1211,7 +1210,7 @@ math_mode: LEFT_PAREN VARIABLE RIGHT_PAREN FORALL
 ## LEFT_PAREN list(WHITESPACE) expr RIGHT_PAREN
 ##
 
-<YOUR SYNTAX ERROR MESSAGE HERE>
+Unexpected \forall.
 
 math_mode: MINUS VARIABLE WHITESPACE FORALL
 ##
@@ -1238,7 +1237,7 @@ math_mode: MINUS VARIABLE WHITESPACE FORALL
 ## In state 268, spurious reduction of production literal -> VARIABLE list(WHITESPACE)
 ##
 
-<YOUR SYNTAX ERROR MESSAGE HERE>
+Unexpected \forall.
 
 math_mode: PIPE VARIABLE TEXT
 ##
@@ -1263,7 +1262,7 @@ math_mode: PIPE VARIABLE TEXT
 ## In state 58, spurious reduction of production expr -> infix1
 ##
 
-<YOUR SYNTAX ERROR MESSAGE HERE>
+Unclosed '|'.
 
 math_mode: PIPE VARIABLE PIPE FORALL
 ##
@@ -1275,7 +1274,7 @@ math_mode: PIPE VARIABLE PIPE FORALL
 ## PIPE list(WHITESPACE) expr PIPE
 ##
 
-<YOUR SYNTAX ERROR MESSAGE HERE>
+Unexpected \forall.
 
 math_mode: SET_OPEN MINUS VARIABLE COMMA VARIABLE RIGHT_PAREN
 ##
@@ -1303,7 +1302,7 @@ math_mode: SET_OPEN MINUS VARIABLE COMMA VARIABLE RIGHT_PAREN
 ## In state 116, spurious reduction of production loption(separated_nonempty_list(comma_sep,expr)) -> separated_nonempty_list(comma_sep,expr)
 ##
 
-<YOUR SYNTAX ERROR MESSAGE HERE>
+Unclosed '\{'
 
 math_mode: SET_OPEN SET_CLOSE FORALL
 ##
@@ -1315,7 +1314,7 @@ math_mode: SET_OPEN SET_CLOSE FORALL
 ## SET_OPEN list(WHITESPACE) loption(separated_nonempty_list(comma_sep,expr)) SET_CLOSE
 ##
 
-<YOUR SYNTAX ERROR MESSAGE HERE>
+Unexpected \forall.
 
 math_mode: SET_OPEN VARIABLE TEXT
 ##
@@ -1343,7 +1342,7 @@ math_mode: SET_OPEN VARIABLE TEXT
 ## In state 58, spurious reduction of production expr -> infix1
 ##
 
-<YOUR SYNTAX ERROR MESSAGE HERE>
+Unclosed '\{'.
 
 math_mode: SET_OPEN VARIABLE SUCHTHAT UNDERSCORE
 ##
@@ -1355,7 +1354,7 @@ math_mode: SET_OPEN VARIABLE SUCHTHAT UNDERSCORE
 ## SET_OPEN list(WHITESPACE) expr SUCHTHAT
 ##
 
-<YOUR SYNTAX ERROR MESSAGE HERE>
+Unclosed '\{'.
 
 math_mode: SET_OPEN VARIABLE SUCHTHAT WHITESPACE UNDERSCORE
 ##
@@ -1374,7 +1373,7 @@ math_mode: SET_OPEN VARIABLE SUCHTHAT WHITESPACE UNDERSCORE
 ## In state 2, spurious reduction of production list(WHITESPACE) -> WHITESPACE list(WHITESPACE)
 ##
 
-<YOUR SYNTAX ERROR MESSAGE HERE>
+Unclosed '\{'.
 
 math_mode: LEFT_PAREN UNDERSCORE
 ##
@@ -1387,7 +1386,7 @@ math_mode: LEFT_PAREN UNDERSCORE
 ## LEFT_PAREN
 ##
 
-<YOUR SYNTAX ERROR MESSAGE HERE>
+Unclosed '('.
 
 math_mode: LEFT_PAREN WHITESPACE UNDERSCORE
 ##
@@ -1407,7 +1406,7 @@ math_mode: LEFT_PAREN WHITESPACE UNDERSCORE
 ## In state 2, spurious reduction of production list(WHITESPACE) -> WHITESPACE list(WHITESPACE)
 ##
 
-<YOUR SYNTAX ERROR MESSAGE HERE>
+Unclosed '('.
 
 math_mode: LEFT_CURLY UNDERSCORE
 ##
@@ -1420,7 +1419,7 @@ math_mode: LEFT_CURLY UNDERSCORE
 ## LEFT_CURLY
 ##
 
-<YOUR SYNTAX ERROR MESSAGE HERE>
+Unclosed '{'.
 
 math_mode: LEFT_CURLY WHITESPACE UNDERSCORE
 ##
@@ -1440,7 +1439,7 @@ math_mode: LEFT_CURLY WHITESPACE UNDERSCORE
 ## In state 2, spurious reduction of production list(WHITESPACE) -> WHITESPACE list(WHITESPACE)
 ##
 
-<YOUR SYNTAX ERROR MESSAGE HERE>
+Unclosed '{'.
 
 math_mode: LEFT_BRACKET UNDERSCORE
 ##
@@ -1453,7 +1452,7 @@ math_mode: LEFT_BRACKET UNDERSCORE
 ## LEFT_BRACKET
 ##
 
-<YOUR SYNTAX ERROR MESSAGE HERE>
+Unclosed '['.
 
 math_mode: LEFT_BRACKET WHITESPACE UNDERSCORE
 ##
@@ -1473,7 +1472,7 @@ math_mode: LEFT_BRACKET WHITESPACE UNDERSCORE
 ## In state 2, spurious reduction of production list(WHITESPACE) -> WHITESPACE list(WHITESPACE)
 ##
 
-<YOUR SYNTAX ERROR MESSAGE HERE>
+Unclosed '['.
 
 math_mode: PIPE VARIABLE PIPE UNDERSCORE
 ##
@@ -1511,7 +1510,7 @@ math_mode: PIPE VARIABLE PIPE UNDERSCORE
 ## In state 215, spurious reduction of production relation3 -> expr
 ##
 
-<YOUR SYNTAX ERROR MESSAGE HERE>
+Unexpected '_'.
 
 math_mode: VARIABLE TEXT UNDERSCORE
 ##
@@ -1523,7 +1522,7 @@ math_mode: VARIABLE TEXT UNDERSCORE
 ## TEXT
 ##
 
-<YOUR SYNTAX ERROR MESSAGE HERE>
+Unexpected '_'.
 
 math_mode: VARIABLE SEPARATOR UNDERSCORE
 ##
@@ -1535,7 +1534,7 @@ math_mode: VARIABLE SEPARATOR UNDERSCORE
 ## SEPARATOR
 ##
 
-<YOUR SYNTAX ERROR MESSAGE HERE>
+Unexpected '_'.
 
 math_mode: VARIABLE SEPARATOR WHITESPACE UNDERSCORE
 ##
@@ -1555,8 +1554,7 @@ math_mode: VARIABLE SEPARATOR WHITESPACE UNDERSCORE
 ## In state 133, spurious reduction of production spacing -> SEPARATOR list(WHITESPACE)
 ##
 
-<YOUR SYNTAX ERROR MESSAGE HERE>
-
+Unexpected '_'.
 
 math_mode: VARIABLE SUPERSETEQ UNDERSCORE
 ##
@@ -1568,7 +1566,7 @@ math_mode: VARIABLE SUPERSETEQ UNDERSCORE
 ## relation3 list(spacing) SUPERSETEQ
 ##
 
-<YOUR SYNTAX ERROR MESSAGE HERE>
+Unexpected '_'.
 
 math_mode: VARIABLE SUPERSETEQ WHITESPACE UNDERSCORE
 ##
@@ -1587,7 +1585,7 @@ math_mode: VARIABLE SUPERSETEQ WHITESPACE UNDERSCORE
 ## In state 2, spurious reduction of production list(WHITESPACE) -> WHITESPACE list(WHITESPACE)
 ##
 
-<YOUR SYNTAX ERROR MESSAGE HERE>
+Unexpected '_'.
 
 math_mode: VARIABLE SUPERSETEQ SEPARATOR SUPERSETEQ
 ##
@@ -1608,7 +1606,7 @@ math_mode: VARIABLE SUPERSETEQ SEPARATOR SUPERSETEQ
 ## In state 135, spurious reduction of production list(spacing) -> spacing list(spacing)
 ##
 
-<YOUR SYNTAX ERROR MESSAGE HERE>
+Unexpected \superseteq.
 
 math_mode: VARIABLE SUPERSETEQ PIPE VARIABLE PIPE UNDERSCORE
 ##
@@ -1631,7 +1629,7 @@ math_mode: VARIABLE SUPERSETEQ PIPE VARIABLE PIPE UNDERSCORE
 ## In state 58, spurious reduction of production expr -> infix1
 ##
 
-<YOUR SYNTAX ERROR MESSAGE HERE>
+Unexpected '_'.
 
 math_mode: VARIABLE SUPERSET UNDERSCORE
 ##
@@ -1643,7 +1641,7 @@ math_mode: VARIABLE SUPERSET UNDERSCORE
 ## relation3 list(spacing) SUPERSET
 ##
 
-<YOUR SYNTAX ERROR MESSAGE HERE>
+Unexpected '_'.
 
 math_mode: VARIABLE SUPERSET WHITESPACE UNDERSCORE
 ##
@@ -1662,7 +1660,7 @@ math_mode: VARIABLE SUPERSET WHITESPACE UNDERSCORE
 ## In state 2, spurious reduction of production list(WHITESPACE) -> WHITESPACE list(WHITESPACE)
 ##
 
-<YOUR SYNTAX ERROR MESSAGE HERE>
+Unexpected '_'.
 
 math_mode: VARIABLE SUPERSET SEPARATOR SUPERSETEQ
 ##
@@ -1683,7 +1681,7 @@ math_mode: VARIABLE SUPERSET SEPARATOR SUPERSETEQ
 ## In state 135, spurious reduction of production list(spacing) -> spacing list(spacing)
 ##
 
-<YOUR SYNTAX ERROR MESSAGE HERE>
+Unexpected \superseteq
 
 math_mode: VARIABLE SUPERSET PIPE VARIABLE PIPE UNDERSCORE
 ##
