@@ -136,7 +136,7 @@ module Constraints = struct
 
   let length = Hash_set.length
 
-  let pp formatter (subs, _, _) = Format.fprintf formatter "%a" (Format.pp_print_list ~pp_sep:(string_sep ", ") Constraint.pp) (Hash_set.to_list subs)
+  let pp formatter subs = Format.fprintf formatter "%a" (Format.pp_print_list ~pp_sep:(string_sep ", ") Constraint.pp) (Hash_set.to_list subs)
 
   let map ~f t =
     let new_t = Hash_set.create (module Constraint) in
@@ -284,6 +284,7 @@ let simplify ~final t =
   in
   recurse t
 
+(* TODO: this algorithm is not always correct... fix later ;_; *)
 let unify constraints =
   let rec recurse (cs: Constraints.t) (acc: Substitutions.t) =
     if (Constraints.length cs = 0) then

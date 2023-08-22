@@ -138,13 +138,13 @@ let parse_math ast =
   | _ -> raise (Error ("Trying to parse non-math element as math", None))
 
 let type_check ast =
-    (* Format.printf "%a" Ast.Latex.pp ast; *)
-    let math = Ast.Latex.get_all_math ast in
-    let math_nodes = ref [] in
-    List.iter math ~f:(fun ast ->
-      let res = parse_math ast in
-      math_nodes := List.append !math_nodes res
-    );
-    Ast.Math.type_check !math_nodes
+  (* Format.printf "%a" Ast.Latex.pp ast; *)
+  let math = Ast.Latex.get_all_math ast in
+  let math_nodes = ref [] in
+  List.iter math ~f:(fun ast ->
+    let res = parse_math ast in
+    math_nodes := List.append !math_nodes res
+  );
+  Ast.Math.type_check !math_nodes
 
 (* let message = Parser_messages.message *)

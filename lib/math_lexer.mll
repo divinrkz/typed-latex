@@ -47,8 +47,8 @@ rule math_token =
   | ']'         { RIGHT_BRACKET lexbuf.lex_curr_p}
   | '('         { LEFT_PAREN lexbuf.lex_curr_p}
   | ')'         { RIGHT_PAREN lexbuf.lex_curr_p}
-  | "\\left"    { LEFT_PAREN lexbuf.lex_curr_p}
-  | "\\right"   { RIGHT_PAREN lexbuf.lex_curr_p}
+  | "\\left"    { math_token lexbuf }
+  | "\\right"   { math_token lexbuf }
   | ','         { COMMA lexbuf.lex_curr_p}
   | '|'         { PIPE lexbuf.lex_curr_p}
   | '='         { EQ lexbuf.lex_curr_p}
@@ -58,24 +58,22 @@ rule math_token =
   | '-'         { MINUS lexbuf.lex_curr_p}
   | '*'         { TIMES lexbuf.lex_curr_p}
   | "\\cdot"    { TIMES lexbuf.lex_curr_p}
-  | '<'         { LE lexbuf.lex_curr_p}
-  | '>'         { GE lexbuf.lex_curr_p}
-  | "\\leq"     { LEQ lexbuf.lex_curr_p}
-  | "\\geq"     { GEQ lexbuf.lex_curr_p}
+  | '<'         { BINARY_RELATION (lexbuf.lex_curr_p, Ast.Math.Le) }
+  | '>'         { BINARY_RELATION (lexbuf.lex_curr_p, Ast.Math.Ge) }
+  | "\\leq"     { BINARY_RELATION (lexbuf.lex_curr_p, Ast.Math.Leq) }
+  | "\\geq"     { BINARY_RELATION (lexbuf.lex_curr_p, Ast.Math.Geq) }
   | "\\frac"    { FRAC lexbuf.lex_curr_p}
   (* set ops *)
   | "\\{"       { SET_OPEN lexbuf.lex_curr_p }
   | "\\}"       { SET_CLOSE lexbuf.lex_curr_p }
-  | "\\in"      { SET_IN lexbuf.lex_curr_p}
-(* TODO: factor these all out into a "binary relation" token instead of hardcoding names *)
-(* will reduce error states, make AST simpler *)
-  | "\\notin"   { SET_NOTIN lexbuf.lex_curr_p}
-  | "\\cup"     { SET_UNION lexbuf.lex_curr_p}
-  | "\\cap"     { SET_INTER lexbuf.lex_curr_p}
-  | "\\subset"  { SUBSET lexbuf.lex_curr_p}
-  | "\\subseteq"{ SUBSETEQ lexbuf.lex_curr_p}
-  | "\\superset"  { SUPERSET lexbuf.lex_curr_p}
-  | "\\superseteq"{ SUPERSETEQ lexbuf.lex_curr_p}
+  | "\\in"      { BINARY_RELATION (lexbuf.lex_curr_p, Ast.Math.In) }
+  | "\\notin"   { BINARY_RELATION (lexbuf.lex_curr_p, Ast.Math.NotIn) }
+  | "\\cup"     { SET_UNION lexbuf.lex_curr_p }
+  | "\\cap"     { SET_INTER lexbuf.lex_curr_p }
+  | "\\subset"  { BINARY_RELATION (lexbuf.lex_curr_p, Ast.Math.Subset) }
+  | "\\subseteq"{ BINARY_RELATION (lexbuf.lex_curr_p, Ast.Math.SubsetEq) }
+  | "\\superset"  { BINARY_RELATION (lexbuf.lex_curr_p, Ast.Math.Superset) }
+  | "\\superseteq"{ BINARY_RELATION (lexbuf.lex_curr_p, Ast.Math.SupersetEq) }
   (* logic *)
   | "\\land"    { LAND lexbuf.lex_curr_p}
   | "\\lor"     { LOR lexbuf.lex_curr_p}

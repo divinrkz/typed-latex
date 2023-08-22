@@ -27,32 +27,43 @@
 
 (* math tokens *)
 %token <Lexing.position> EQ
+%token <Lexing.position> CARET
+%token <Lexing.position> UNDERSCORE
+%token <Lexing.position> SET_OPEN
+%token <Lexing.position> SET_CLOSE
+
+(* binary operations *)
 %token <Lexing.position> PLUS
 %token <Lexing.position> MINUS
 %token <Lexing.position> TIMES
-%token <Lexing.position> CARET
-%token <Lexing.position> UNDERSCORE
-%token <Lexing.position> FRAC
+
+%token <Lexing.position> FRAC (* TODO: convert to command? *)
+
 %token <Lexing.position> SEPARATOR
+
+(* literals *)
 %token <Lexing.position * float> REAL
 %token <Lexing.position * int> INTEGER
 %token <Lexing.position * int> DIGIT
 %token <Lexing.position * string> VARIABLE
 %token <Lexing.position * string> CHAR
-%token <Lexing.position> LE
-%token <Lexing.position> GE
-%token <Lexing.position> LEQ
-%token <Lexing.position> GEQ
-%token <Lexing.position> SET_IN
-%token <Lexing.position> SET_OPEN
-%token <Lexing.position> SET_CLOSE
-%token <Lexing.position> SET_NOTIN
+
+(* binary relations *)
+%token <Lexing.position * Ast.Math.relation> BINARY_RELATION
+(* %token <Lexing.position> LE *)
+(* %token <Lexing.position> GE *)
+(* %token <Lexing.position> LEQ *)
+(* %token <Lexing.position> GEQ *)
+(* %token <Lexing.position> SET_IN *)
+(* %token <Lexing.position> SET_NOTIN *)
 %token <Lexing.position> SET_UNION
 %token <Lexing.position> SET_INTER
-%token <Lexing.position> SUBSET
-%token <Lexing.position> SUPERSET
-%token <Lexing.position> SUBSETEQ
-%token <Lexing.position> SUPERSETEQ
+(* %token <Lexing.position> SUBSET *)
+(* %token <Lexing.position> SUPERSET *)
+(* %token <Lexing.position> SUBSETEQ *)
+(* %token <Lexing.position> SUPERSETEQ *)
+
+(* logical operations *)
 %token <Lexing.position> IMPLIES
 %token <Lexing.position> IFF
 %token <Lexing.position> FORALL
@@ -61,9 +72,11 @@
 %token <Lexing.position> LAND
 %token <Lexing.position> LOR
 %token <Lexing.position> LNOT
-%token <Lexing.position> EQUIV
-%token <Lexing.position * string> TEXT
+
+(* misc structures *)
 %token <Lexing.position> SUM
+%token <Lexing.position * string> TEXT
+%token <Lexing.position> EQUIV
 
 %start <Ast.Math.t option> math_mode
 %start <Ast.Math.t list option> multiline
@@ -236,17 +249,18 @@ comma_sep:
 | COMMA; WHITESPACE*; {}
 
 %inline rel:
-| LE; WHITESPACE*; { Ast.Math.Le }
-| GE; WHITESPACE*; { Ast.Math.Ge }
-| LEQ; WHITESPACE*; { Ast.Math.Leq }
-| GEQ; WHITESPACE*; { Ast.Math.Geq }
+(* | LE; WHITESPACE*; { Ast.Math.Le } *)
+(* | GE; WHITESPACE*; { Ast.Math.Ge } *)
+(* | LEQ; WHITESPACE*; { Ast.Math.Leq } *)
+(* | GEQ; WHITESPACE*; { Ast.Math.Geq } *)
+(* | SUBSET; WHITESPACE*; { Ast.Math.Subset } *)
+(* | SUBSETEQ; WHITESPACE*; { Ast.Math.SubsetEq } *)
+(* | SUPERSET; WHITESPACE*; { Ast.Math.Superset } *)
+(* | SUPERSETEQ; WHITESPACE*; { Ast.Math.SupersetEq } *)
+(* | SET_IN; WHITESPACE*; { Ast.Math.In } *)
+(* | SET_NOTIN; WHITESPACE*; { Ast.Math.NotIn } *)
 | EQ; WHITESPACE*; { Ast.Math.Eq }
-| SUBSET; WHITESPACE*; { Ast.Math.Subset }
-| SUBSETEQ; WHITESPACE*; { Ast.Math.SubsetEq }
-| SUPERSET; WHITESPACE*; { Ast.Math.Superset }
-| SUPERSETEQ; WHITESPACE*; { Ast.Math.SupersetEq }
-| SET_IN; WHITESPACE*; { Ast.Math.In }
-| SET_NOTIN; WHITESPACE*; { Ast.Math.NotIn }
+| r = BINARY_RELATION; WHITESPACE*; { snd r }
 | EQUIV; UNDERSCORE; d = DIGIT; WHITESPACE* { Ast.Math.Equiv (Ast.Math.IntLiteral (snd d)) }
 | EQUIV; UNDERSCORE; d = CHAR; WHITESPACE* { Ast.Math.Equiv (Ast.Math.Variable (snd d)) }
 | EQUIV; UNDERSCORE; LEFT_CURLY; e = expr; RIGHT_CURLY; WHITESPACE* { Ast.Math.Equiv e }
