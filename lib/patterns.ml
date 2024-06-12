@@ -52,7 +52,6 @@ let test_pattern = Sequence [Any [Word "choose"; Word "consider"; Word "define"]
 (* let test_def = Sequence [Word "Let"; Variable 0; Option (Sequence [Word "represent"; Word "be"]);
  SpecificRelation Leq; Option (Sequence [Word "an"; Word "some"; Word "equal"] Definition 0);];  *)
 
-
 type result_t = (int, Math.t) Hashtbl.t
 
 let match_with (option_latex: Ast.Latex.t option) (pat: pattern) =
