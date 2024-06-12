@@ -44,6 +44,7 @@ type pattern =
   | Definition of int
 [@@deriving eq, show, sexp, hash, ord]
 
+
 let def = Sequence [Any [Word "choose"; Word "consider"; Word "define"]; Relation 0]
 
 let test_pattern = Sequence [Any [Word "choose"; Word "consider"; Word "define"]; SpecificRelation (0, Ge)]
@@ -51,9 +52,8 @@ let test_pattern = Sequence [Any [Word "choose"; Word "consider"; Word "define"]
 (* let test_def = Sequence [Word "Let"; Variable 0; Option (Sequence [Word "represent"; Word "be"]);
  SpecificRelation Leq; Option (Sequence [Word "an"; Word "some"; Word "equal"] Definition 0);];  *)
 
+
 type result_t = (int, Math.t) Hashtbl.t
-
-
 
 let match_with (option_latex: Ast.Latex.t option) (pat: pattern) =
   match option_latex with
