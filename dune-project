@@ -21,7 +21,7 @@
  (name typed_latex)
  (synopsis "A short synopsis")
  (description "A longer description")
- (depends ocaml dune core stdio menhir ppx_deriving)
+ (depends ocaml dune core stdio menhir ppx_deriving re)
  (tags
   (topics "to describe" your project)))
 
