@@ -1,6 +1,6 @@
 open Core
 open Fn 
-open Re.Str
+
 
 let string_sep str formatter () = Format.pp_print_string formatter str
 
@@ -47,8 +47,9 @@ let pp_hashtbl formatter ~pp_key ~pp_data t =
     @param sep separator string 
     @return splitted list of string on separator
     *)    
-let str_split (str: string) (sep: string) : string list =
-  split (regexp_string sep) str
+let str_split str sep =
+  Str.split (Str.regexp sep) str
+
 
 
 (** [read_file_as_str filename] reads the content of the file specified by [filename]
@@ -66,13 +67,18 @@ let read_file_as_str (filename: string) =
         )
   );
   Buffer.contents buffer
-  
 
-let extract_patterns (filename: string) = 
-    let content = read_file_as_str filename in
-      let splits = str_split content "\"," in
-        let def = List.nth splits 0 in 
-          match def with 
-          | Some _ -> [1; 2; 3] 
-          | None -> []
-      (* List.iter splits ~f:(fun split -> print_endline ("here: " ^ split)) *)
+(* Regex patterns *)
+let word_regex = "[a-zA-Z]+"
+let regex_type_name = Re.Perl.compile_pat "\\$"
+let regex_relation = Re.Perl.compile_pat "M\\(less_than\\|less_than_or_equal\\|greater_than\\|greater_than_or_equal\\|equal\\|not_equal\\|set\\)"
+let regex_id = Re.Perl.compile_pat "M\\(in\\|var\\)"
+
+
+let regex_matcher (str: string) (regex: string) =
+  try
+    let regexp = Str.regexp regex in
+    let _ = Str.search_forward regexp str 0 in
+    Some (Str.matched_string str)
+  with
+    Not_found_s _ -> None

@@ -1,8 +1,9 @@
 open Core
-open Proof_lex
+(* open Proof_lex *)
 open Ast
-open User
+(* open User *)
 open Fn
+open Util
 
 type relation_type =
   | Le
@@ -65,13 +66,7 @@ let def =
       Relation (Eq, MatchID.from_int 1, MatchID.from_int 2);
     ]
 
-<<<<<<< HEAD
-(* Define regex patterns *)
-let regex_word = Re.Perl.compile_pat "[a-zA-Z]+"
-let regex_type_name = Re.Perl.compile_pat "\\$"
-let regex_relation = Re.Perl.compile_pat "M\\(less_than\\|less_than_or_equal\\|greater_than\\|greater_than_or_equal\\|equal\\|not_equal\\|set\\)"
-let regex_id = Re.Perl.compile_pat "M\\(in\\|var\\)"
-
+(* 
 let parse_relation str =
   match str with
   | "Mless_than" -> Le
@@ -100,26 +95,46 @@ let rec parse_tokens tokens =
 let parse_pattern str =
   let tokens = Re.split (Re.Perl.compile_pat "[ \t\n\r]+") str in
   Sequence (parse_tokens tokens)
+ *)
 
-let parse_file filename =
+ 
+
+ let extract_patterns filename = 
+  In_channel.with_file filename ~f:(fun input_c ->
+    let line_counter = ref 0 in 
+    In_channel.iter_lines input_c ~f:(fun line -> 
+      incr line_counter;
+      print_string ((string_of_int !line_counter) ^ ": ");
+      print_endline line;
+      let splits = Util.str_split line ":" in
+      match List.hd splits with 
+      | Some split -> (
+          match Util.regex_matcher split Util.word_regex with
+          | Some str -> print_endline str
+          | None -> print_endline "No match found"
+        )
+      | None -> ()
+    )
+  )
+
+
+(* let parse_file filename =
   In_channel.with_file filename ~f:(fun input_c ->
     In_channel.iter_lines input_c ~f:(fun line ->
       let pattern = parse_pattern line in
       print_endline (show_pattern pattern)
     )
-  )
+  ) *)
 
 type proof_token =
   | PunctuationToken of string
   | WordToken of string
   | MathToken of Ast.Math.t
-=======
 module rec MatchContainer : sig
   type value =
     | DefContainerMatch of t
     | TypeNameMatch of string
     | ExpressionMatch of Math.t
->>>>>>> 393ec745f9301b074a5c0b3275370ba244cdd176
 
   and t = value MatchID.Map.t
 
