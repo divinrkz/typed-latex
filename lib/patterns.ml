@@ -99,7 +99,7 @@ let parse_pattern str =
 
  
 
- let extract_patterns filename = 
+ let parse_patterns filename = 
   In_channel.with_file filename ~f:(fun input_c ->
     let line_counter = ref 0 in 
     In_channel.iter_lines input_c ~f:(fun line -> 
@@ -111,7 +111,7 @@ let parse_pattern str =
       | Some split -> (
           match Util.regex_matcher split Util.word_regex with
           | Some str -> print_endline str
-          | None -> print_endline "No match found"
+          | None -> print_endline ("Line " string_from_int !line_counter ^ "No match found.")
         )
       | None -> ()
     )
