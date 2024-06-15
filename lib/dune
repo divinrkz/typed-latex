@@ -26,6 +26,7 @@
  (name typed_latex)
  (modules
   ast
+  ast_print
   typing
   math
   user
@@ -35,7 +36,7 @@
   latex_parser
   latex_parser_messages
   math_lexer
-math_parser
+  math_parser
   math_parser_messages)
  (libraries core menhirLib re)
  (preprocess

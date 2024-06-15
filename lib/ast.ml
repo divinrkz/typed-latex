@@ -50,6 +50,9 @@ module rec Math : sig
 
   val pp : Format.formatter -> t -> unit
   val type_check : t list -> unit
+  val string_of_unary : unary -> string
+  val string_of_operator : operator -> string
+  val string_of_logic_op : logic_op -> string
   val string_of_logic : logic -> string
 end = struct
   type operator = Plus | Minus | Times | Frac | Union | Inter

@@ -1,6 +1,7 @@
 open Core
 open Typed_latex
-include Util
+open Ast_print
+open Util
 
 (* TODO: add basic expansion step to expand user-defined macros *)
 
@@ -44,14 +45,11 @@ type pattern =
     | Relation of relation_type * id * id
 [@@deriving eq, show, sexp, hash, ord]
 
-(* let generate_patterns filename = 
-  let ic = open_in filenmae 
-  File.foreach(filename) { |line| puts line } *)
-    (* let lines = File.readlines(filename) *)
 
 let main () =
   let filename = "tex/sample4.tex" in
-  Util.extract_patterns "patterns.txt";
+  Util.extract_patterns "pattern.txt";
+  (* print_endline content *)
   let result =
     try User.parse_latex_file filename
     with User.Error _ as e ->
@@ -62,25 +60,25 @@ let main () =
   | None ->
       fprintf stderr "Unable to parse. Exiting...\n";
       exit (-1)
-  | Some ast -> (
-      (* Format.printf "Parsed latex: %a\n" Ast.Latex.pp ast; *)
-      (* try User.type_check ast with
-         | User.Error _ as e -> fprintf stderr "%s\n" (User.error_message e); *)
-      (* let pattern = User.Sequence [Word "Hello"; Variable 0] in *)
+  | Some ast ->
       let document_ast = User.unwrap_to_document ast in
-      (match document_ast with
-      | Some document_ast_contents ->
-          Format.printf "Found document: %a\n" Ast.Latex.pp
-            document_ast_contents
-      | None -> Format.printf "Unable to find document\n");
-  )
+      (print_endline << latex_tree_format) <-<? document_ast
+(* Format.printf "Parsed latex: %a\n" Ast.Latex.pp ast; *)
+(* try User.type_check ast with
+   | User.Error _ as e -> fprintf stderr "%s\n" (User.error_message e); *)
+(* let pattern = User.Sequence [Word "Hello"; Variable 0] in *)
 
+(* (match document_ast with
+   | Some document_ast_contents ->
+       Format.printf "Found document: %a\n" Ast.Latex.pp
+         document_ast_contents
+   | None -> Format.printf "Unable to find document\n"); *)
 
-      (* match Patterns.match_with Patterns.def =<<? document_ast with
-      | Some mappings ->
-          Format.printf "Success: %a\n"
-            (Util.pp_hashtbl ~pp_key:Format.pp_print_int ~pp_data:Ast.Math.pp)
-            mappings
-      | None -> Format.printf "Fail\n") *)
+(* match Patterns.match_with Patterns.def =<<? document_ast with
+   | Some mappings ->
+       Format.printf "Success: %a\n"
+         (Util.pp_hashtbl ~pp_key:Format.pp_print_int ~pp_data:Ast.Math.pp)
+         mappings
+   | None -> Format.printf "Fail\n" *)
 
 let () = main ()
