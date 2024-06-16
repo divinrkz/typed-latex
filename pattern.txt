@@ -110,3 +110,7 @@
 "for (all|every|any):Mvar:in the:D:",
 "for (all|every|any):Min:",
 "for (all|every|any):D:$:Mvar Mgreater_than Min:",
+
+
+
+

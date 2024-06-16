@@ -69,23 +69,30 @@ let read_file_as_str (filename: string) =
   );
   Buffer.contents buffer
 
-(* Regex patterns *)
-let word_regex = "[a-zA-Z]+"
-let relation_regex = "[a-zA-Z]+"
-let regex_type_name = Re.Perl.compile_pat "\\$"
-let regex_relation = Re.Perl.compile_pat "Mset|Min|Mgreater_than_or_equal|Mgreater_than|Mless_than_or_equal|Mless_than"
-let regex_id = Re.Perl.compile_pat "M\\(in\\|var\\)"
-
-
+(** [regex_matcher str regex] returns a list of all substrings in [str] that match the given [regex].
+    @param str The input string to search for matches.
+    @param regex The regular expression pattern to match against the input string.
+    @return A list of all substrings in the input string that match the regular expression pattern.
+    Example:
+    {[ 
+      let matches = regex_matcher "these are four words" "[a-zA-Z]+"
+      (* matches will be ["these"; "are"; "four"; "words"] *)
+    ]}
+*)
 let regex_matcher (str: string) (regex: string) =
-  try
-    let regexp = Str.regexp regex in
-    let _ = Str.search_forward regexp str 0 in
-    Some (Str.matched_string str)
-  with
-    Not_found_s _ -> None
-(** Tuples **)
+  let rec find_all_matches acc pos =
+      let regexp = Str.regexp regex in
+    try
 
+      let start_pos = Str.search_forward regexp str pos in
+      let matched_str = Str.matched_string str in
+      find_all_matches (matched_str :: acc) (start_pos + String.length matched_str)
+    with
+    | _ -> List.rev acc
+  in
+  find_all_matches [] 0 
+
+(** Tuples **)
 module Pair : sig
   type ('a, 'b) t = ('a * 'b)
   val first : ('a, 'b) t -> 'a

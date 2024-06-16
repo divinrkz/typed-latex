@@ -1,0 +1,3 @@
+definitions
+types are consistent
+hierancry

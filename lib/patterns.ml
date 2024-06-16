@@ -22,35 +22,32 @@ type relation_type =
 | Other
 [@@deriving eq, show, sexp, hash, ord]
 
+let all_known_relation_types =  [ Le; Leq; Ge; Geq; Eq; In; NotIn; Subset; Superset; SubsetEq; SupersetEq ]
+  
+let all_relation_types = Other :: all_known_relation_types
 
-let all_known_relation_types =
-  [ Le; Leq; Ge; Geq; Eq; In; NotIn; Subset; Superset; SubsetEq; SupersetEq ]
+type elementary_relation = ERelation of relation_type * Math.t * Math.t
   
-  let all_relation_types = Other :: all_known_relation_types
-  
-  type elementary_relation = ERelation of relation_type * Math.t * Math.t
-  
-  let ast_to_elementary_relation_type (ast_rel_t : Math.relation) =
+let ast_to_elementary_relation_type (ast_rel_t : Math.relation) =
   match ast_rel_t with
-  | Math.Le -> Le
-  | Math.Leq -> Leq
-  | Math.Ge -> Ge
-  | Math.Geq -> Geq
-  | Math.Eq -> Eq
-  | Math.In -> In
-  | Math.NotIn -> NotIn
-  | Math.Subset -> Subset
-  | Math.Superset -> Superset
-  | Math.SubsetEq -> SubsetEq
-  | Math.SupersetEq -> SupersetEq
-  | _ -> Other
-
+    | Math.Le -> Le
+    | Math.Leq -> Leq
+    | Math.Ge -> Ge
+    | Math.Geq -> Geq
+    | Math.Eq -> Eq
+    | Math.In -> In
+    | Math.NotIn -> NotIn
+    | Math.Subset -> Subset
+    | Math.Superset -> Superset
+    | Math.SubsetEq -> SubsetEq
+    | Math.SupersetEq -> SupersetEq
+    | _ -> Other
   
 module MatchID = struct
   module T = struct
     type t = int [@@deriving eq, show, sexp, hash, ord, compare]
   end
-  
+
   include T
   include Comparable.Make (T)
   
@@ -58,7 +55,7 @@ module MatchID = struct
   let to_string (match_id : t) : string = "<" ^ string_of_int match_id ^ ">"
   end
   
-  type pattern =
+type pattern =
   (* Primary *)
   | Word of string
   | Any of pattern list
@@ -74,76 +71,16 @@ module MatchID = struct
 [@@deriving eq, show, sexp, hash, ord]
 
 
- let get_nth (lst: string list) idx = match List.nth lst idx with 
- | Some elem -> elem
- | None -> ""
-
-let parse_relation_type (relation_type: string) = 
-   match relation_type with
-   | "Mset" -> In
-   | "Min" -> In
-   | "Mgreater_than" -> Ge
-   | "Mgreater_than_or_equal" -> Geq
-   | "Mless_than" -> Le
-   | "Mless_than_or_equal" -> Leq
-   | _ -> failwith "Unknown relation type"
-
-let parse_relations relations_str =
-  let relation_splits = str_split relations_str " " in 
-    let rec parse_relation splits = 
-      match splits with
-      | [] -> []
-      | relation :: rest -> Relation (parse_relation_type relation, 1) :: parse_relation rest 
-    in
-    parse_relation relation_splits
-
-
-let parse_typenames str = 
-  let typename_splits = str_split str " " in 
-    let rec parse_typename splits = 
-        match splits with 
-        | [] -> []
-        | str :: rest -> Word str :: parse_typename rest
-    in 
-    parse_typename typename_splits
-      
-let parse_patterns filename = 
-  let seq = ref (Sequence []) in 
-  In_channel.with_file filename ~f:(fun input_c ->
-    let line_counter = ref 0 in 
-      In_channel.iter_lines input_c ~f:(fun line -> 
-        incr line_counter;
-        print_string ((string_of_int !line_counter) ^ ": ");
-        print_endline line;
-        let splits = Util.str_split line ":" in
-          let first_split = get_nth splits 0 in 
-            (match Util.regex_matcher first_split Util.word_regex with
-               | Some str -> (* sequence @ Word str;*) seq := Sequence [Word str] 
-              | None -> print_endline ("Line " ^ string_of_int !line_counter ^ "No match found.")
-            ); 
-          let second_split = get_nth splits 1 in 
-            (let parsed = Any (parse_relations second_split) in 
-            (* sequence @ parsed *)
-              seq := Sequence (!seq :: [parsed]);
-          );
-          let third_split = get_nth splits 2 in
-            (let parsed =  parse_typenames third_split in 
-              (* sequence @ parsed *)
-                seq := Sequence (!seq :: parsed);
-                print_endline (show_pattern !seq)
-            );
-    )
-  )
-
 let rec extract_elementary_relations (bound : Math.t)
   (tail : (Math.relation * Math.t) list) =
-match tail with
-| (ast_rel_t, right) :: (_, left) :: remaining ->
-    ERelation (ast_to_elementary_relation_type ast_rel_t, left, right)
-    :: extract_elementary_relations bound remaining
-| (ast_rel_t, right) :: [] ->
-    [ ERelation (ast_to_elementary_relation_type ast_rel_t, bound, right) ]
-| [] -> []
+  match tail with
+  | (ast_rel_t, right) :: (_, left) :: remaining ->
+      ERelation (ast_to_elementary_relation_type ast_rel_t, left, right)
+      :: extract_elementary_relations bound remaining
+  | (ast_rel_t, right) :: [] ->
+      [ ERelation (ast_to_elementary_relation_type ast_rel_t, bound, right) ]
+  | [] -> []
+
 module rec MatchContainer : sig
 type match_value =
   | DefContainerMatch of t
@@ -288,5 +225,5 @@ if match_comparison = 0 then
 else match_comparison
 
 let match_pattern (pat : pattern) (tokenization : proof_token list) =
-let matched_contexts = match_rec pat (tokenization, MatchContainer.empty) in
-List.max_elt ~compare:compare_context matched_contexts
+  let matched_contexts = match_rec pat (tokenization, MatchContainer.empty) in
+  List.max_elt ~compare:compare_context matched_contexts
