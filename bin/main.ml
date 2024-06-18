@@ -18,35 +18,6 @@ open Util
 (* let result = parse_latex "$P(x, y) = x - N^y$\n$P(1, 2)$\n$N = \\frac{1}{2}$" in *)
 
 
-type relation_type =
-  | Le
-  | Leq
-  | Ge
-  | Geq
-  | Eq
-  | In
-  | NotIn
-  | Subset
-  | Superset
-  | SubsetEq 
-  | SupersetEq
-[@@deriving eq, show, sexp, hash, ord]
-
-type id = string
-[@@deriving eq, show, sexp, hash, ord]
-
-type pattern = 
-    | Word of string
-    | Any of pattern list
-    | Sequence of pattern list
-    | Optional of pattern
-    | Repeat of pattern
-    | TypeName of id
-    | DefContainer 
-    | Relation of relation_type * id * id
-[@@deriving eq, show, sexp, hash, ord]
-
-
 let main () =
   let filename = "tex/sample4.tex" in
   let seq = Pattern_defs.parse_patterns "pattern1.txt" in 

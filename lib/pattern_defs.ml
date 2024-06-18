@@ -2,9 +2,8 @@ open Core
 open Patterns
 open Util
 
-
 (* Regex patterns *)
-let regex_first_split = "[a-zA-Z]+"
+let regex_first_split = "|?[a-zA-Z]+|?"
 let relation_regex = "[a-zA-Z]+"
 
 let list_relation_types_pattern (match_id : MatchID.t)
@@ -98,7 +97,24 @@ let parse_typenames str =
         | [str] -> 
             seq := !seq @ [Word str]
         | _ -> 
-            (fun str -> seq := !seq @ [Word str]) <-<: matched_lst
+            let rec process_words words acc = 
+                match words with 
+                | [] -> acc
+                | [str] -> acc @ [Word str]
+                | str1 :: str2 :: rest -> 
+                    (* if Stdlib.String.ends_with ~suffix:"|" str1 then
+                      let str1_without_pipe = String.sub str1 ~pos:0 ~len:(String.length str1 - 1) in
+                      let str2_without_pipe = 
+                      acc @ [Any [Word str1_without_pipe; Word str2]] @ process_words rest [] *)
+                    let str1_without_pipe = if Stdlib.String.ends_with ~suffix:"|" str1 then String.sub str1 ~pos:0 ~len:(String.length str1 - 1) else str1 in
+                    let str2_without_pipe = if Stdlib.String.ends_with ~suffix:"|" str2 then String.su d db str2 ~pos:0 ~len:(String.length str2 - 1) else str2 in
+                    if Stdlib.String.ends_with ~suffix:"|" str1 || Stdlib.String.ends_with ~suffix:"|" str2 then
+                      acc @ [Any [Word str1_without_pipe; Word str2_without_pipe]] @ process_words rest []  
+                    else 
+                      acc @ [Word str1] @ process_words (str2 :: rest) []
+            in
+              seq := process_words matched_lst !seq
+            (* (fun str -> if  seq := !seq @ [Word str]) <-<: matched_lst *)
       )
     );
     Sequence !seq  
