@@ -12,6 +12,7 @@
 %token <Lexing.position> RIGHT_BRACKET
 %token <Lexing.position> RIGHT_PAREN
 %token <Lexing.position> COMMA
+%token <Lexing.position> PERIOD
 %token <Lexing.position> AMPERSAND
 %token <Lexing.position> PIPE
 %token <Lexing.position> EQ
@@ -46,9 +47,10 @@ content:
 (* TODO: convert into variant for more semantic information *)
 word:
 | word_data = WORD; { {Ast.Node.pos = fst word_data; value = Ast.Latex.Word (snd word_data)} }
-| data = LINE_BREAK { {Ast.Node.pos = data; value = Ast.Latex.Word "\n"} }
-| data = WHITESPACE { {Ast.Node.pos = data; value = Ast.Latex.Word " "} }
+| data = LINE_BREAK; LINE_BREAK* { {Ast.Node.pos = data; value = Ast.Latex.Newline} }
+| data = WHITESPACE; WHITESPACE* { {Ast.Node.pos = data; value = Ast.Latex.Whitespace} }
 | data = COMMA { {Ast.Node.pos = data; value = Ast.Latex.Word ","} }
+| data = PERIOD { {Ast.Node.pos = data; value = Ast.Latex.Word "."} }
 | data = PIPE { {Ast.Node.pos = data; value = Ast.Latex.Word "|"} }
 | data = LEFT_PAREN { {Ast.Node.pos = data; value = Ast.Latex.Word "("} }
 | data = RIGHT_PAREN { {Ast.Node.pos = data; value = Ast.Latex.Word ")"} }

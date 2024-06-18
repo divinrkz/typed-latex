@@ -27,17 +27,10 @@ let dollar = '$'
 let alpha = ['a'-'z' 'A'-'Z']
 let not_alpha = [^ 'a'-'z' 'A'-'Z']
 let command = '\\' not_alpha | '\\' alpha+
-let variable = alpha alpha+
-
-let digit = ['0'-'9']
-let integer = digit digit+
-let real = ['0'-'9']+ '.' ['0'-'9']+
 
 let begin_env = "\\begin{" ['a'-'z' 'A'-'Z']+ '}'
 let end_env = "\\end{" ['a'-'z' 'A'-'Z']+ '}'
 
-let math_sep = "\\\\"
-(* does not check for matching begin/end, assume latex lsp will catch that *)
 let begin_math = "$$" | "$" | "\\[" | "\\begin{math}" | "\\begin{equation}"
 let end_math = "$$" | "$" | "\\]" | "\\end{math}" | "\\end{equation}"
 let begin_multiline = "\\begin{align*}"
@@ -57,6 +50,7 @@ rule token =
   | '('         { LEFT_PAREN lexbuf.lex_curr_p}
   | ')'         { RIGHT_PAREN lexbuf.lex_curr_p}
   | ','         { COMMA lexbuf.lex_curr_p}
+  | '.'         { PERIOD lexbuf.lex_curr_p}
   | '|'         { PIPE lexbuf.lex_curr_p}
   | '='         { EQ lexbuf.lex_curr_p}
   | '&'         { AMPERSAND lexbuf.lex_curr_p}

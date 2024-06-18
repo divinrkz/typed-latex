@@ -711,6 +711,8 @@ end
 and Latex: sig
   type latex =
     | Word of string
+    | Whitespace
+    | Newline
     | Command of string * t list
     | Environment of Environment.t
     | Mathmode of string (* encompasses equations, formula, and display mode *)
@@ -724,6 +726,8 @@ and Latex: sig
 end = struct
   type latex =
     | Word of string
+    | Whitespace
+    | Newline
     | Command of string * t list
     | Environment of Environment.t
     | Mathmode of string
@@ -737,6 +741,8 @@ end = struct
   and pp_mathmode formatter math = Format.fprintf formatter "MATH[%s]" math
   and pp formatter (latex: t) = match latex with
     | {pos = _; value = Word word} -> Format.fprintf formatter "%s" word
+    | {pos = _; value = Whitespace} -> Format.fprintf formatter " "
+    | {pos = _; value = Newline} -> Format.fprintf formatter "\n"
     | {pos = _; value = Environment env} -> pp_environment formatter env
     | {pos = _; value = Mathmode math} -> pp_mathmode formatter math
     | {pos = _; value = Multiline math} -> pp_mathmode formatter math
@@ -751,6 +757,8 @@ end = struct
     let acc = ref [] in
     let rec recurse acc (node: t) = match node with
     | {pos = _; value = Word _} -> ()
+    | {pos = _; value = Whitespace } -> ()
+    | {pos = _; value = Newline } -> ()
     | {pos = _; value = Environment (_, _, contents)} -> List.iter ~f:(recurse acc) contents
     | {pos = _; value = Mathmode _ as math} -> (
         acc := math :: !acc;
@@ -763,5 +771,7 @@ end = struct
     in
     recurse acc node;
     List.rev !acc
+
+
 end
 
