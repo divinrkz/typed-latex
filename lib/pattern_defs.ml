@@ -102,19 +102,14 @@ let parse_typenames str =
                 | [] -> acc
                 | [str] -> acc @ [Word str]
                 | str1 :: str2 :: rest -> 
-                    (* if Stdlib.String.ends_with ~suffix:"|" str1 then
-                      let str1_without_pipe = String.sub str1 ~pos:0 ~len:(String.length str1 - 1) in
-                      let str2_without_pipe = 
-                      acc @ [Any [Word str1_without_pipe; Word str2]] @ process_words rest [] *)
-                    let str1_without_pipe = if Stdlib.String.ends_with ~suffix:"|" str1 then String.sub str1 ~pos:0 ~len:(String.length str1 - 1) else str1 in
-                    let str2_without_pipe = if Stdlib.String.ends_with ~suffix:"|" str2 then String.su d db str2 ~pos:0 ~len:(String.length str2 - 1) else str2 in
-                    if Stdlib.String.ends_with ~suffix:"|" str1 || Stdlib.String.ends_with ~suffix:"|" str2 then
-                      acc @ [Any [Word str1_without_pipe; Word str2_without_pipe]] @ process_words rest []  
+                    let stripped_str1 = if str_ends_with str1 "|" then String.sub str1 ~pos:0 ~len:(String.length str1 - 1) else str1 in
+                    let stripped_str2 = if str_ends_with str2 "|" then String.sub str2 ~pos:0 ~len:(String.length str2 - 1) else str2 in
+                    if str_ends_with str1 "|" || str_ends_with str2 "|" then
+                      acc @ [Any [Word stripped_str1; Word stripped_str2]] @ process_words rest []  
                     else 
                       acc @ [Word str1] @ process_words (str2 :: rest) []
             in
               seq := process_words matched_lst !seq
-            (* (fun str -> if  seq := !seq @ [Word str]) <-<: matched_lst *)
       )
     );
     Sequence !seq  
