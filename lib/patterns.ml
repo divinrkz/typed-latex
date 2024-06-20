@@ -1,7 +1,7 @@
 open Core
 open Ast
 open User
-open Latex_parser
+(* open Latex_parser *)
 
 type relation_type =
   | Le
@@ -44,7 +44,8 @@ let rec relation_simplified_eq (a: relation_type) (b: Ast.Math.t) =
     | Superset, Ast.Math.Relation (_, ((Ast.Math.Superset, _) :: _)) -> true
     | SubsetEq, Ast.Math.Relation (_, ((Ast.Math.SubsetEq, _) :: _)) -> true
     | SupersetEq, Ast.Math.Relation (_, ((Ast.Math.SupersetEq, _) :: _)) -> true
-    | relation, Ast.Math.Relation (bound_var, (_ :: remaining_bindings)) -> (relation_simplified_eq relation (Ast.Math.Relation bound_var remaining_bindings))
+    | relation, Ast.Math.Relation (bound_var, (_ :: rem_bindings)) -> relation_simplified_eq relation (Ast.Math.Relation (bound_var, rem_bindings))
+
     | _ -> false
 
 
@@ -116,7 +117,7 @@ let match_with (option_latex: Ast.Latex.t option) (pat: pattern) =
         | ({ pos = _; value = Mathmode x}, SpecificRelation (id, relation)) -> (
           let result_t = parse_math (Mathmode x) in
           match result_t with
-          | [Relation (ast_relation, _) as rel] when ast_relation_simplified_eq (to_ast_relation relation) ast_relation -> (
+          | [Relation (ast_relation, _) as rel] when relation_simplified_eq relation ast_relation -> (
             Hashtbl.set mappings ~key:id ~data:rel;
             true
           )
