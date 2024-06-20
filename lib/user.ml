@@ -149,15 +149,6 @@ let type_check ast =
 
 (* let message = Parser_messages.message *)
 
-type result = (int, Math.t) Hashtbl.t
-
-
-let my_is_sum x =
-  match x with
-  | Some _ -> true
-  | None -> false
-
-
 let rec unwrap_all_to_document (nodes: Ast.Latex.t list) =
   match nodes with
   | [] -> None
