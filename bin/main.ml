@@ -23,11 +23,12 @@ let main () =
   match result with
   | None -> fprintf stderr "Unable to parse. Exiting...\n"; exit (-1)
   | Some ast -> (
-    (* Format.printf "Parsed latex: %a" Ast.Latex.pp ast; *)
-    try User.type_check ast with
-    | User.Error _ as e -> fprintf stderr "%s\n" (User.error_message e); 
+    Format.printf "Parsed latex: %a" Ast.Latex.pp ast;
+    (* try User.type_check ast with
+    | User.Error _ as e -> fprintf stderr "%s\n" (User.error_message e);  *)
     (* let pattern = User.Sequence [Word "Hello"; Variable 0] in *)
-    match User.match_with (User.unwrap_to_document ast) User.def with
+
+    match Patterns.match_with (User.unwrap_to_document ast) Patterns.def with
     | Some mappings -> Format.printf "Success: %a\n" (Util.pp_hashtbl ~pp_key:Format.pp_print_int ~pp_data:Ast.Math.pp) mappings
     | None -> Format.printf "Fail\n"
   )
