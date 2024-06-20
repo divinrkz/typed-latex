@@ -1,2 +1,3 @@
-_build
+_build/
 .git
+_opam/
