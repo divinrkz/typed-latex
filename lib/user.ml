@@ -168,6 +168,7 @@ let my_is_sum x =
   | Some _ -> true
   | None -> false
 
+
 let rec unwrap_all_to_document (nodes: Ast.Latex.t list) =
   match nodes with
   | [] -> None
