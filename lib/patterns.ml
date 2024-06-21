@@ -16,23 +16,9 @@ type relation_type =
   | SubsetEq
   | SupersetEq
 [@@deriving eq, show, sexp, hash, ord]
-
-let to_ast_relation (relation: relation_type) =
-  match relation with 
-    | Le -> Ast.Math.Le
-    | Leq -> Ast.Math.Leq
-    | Ge -> Ast.Math.Ge
-    | Geq -> Ast.Math.Geq
-    | Eq -> Ast.Math.Eq
-    | In -> Ast.Math.In
-    | NotIn -> Ast.Math.NotIn
-    | Subset -> Ast.Math.Subset
-    | Superset -> Ast.Math.Superset
-    | SubsetEq -> Ast.Math.SubsetEq
-    | SupersetEq -> Ast.Math.SupersetEq
   
-let rec relation_simplified_eq (a: relation_type) (b: Ast.Math.t) =
-  match (a, b) with
+let rec relation_simplified_eq (relation: relation_type) (ast_rel: Ast.Math.t) =
+  match (relation, ast_rel) with
     | Le, Ast.Math.Relation (_, ((Ast.Math.Le, _) :: _)) -> true
     | Leq, Ast.Math.Relation (_, ((Ast.Math.Leq, _) :: _)) -> true
     | Ge, Ast.Math.Relation (_, ((Ast.Math.Ge, _) :: _)) -> true
@@ -109,8 +95,8 @@ let match_with (option_latex: Ast.Latex.t option) (pat: pattern) =
         | ({ pos = _; value = Mathmode x}, Relation id) -> (
           let result_t = parse_math (Mathmode x) in
           match result_t with
-          | [Relation _ as rel] -> (
-            Hashtbl.set mappings ~key:id ~data:rel;
+          | [Relation _ as ast_rel] -> (
+            Hashtbl.set mappings ~key:id ~data:ast_rel;
             true
           )
           | _ -> false
@@ -119,8 +105,8 @@ let match_with (option_latex: Ast.Latex.t option) (pat: pattern) =
         | ({ pos = _; value = Mathmode x}, SpecificRelation (id, relation)) -> (
           let result_t = parse_math (Mathmode x) in
           match result_t with
-          | [Relation (ast_relation, _) as rel] when relation_simplified_eq relation ast_relation -> (
-            Hashtbl.set mappings ~key:id ~data:rel;
+          | [Relation _ as ast_rel] when relation_simplified_eq relation ast_rel -> (
+            Hashtbl.set mappings ~key:id ~data:ast_rel;
             true
           )
           | _ -> false
