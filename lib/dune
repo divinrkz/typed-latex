@@ -35,9 +35,9 @@
   latex_parser
   latex_parser_messages
   math_lexer
-  math_parser
+math_parser
   math_parser_messages)
- (libraries core menhirLib)
+ (libraries core menhirLib re)
  (preprocess
   (pps
    ppx_sexp_conv

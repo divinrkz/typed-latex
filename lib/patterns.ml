@@ -1,7 +1,7 @@
 open Core
 open Ast
 open User
-(* open Latex_parser *)
+(* open Re.Perl *)
 
 type relation_type =
   | Le
@@ -37,14 +37,16 @@ let rec relation_simplified_eq (relation : relation_type) (ast_rel : Ast.Math.t)
   | _ -> false
 
 type pattern =
+  | RegExpText of string
   | Word of string
   | Option of pattern
   | Sequence of pattern list
   | Any of pattern list
+  | Repeat of pattern
   | Variable of int
   | Relation of int
   | SpecificRelation of int * relation_type
-  | Definition of int
+  (* | Environment of regexp *)
 [@@deriving eq, show, sexp, hash, ord]
 
 let def =
@@ -62,41 +64,41 @@ type result_t = (int, Math.t) Hashtbl.t
 let match_with (pat : pattern) (latex : Ast.Latex.t) =
   let (mappings : result_t) = Hashtbl.create (module Int) in
   let rec recurse (pat : pattern) (node : Ast.Latex.t) =
-    match (node, pat) with
-    | { pos = _; value = Word x }, Word y ->
+    match (pat, node) with
+    | Word y, { pos = _; value = Word x } ->
         String.equal (String.lowercase x) (String.lowercase y)
-    | { pos = _; value = _ }, Option p -> recurse p node
-    | { pos = _; value = _ }, Sequence [] -> true
+    | Option p, { pos = _; value = _ } -> recurse p node
     (* ignore whitespace and newlines *)
-    | { pos = p; value = Latex ({ pos = _; value = Whitespace } :: tl) }, _ ->
+    | _, { pos = p; value = Latex ({ pos = _; value = Whitespace } :: tl) } ->
         recurse pat { pos = p; value = Latex tl }
-    | { pos = p; value = Latex ({ pos = _; value = Newline } :: tl) }, _ ->
+    | _, { pos = p; value = Latex ({ pos = _; value = Newline } :: tl) } ->
         recurse pat { pos = p; value = Latex tl }
     (* match sequences *)
-    | { pos = p; value = Latex (hd :: tl) }, Sequence (fst :: rest) ->
+    | Sequence [], { pos = _; value = _ } -> true
+    | Sequence (fst :: rest), { pos = p; value = Latex (hd :: tl) } ->
         if
           (* Format.printf "Matching %a with %s\n" Latex.pp node (show_pattern pat); *)
           recurse fst hd
         then recurse (Sequence rest) { pos = p; value = Latex tl }
         else false
-    | { pos = _; value = _ }, Any [] -> false
-    | { pos = _; value = _ }, Any (hd :: tl) ->
+    | Any [], { pos = _; value = _ } -> false
+    | Any (hd :: tl), { pos = _; value = _ } ->
         if recurse hd node then true else recurse (Any tl) node
-    | { pos = _; value = Mathmode x }, Variable id -> (
+    | Variable id, { pos = _; value = Mathmode x } -> (
         let result_t = parse_math (Mathmode x) in
         match result_t with
         | [ Variable t ] ->
             Hashtbl.set mappings ~key:id ~data:(Variable t);
             true
         | _ -> false)
-    | { pos = _; value = Mathmode x }, Relation id -> (
+    | Relation id, { pos = _; value = Mathmode x } -> (
         let result_t = parse_math (Mathmode x) in
         match result_t with
         | [ (Relation _ as ast_rel) ] ->
             Hashtbl.set mappings ~key:id ~data:ast_rel;
             true
         | _ -> false)
-    | { pos = _; value = Mathmode x }, SpecificRelation (id, relation) -> (
+    | SpecificRelation (id, relation), { pos = _; value = Mathmode x } -> (
         let result_t = parse_math (Mathmode x) in
         match result_t with
         | [ (Relation _ as ast_rel) ]
@@ -104,6 +106,7 @@ let match_with (pat : pattern) (latex : Ast.Latex.t) =
             Hashtbl.set mappings ~key:id ~data:ast_rel;
             true
         | _ -> false)
+    (* | _, { pos = _; value = Environment (_, _, )} *)
     | _ ->
         Format.printf "Could not match %a with %s\n" Latex.pp node
           (show_pattern pat);
