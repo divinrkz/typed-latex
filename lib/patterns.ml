@@ -48,6 +48,8 @@ type pattern =
 
 let def = Sequence [Any [Word "choose"; Word "consider"; Word "define"]; Relation 0]
 
+let test_pattern = Sequence [Any [Word "choose"; Word "consider"; Word "define"]; SpecificRelation (0, Ge)]
+
 (* let test_def = Sequence [Word "Let"; Variable 0; Option (Sequence [Word "represent"; Word "be"]);
  SpecificRelation Leq; Option (Sequence [Word "an"; Word "some"; Word "equal"] Definition 0);];  *)
 

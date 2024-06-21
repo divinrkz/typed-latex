@@ -1,6 +1,6 @@
 open Core
 open Typed_latex
-(* open Util *)
+include Util
 
 (* TODO: add basic expansion step to expand user-defined macros *)
 
@@ -16,20 +16,26 @@ open Typed_latex
   (* let result = parse_latex "$P(x, y) = x - N^y$\n$P(1, 2)$\n$N = \\frac{1}{2}$" in *)
 
 let main () =
-  let filename = "tex/sample1.tex" in
+  let filename = "tex/sample4.tex" in
   let result = try User.parse_latex_file filename with
   | User.Error _ as e -> fprintf stderr "%s\n" (User.error_message e); exit (-1)
   in
   match result with
   | None -> fprintf stderr "Unable to parse. Exiting...\n"; exit (-1)
   | Some ast -> (
-    Format.printf "Parsed latex: %a" Ast.Latex.pp ast;
+    Format.printf "Parsed latex: %a\n\n" Ast.Latex.pp ast;
     (* try User.type_check ast with
     | User.Error _ as e -> fprintf stderr "%s\n" (User.error_message e);  *)
     (* let pattern = User.Sequence [Word "Hello"; Variable 0] in *)
-    match Patterns.match_with (User.unwrap_to_document ast) Patterns.def with
-    | Some mappings -> Format.printf "Success: %a\n" (Util.pp_hashtbl ~pp_key:Format.pp_print_int ~pp_data:Ast.Math.pp) mappings
-    | None -> Format.printf "Fail\n"
+
+    let document_ast = User.unwrap_to_document ast in
+    (match document_ast with 
+      | Some document_ast_contents -> Format.printf "Parsed latex: %a\n" Ast.Latex.pp document_ast_contents
+      | None -> Format.printf "Unable to find document\n"
+    );
+    match Patterns.match_with document_ast Patterns.test_pattern with
+      | Some mappings -> Format.printf "Success: %a\n" (Util.pp_hashtbl ~pp_key:Format.pp_print_int ~pp_data:Ast.Math.pp) mappings
+      | None -> Format.printf "Fail\n"
   )
 
 let () = main ();;

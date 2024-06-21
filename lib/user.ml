@@ -2,6 +2,7 @@
 (* menhir/ocamllex should be hidden by this abstraction *)
 open Core
 open Ast
+include Util
 
 (* our own abstraction on top of Lexer.LexError, Parser.Error, and Type Error *)
 (* TODO: better parse errors (use menhir incremental api?) *)
@@ -149,7 +150,7 @@ let type_check ast =
 
 (* let message = Parser_messages.message *)
 
-let rec unwrap_all_to_document (nodes: Ast.Latex.t list) =
+(* let rec unwrap_all_to_document (nodes: Ast.Latex.t list) =
   match nodes with
   | [] -> None
   | node :: remainder -> match node with
@@ -163,4 +164,13 @@ let unwrap_to_document (ast: Ast.Latex.t) =
     | Some node_list -> Some {Ast.Node.pos = pos; value = node_list}
     | None -> None
   )
-  | _ -> None
+  | _ -> None *)
+
+
+let unwrap_node ({pos = _; value = element}: Latex.t) = element
+
+let rec unwrap_to_document (node: Latex.t) =
+  match unwrap_node node with
+    | Latex.Environment ("Document", _, _) -> Some node
+    | Latex.Latex children                 -> List.find_map ~f:unwrap_to_document children
+    | _ -> None
