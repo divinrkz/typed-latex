@@ -168,9 +168,8 @@ let unwrap_to_document (ast: Ast.Latex.t) =
 
 
 let unwrap_node ({pos = _; value = element}: Latex.t) = element
-
 let rec unwrap_to_document (node: Latex.t) =
   match unwrap_node node with
-    | Latex.Environment ("Document", _, _) -> Some node
-    | Latex.Latex children                 -> List.find_map ~f:unwrap_to_document children
+    | Latex.Environment ("\\begin{document}", _, _) -> Some node
+    | Latex.Latex children                          -> List.find_map ~f:unwrap_to_document children
     | _ -> None
