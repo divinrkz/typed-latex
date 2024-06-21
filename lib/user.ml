@@ -156,7 +156,7 @@ let rec unwrap_all_to_document (nodes: Ast.Latex.t list) : Ast.Latex.t list opti
   | [] -> None
   | node :: remainder -> (
     match node with
-    | {pos = _; value = Environment (_, _, body)} -> (
+    | {pos = _; value = Environment ("\\begin{document}", _, body)} -> (
       match unwrap_all_to_document remainder with
       | Some nodes -> Some (body @ nodes)
       | None -> Some body
