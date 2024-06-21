@@ -1,6 +1,6 @@
 open Core
 open Typed_latex
-(* open Util *)
+include Util
 
 (* TODO: add basic expansion step to expand user-defined macros *)
 
@@ -30,11 +30,10 @@ let main () =
       let document_ast = (User.unwrap_to_document ast) in
       (match document_ast with 
         | Some document_ast_contents -> 
-            Format.printf "Parsed latex: %a\n" Ast.Latex.pp document_ast_contents
+            Format.printf "Found document: %a\n" Ast.Latex.pp document_ast_contents
         | None -> 
             Format.printf "Unable to find document\n"
       );
-      
 
       match Patterns.match_with document_ast Patterns.test_pattern with
         | Some mappings -> Format.printf "Success: %a\n" (Util.pp_hashtbl ~pp_key:Format.pp_print_int ~pp_data:Ast.Math.pp) mappings
