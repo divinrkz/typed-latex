@@ -45,9 +45,7 @@ let rec relation_simplified_eq (a: relation_type) (b: Ast.Math.t) =
     | SubsetEq, Ast.Math.Relation (_, ((Ast.Math.SubsetEq, _) :: _)) -> true
     | SupersetEq, Ast.Math.Relation (_, ((Ast.Math.SupersetEq, _) :: _)) -> true
     | relation, Ast.Math.Relation (bound_var, (_ :: rem_bindings)) -> relation_simplified_eq relation (Ast.Math.Relation (bound_var, rem_bindings))
-
     | _ -> false
-
 
 type pattern = 
   | Word of string 
@@ -62,10 +60,14 @@ type pattern =
 
 let def = Sequence [Any [Word "choose"; Word "consider"; Word "define"]; Relation 0]
 
+let test_pattern = Sequence [Any [Word "choose"; Word "consider"; Word "define"]; SpecificRelation (0, Ge)]
+
 (* let test_def = Sequence [Word "Let"; Variable 0; Option (Sequence [Word "represent"; Word "be"]);
  SpecificRelation Leq; Option (Sequence [Word "an"; Word "some"; Word "equal"] Definition 0);];  *)
 
 type result_t = (int, Math.t) Hashtbl.t
+
+
 
 let match_with (option_latex: Ast.Latex.t option) (pat: pattern) =
   match option_latex with
@@ -122,7 +124,6 @@ let match_with (option_latex: Ast.Latex.t option) (pat: pattern) =
             true
           )
           | _ -> false
-        
         )
         | _ -> Format.printf "Could not match %a with %s\n" Latex.pp node (show_pattern pat); false
       in

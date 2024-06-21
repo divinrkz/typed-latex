@@ -149,18 +149,26 @@ let type_check ast =
 
 (* let message = Parser_messages.message *)
 
-let rec unwrap_all_to_document (nodes: Ast.Latex.t list) =
+
+
+let rec unwrap_all_to_document (nodes: Ast.Latex.t list) : Ast.Latex.t list option =
   match nodes with
   | [] -> None
-  | node :: remainder -> match node with
-    | {pos = _; value = Environment ("document", _, body)} -> Some (Ast.Latex.Latex body)
+  | node :: remainder -> (
+    match node with
+    | {pos = _; value = Environment (_, _, body)} -> (
+      match unwrap_all_to_document remainder with
+      | Some nodes -> Some (body @ nodes)
+      | None -> Some body
+    )
     | _ -> unwrap_all_to_document remainder
-
-let unwrap_to_document (ast: Ast.Latex.t) =
+  )
+  
+let unwrap_to_document (ast: Ast.Latex.t) : Ast.Latex.t option =
   match ast with
   | {pos = pos; value = Latex nodes} -> (
     match unwrap_all_to_document nodes with
-    | Some node_list -> Some {Ast.Node.pos = pos; value = node_list}
-    | None -> None
+    | Some node_list -> Some {Ast.Node.pos = pos; value = Latex node_list}
+    | None ->  None
   )
   | _ -> None
