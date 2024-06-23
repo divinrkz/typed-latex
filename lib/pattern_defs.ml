@@ -4,6 +4,7 @@ open Util
 
 (* Regex patterns *)
 let regex_first_split = "|?[a-zA-Z]+|?"
+let regex_optional_pattern = "(([^()]*))"
 let relation_regex = "[a-zA-Z]+"
 
 let list_relation_types_pattern (match_id : MatchID.t)

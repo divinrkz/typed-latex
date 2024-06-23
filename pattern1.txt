@@ -1,1 +1,1 @@
-(choose|consider|define)$:Mequal Mnot_equal:
+"(suppose|assume|let)(that)?$:Mequal Mnot_equal:
