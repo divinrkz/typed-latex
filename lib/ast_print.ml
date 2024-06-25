@@ -55,11 +55,13 @@ let rec latex_to_string_tree (node : Latex.t) =
   | Latex.Mathmode _ as math_latex ->
       Branch
         (Some "Math", latex_math_to_string_tree |<<: User.parse_math math_latex)
-  (* | Latex.Multiilne _ as math_latex ->  *)
+  | Latex.Multiline _ as math_latex ->
+      Branch
+        ( Some "Multiline",
+          latex_math_to_string_tree |<<: User.parse_math math_latex )
   | Latex.Newline -> Leaf "Newline"
   | Latex.Whitespace -> Leaf "Whitespace"
   | Latex.Word word -> Leaf ("Word: " ^ word)
-  | _ -> Leaf "<?>"
 
 and latex_math_to_string_tree (math : Math.t) =
   match math with
@@ -124,14 +126,33 @@ and latex_math_to_string_tree (math : Math.t) =
       Branch
         ( Some ("Command: " ^ name),
           Option.to_list (latex_math_to_string_tree |<<? arg) )
-  (* | Command of string * t option *)
-  (* | Forall of t * t forall X, Y *)
-  (* | Exists of t * t exists X, Y *)
-  (* | Suchthat of t s.t. X *)
-  (* | Text of string *)
-  (* | Summation of t * t * t *)
-  (* | Tuple of t list *)
-  | _ -> Leaf "<?>"
+  | Forall (relation, dependent) ->
+      Branch
+        ( Some "Forall",
+          [
+            Branch (Some "@relation", [ latex_math_to_string_tree relation ]);
+            Branch (Some "@dependent", [ latex_math_to_string_tree dependent ]);
+          ] )
+  | Exists (relation, dependent) ->
+      Branch
+        ( Some "Exists",
+          [
+            Branch (Some "@relation", [ latex_math_to_string_tree relation ]);
+            Branch (Some "@dependent", [ latex_math_to_string_tree dependent ]);
+          ] )
+  | Suchthat relation ->
+      Branch (Some "Suchthat", [ latex_math_to_string_tree relation ])
+  | Text text -> Leaf ("Text: " ^ text)
+  | Summation (lower, upper, addend) ->
+      Branch
+        ( Some "Summation",
+          [
+            Branch (Some "@lower", [ latex_math_to_string_tree lower ]);
+            Branch (Some "@upper", [ latex_math_to_string_tree upper ]);
+            Branch (Some "@addend", [ latex_math_to_string_tree addend ]);
+          ] )
+  | Tuple children ->
+      Branch (Some "Tuple", latex_math_to_string_tree |<<: children)
 
 and latex_math_relation_to_string_tree
     ((relation, child) : Math.relation * Math.t) =

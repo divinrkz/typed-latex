@@ -60,12 +60,18 @@ type proof_token =
   | WordToken of string
   | MathToken of Ast.Math.t
 
+let tokenize_word (word : string) =
+  match word with
+  | "." | "," | ";" | "-" | "(" | ")" | "\u{U+2013}" | "\u{U+2014}" ->
+      PunctuationToken word
+  | _ -> WordToken word
+
 let rec tokenize_rec (working_tokenization : proof_token list list)
     (latex : Latex.t) =
   match working_tokenization with
   | head :: tail -> (
       match User.unwrap_node latex with
-      | Latex.Word word -> (WordToken word :: head) :: tail
+      | Latex.Word word -> (tokenize_word word :: head) :: tail
       | Latex.Latex children ->
           List.fold ~f:tokenize_rec ~init:working_tokenization children
       | Latex.Environment (name, args, children) ->
@@ -74,7 +80,10 @@ let rec tokenize_rec (working_tokenization : proof_token list list)
           command_tokenizer working_tokenization name children
       | Latex.Mathmode _ as math_latex ->
           math_tokenizer working_tokenization math_latex
-      | _ -> working_tokenization)
+      | Latex.Multiline _ as math_latex ->
+          math_tokenizer working_tokenization math_latex
+      | Latex.Newline -> working_tokenization
+      | Latex.Whitespace -> working_tokenization)
   | [] -> []
 
 and environment_tokenizer (working_tokenization : proof_token list list)
@@ -93,66 +102,66 @@ and command_tokenizer (working_tokenization : proof_token list list)
 and math_tokenizer (working_tokenization : proof_token list list)
     (math_latex : Latex.latex) =
   match (working_tokenization, parse_math math_latex) with
-  |[], _ -> []
+  | [], _ -> []
   | _, [] -> working_tokenization
   | head :: tail, math :: [] -> (MathToken math :: head) :: tail
-  | _, math_lines -> (List.map ~f:(fun math -> [MathToken math]) math_lines) @ working_tokenization
+  | _, math_lines ->
+      List.map ~f:(fun math -> [ MathToken math ]) math_lines
+      @ working_tokenization
 
-let tokenize (latex : Latex.t) = tokenize_rec [[]] latex
-
-
+let tokenize (latex : Latex.t) = tokenize_rec [ [] ] latex
 
 type result_t = (int, Math.t) Hashtbl.t
 
 (* let match_with (pat : pattern) (latex : Ast.Latex.t) =
-  let (mappings : result_t) = Hashtbl.create (module Int) in
-  let rec recurse (pat : pattern) (node : Ast.Latex.t) =
-    match (pat, node) with
-    | Word y, { pos = _; value = Word x } ->
-        String.equal (String.lowercase x) (String.lowercase y)
-    | Option p, { pos = _; value = _ } -> recurse p node
-    (* ignore whitespace and newlines *)
-    | _, { pos = p; value = Latex ({ pos = _; value = Whitespace } :: tl) } ->
-        recurse pat { pos = p; value = Latex tl }
-    | _, { pos = p; value = Latex ({ pos = _; value = Newline } :: tl) } ->
-        recurse pat { pos = p; value = Latex tl }
-    (* match sequences *)
-    | Sequence [], { pos = _; value = _ } -> true
-    | Sequence (fst :: rest), { pos = p; value = Latex (hd :: tl) } ->
-        if
-          (* Format.printf "Matching %a with %s\n" Latex.pp node (show_pattern pat); *)
-          recurse fst hd
-        then recurse (Sequence rest) { pos = p; value = Latex tl }
-        else false
-    | Any [], { pos = _; value = _ } -> false
-    | Any (hd :: tl), { pos = _; value = _ } ->
-        if recurse hd node then true else recurse (Any tl) node
-    | Variable id, { pos = _; value = Mathmode x } -> (
-        let result_t = parse_math (Mathmode x) in
-        match result_t with
-        | [ Variable t ] ->
-            Hashtbl.set mappings ~key:id ~data:(Variable t);
-            true
-        | _ -> false)
-    | Relation id, { pos = _; value = Mathmode x } -> (
-        let result_t = parse_math (Mathmode x) in
-        match result_t with
-        | [ (Relation _ as ast_rel) ] ->
-            Hashtbl.set mappings ~key:id ~data:ast_rel;
-            true
-        | _ -> false)
-    | SpecificRelation (id, relation), { pos = _; value = Mathmode x } -> (
-        let result_t = parse_math (Mathmode x) in
-        match result_t with
-        | [ (Relation _ as ast_rel) ]
-          when relation_simplified_eq relation ast_rel ->
-            Hashtbl.set mappings ~key:id ~data:ast_rel;
-            true
-        | _ -> false)
-    (* | _, { pos = _; value = Environment (_, _, )} *)
-    | _ ->
-        Format.printf "Could not match %a with %s\n" Latex.pp node
-          (show_pattern pat);
-        false
-  in
-  if recurse pat latex then Some mappings else None *)
+   let (mappings : result_t) = Hashtbl.create (module Int) in
+   let rec recurse (pat : pattern) (node : Ast.Latex.t) =
+     match (pat, node) with
+     | Word y, { pos = _; value = Word x } ->
+         String.equal (String.lowercase x) (String.lowercase y)
+     | Option p, { pos = _; value = _ } -> recurse p node
+     (* ignore whitespace and newlines *)
+     | _, { pos = p; value = Latex ({ pos = _; value = Whitespace } :: tl) } ->
+         recurse pat { pos = p; value = Latex tl }
+     | _, { pos = p; value = Latex ({ pos = _; value = Newline } :: tl) } ->
+         recurse pat { pos = p; value = Latex tl }
+     (* match sequences *)
+     | Sequence [], { pos = _; value = _ } -> true
+     | Sequence (fst :: rest), { pos = p; value = Latex (hd :: tl) } ->
+         if
+           (* Format.printf "Matching %a with %s\n" Latex.pp node (show_pattern pat); *)
+           recurse fst hd
+         then recurse (Sequence rest) { pos = p; value = Latex tl }
+         else false
+     | Any [], { pos = _; value = _ } -> false
+     | Any (hd :: tl), { pos = _; value = _ } ->
+         if recurse hd node then true else recurse (Any tl) node
+     | Variable id, { pos = _; value = Mathmode x } -> (
+         let result_t = parse_math (Mathmode x) in
+         match result_t with
+         | [ Variable t ] ->
+             Hashtbl.set mappings ~key:id ~data:(Variable t);
+             true
+         | _ -> false)
+     | Relation id, { pos = _; value = Mathmode x } -> (
+         let result_t = parse_math (Mathmode x) in
+         match result_t with
+         | [ (Relation _ as ast_rel) ] ->
+             Hashtbl.set mappings ~key:id ~data:ast_rel;
+             true
+         | _ -> false)
+     | SpecificRelation (id, relation), { pos = _; value = Mathmode x } -> (
+         let result_t = parse_math (Mathmode x) in
+         match result_t with
+         | [ (Relation _ as ast_rel) ]
+           when relation_simplified_eq relation ast_rel ->
+             Hashtbl.set mappings ~key:id ~data:ast_rel;
+             true
+         | _ -> false)
+     (* | _, { pos = _; value = Environment (_, _, )} *)
+     | _ ->
+         Format.printf "Could not match %a with %s\n" Latex.pp node
+           (show_pattern pat);
+         false
+   in
+   if recurse pat latex then Some mappings else None *)
