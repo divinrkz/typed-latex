@@ -4,27 +4,31 @@ open Fn
 let string_sep str formatter () = Format.pp_print_string formatter str
 let ( << ) = compose
 
-(* Monadic bind *)
-
 (** Option monad **)
-let ( >>=? ) (x : 'a option) (f : 'a -> 'b option) = Option.bind x ~f
 
+(* Monadic bind *)
+let ( >>=? ) (x : 'a option) (f : 'a -> 'b option) = Option.bind x ~f
 let ( =<<? ) (f : 'a -> 'b option) (x : 'a option) = Option.bind x ~f
 
 (* Functor map *)
 let ( >>|? ) (x : 'a option) (f : 'a -> 'b) = Option.map x ~f
 let ( |<<? ) (f : 'a -> 'b) (x : 'a option) = Option.map x ~f
 
-(* Monadic bind *)
+(* Side-effect map *)
+let ( <-<? ) (f : 'a -> unit) (x : 'a option) = Option.iter ~f: f x
 
 (** List monad **)
-let ( >>=: ) (x : 'a list) (f : 'a -> 'b list) = List.bind x ~f
 
+(* Monadic bind *)
+let ( >>=: ) (x : 'a list) (f : 'a -> 'b list) = List.bind x ~f
 let ( =<<: ) (f : 'a -> 'b list) (x : 'a list) = List.bind x ~f
 
 (* Functor map *)
 let ( >>|: ) (x : 'a list) (f : 'a -> 'b) = List.map x ~f
 let ( |<<: ) (f : 'a -> 'b) (x : 'a list) = List.map x ~f
+
+(* Side-effect map *)
+let ( <-<: ) (f : 'a -> unit) (x : 'a list) = List.iter ~f: f x
 
 let pp_hashtbl formatter ~pp_key ~pp_data t =
   let pp_pair formatter (k, d) =

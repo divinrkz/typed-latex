@@ -98,9 +98,13 @@ and math_tokenizer (working_tokenization : proof_token list list)
   | head :: tail, math :: [] -> (MathToken math :: head) :: tail
   | _, math_lines -> (List.map ~f:(fun math -> [MathToken math]) math_lines) @ working_tokenization
 
+let tokenize (latex : Latex.t) = tokenize_rec [[]] latex
+
+
+
 type result_t = (int, Math.t) Hashtbl.t
 
-let match_with (pat : pattern) (latex : Ast.Latex.t) =
+(* let match_with (pat : pattern) (latex : Ast.Latex.t) =
   let (mappings : result_t) = Hashtbl.create (module Int) in
   let rec recurse (pat : pattern) (node : Ast.Latex.t) =
     match (pat, node) with
@@ -151,4 +155,4 @@ let match_with (pat : pattern) (latex : Ast.Latex.t) =
           (show_pattern pat);
         false
   in
-  if recurse pat latex then Some mappings else None
+  if recurse pat latex then Some mappings else None *)
