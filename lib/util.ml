@@ -48,8 +48,7 @@ let pp_hashtbl formatter ~pp_key ~pp_data t =
     @param sep separator string 
     @return splitted list of string on separator
     *)    
-let str_split str sep =
-  Str.split (Str.regexp sep) str
+let str_split str sep = String.split str ~on:sep
 
 let str_ends_with str suffix = Stdlib.String.ends_with ~suffix:suffix str
 
