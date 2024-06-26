@@ -1,0 +1,212 @@
+const ONE_DEF = [
+ // :Mvar: is a mathbox containing a variable, :D: is a definition phrase
+    // Note: These strings are split on ':', so everything else is one of 'D', 'M', or a regular expression
+    "let $:Mset Min Mgreater_than Mgreater_than_or_equal M less_than Mless_than_or_equal:^be arbitrary", 
+    "(choose|consider|define)$:Mequal Mnot_equal:",
+    "(suppose|assume|let)(that)?$:Mequal Mnot_equal:", "let$:Mset:",
+    "(let)$:Min:^(,|and)$:Min:",
+    "(let)$:Min:^,$:Min:^(,|and|, and)$:Min:",
+    "let$:Mvar:^(be|represent)( )?(an|a|any|some)?( )?arbitrary(,)?:D:",
+    "and (let)?$:Mvar:^(be|represent)( )?( (an|a|any|some))? arbitrary(,)?( ):D:",
+    "and (let)?:Mset Min Mgreater_than Mgreater_than_or_equal Mless_than Mless_than_or_equal:^be arbitrary", 
+    "let$:Mvar:^(be) (an|a|the)( )?:D:(and)?( )?(let)?( )?",
+// playing with this expression, d doesn't work for id=67
+    "let$:Mvar:^(be)( )?(an|a|any|some)?( )?arbitrary(,)?:D:",
+    "let$:M:^be:Mvar:for (all|every|any):Mvar:^in the$:D:",
+    "let$:Mvar:^(be )?arbitrary (so|such that) :M:",
+    "let$:M:^(such that|where|with)$:M:",
+    //"let$:Mvar:^(be( an)? )?arbitrary( )?:D:",
+    //"let$:Mvar:^(be) a(|n) :D",
+
+    "(suppose|assume|let)(that)?$:Mequal Mnot_equal Mgreater_than Mless_than Mgreater_than_or_equal Mless_than_or_equal:",
+    "(suppose|assume)(that)?$:Mvar:^is (an|a|any|some) (specific|arbitrary) :D:", "(suppose|assume)(that)?$:M:^is arbitrary$", "(suppose|assume)(that)?$:Mvar:^is arbitrary$",
+    "(suppose|assume)(that)?:Mvar:(are|is):D:",
+    "(suppose|assume)(that)?$:Mvar:^is (an|a|the):D:",
+    "(suppose|assume)(that)?$:Min:",
+    "(suppose|assume)(that)?$:Mequal Mnot_equal Mgreater_than Mless_than Mgreater_than_or_equal Mless_than_or_equal:^and:Mvar:^is( )?(an|a|the):D:",
+
+    "define$:Mvar:^as ((an|any|some) (arbitrary )?)?:D:", "define$:Mvar:^to be ((an|any|some) (arbitrary )?)?:D:",
+    "(choose|consider|define)$:Min:^(such that|where|with)$:M:",
+    "(choose|consider|define)$:Min:^(,|and)$:Min:",
+    "(choose|consider|define)$:Min:^,$:Min:^(,|and|, and)$:Min:",
+    "(choose|consider|define)$:Mvar:^(such that|where|with)$:M:",
+    "(choose|consider|define)$:Mvar:^such that$:Mequal Mnot_equal:",
+    "(choose|consider|define)( (an|a) arbitrary)?$:Min:",
+    "(choose|consider|define)( (an|a|some))?:D::Mvar:",
+    "(choose|consider|define)( (an|a|some)( arbitrary)?)?$:D::Mvar:",
+    "(choose|consider|define)( (an|a|some)( arbitrary)?)?:D::Mvar:^(such that|where|with)$:M:",
+    "(such that|where|with):Mvar:(is|are)( (an|a|some)?( )?(arbitrary)?)?:D:",
+    // where a and b are arbitrary natural numbers
+    // let q be an integer where :Mequal:
+
+    "^there (exists (an|a|some)|is (an|a)|exist[^s]):D::Mvar:",
+    "^there (exists (an|a|some)|is (an|a)|exist[^s]):D::Mvar:^(so|such) that$:M:",
+    "^there (exists)( (an|a|some))?$:Mvar:^(such that|where|with)$:M:^in( the)?:D:",
+    "^there (exists)( (an|a|some))?$:Min:^(such that|where|with)$:M:",
+    "^there (exists)( (an|a|some))?$:D::Mvar:^(such that|where|with)$:M:",
+    "^there (exists)( (an|a|some))?$:Mvar:^(such that|where|with)$:M:", "there (is|exists|exist)( (an|a|some))?$:Mvar:^((, )?such that|where|with)$:M:^in( the)?:D:", "there (is|exists|exist)( (an|a|some))?$:Min:^((, )?such that|where|with)$:M:", "there (is|exists|exist)( (an|a|some))?$:Mvar:^((, )?such that|where|with)$:M:",
+    "there (is|exists|exist)( (an|a|some))?:D::Mvar:^((, )?such that|where|with)$:M:",
+    "there exists( (an|a|some))?:D:$:Mvar:and",
+    "there (are|exists|exist)(( )?(a|an|some)?):Mvar Mequal Mnot_equal:",
+    "there (are|exists|exist):D::Mvar Mequal Mnot_equal:",
+    "there (exists (an|a|some)|is (an|a)|exist[^s]):D::Mvar:",
+
+    "case:Min:", "case:Mset:", "case:Mequal Mnot_equal:", "case:Mvar:is:D:",
+
+    "(by|go by|do) ((((structural|strong) )?induction)|induct) (over|on)$:Min Mvar:",
+
+    "for some( arbitrary)?$:Min Mequal Mnot_equal Mgreater_than Mgreater_than_or_equal Mless_than Mless_than_or_equal:(where|with|such that)(,)?:M:",
+    "for some( arbitrary)?$:Min Mequal Mnot_equal Mgreater_than Mgreater_than_or_equal Mless_than Mless_than_or_equal:",
+    "for some( )?$:Mvar:",
+    "for some:Mequal:",
+    "some:D:$:Mvar Mnot_equal:",
+
+    // for all/any n
+    "for (all|every|any):D:$:Mvar Mset Min Mgreater_than Mgreater_than_or_equal Mless_than Mless_than_or_equal:",
+    "for (all|every|any)$:Mset Min Mgreater_than Mgreater_than_or_equal Mless_than Mless_than_or_equal:",
+    "for (all|every|any)$:Mvar:^in( the)?:D:",
+    // XXX: might be an issue: "for (all|every|any)$:Mset Min Mgreater_than Mgreater_than_or_equal Mless_than Mless_than_or_equal:",
+    "for (all|every|any)$:Mvar:",
+    "(for (all|every|any))$:Mset Min:^,$:Mset Min:^(,|and|, and)$:Mset Min:",
+
+    "and all:D:$:Mvar:",
+
+    "(such that|where|with)$:Min Mgreater_than Mgreater_than_or_equal Mless_than Mless_than_or_equal:",
+    ":Mfunction:",
+];
+
+const SPECIFIC_VARIABLES = [
+    "for some ?$:Min:",
+
+    "^there (exists (an|a|some)|is (an|a)|exist[^s]):D::Mvar:",
+    "^there (exists (an|a|some)|is (an|a)|exist[^s]):D::Mvar:^(so|such) that$:M:",
+    "^there (exists)( (an|a|some))?$:Mvar:^(such that|where|with)$:M:^in( the)?:D:",
+    "^there (exists)( (an|a|some))?$:Min:^(such that|where|with):",
+    "^there (exists)( (an|a|some))?$:D::Mvar:^(such that|where|with)$:M:",
+    "^there (exists)( (an|a|some))?$:Mvar:^(such that|where)$:M:", "there (is|exists|exist)( (an|a|some))?$:Mvar:^((, )?such that|where|with)$:M:^in( the)?:D:", "there (is|exists|exist)( (an|a|some))?$:Min:^((, )?such that|where|with)$:M:", "there (is|exists|exist)( (an|a|some))?$:Mvar:^((, )?such that|where|with)$:M:",
+    "there (is|exists|exist)( (an|a|some))?:D::Mvar:^((, )?such that|where|with)$:M:",
+    "there exists( (an|a|some))?:D:$:Mvar:and",
+    "there (are|exists|exist)(( )?(a|an|some)?):Mvar Mequal Mnot_equal:",
+    "there (are|exists|exist):D::Mvar Mequal Mnot_equal:",
+    "there (exists (an|a|some)|is (an|a)|exist[^s]):D::Mvar:",
+
+
+
+    "(choose|consider|define)$:Mequal Mnot_equal:",
+    "(choose|consider|define)$:Min:^(such that|where|with)$:M:",
+    "(choose|consider|define)$:Mvar:^(such that|where|with)$:M:",
+    //"(choose|consider|define)$:Mvar:^such that$:Mequal:^(such that|where$:M:",
+    "(choose|consider|define)(an|a)?$:D::Mvar:",
+    "(choose|consider|define)( an arbitrary)?$:Min:",
+    "(choose|consider|define)( (an|a|some))?:D::Mvar:^(such that|where|with)$:M:",
+    "(choose|consider|define)( (an|a|some))?:D::Mvar:",
+
+    "define$:Mvar:^as ((an|any|some) (arbitrary )?)?:D:", "define$:Mvar:^to be ((an|any|some) (arbitrary )?)?:D:",
+    "(choose|consider|define)$:Min:^(such that|where|with)$:M:",
+    "(choose|consider|define)$:Min:^(,|and)$:Min:",
+    "(choose|consider|define)$:Min:^,$:Min:^(,|and|, and)$:Min:",
+    "(choose|consider|define)$:Mvar:^(such that|where|with)$:M:",
+    "(choose|consider|define)$:Mvar:^such that$:Mequal Mnot_equal:",
+    "(choose|consider|define)( (an|a|some))?:D::Mvar:",
+
+    "for some( arbitrary)?$:Min Mequal Mnot_equal Mgreater_than Mgreater_than_or_equal Mless_than Mless_than_or_equal:(where|with|such that)(,)?:M:",
+    "for some( arbitrary)?$:Min Mequal Mnot_equal Mgreater_than Mgreater_than_or_equal Mless_than Mless_than_or_equal:",
+    "for some( )?$:Mvar:",
+    "for some:Mequal:",
+    "some:D:$:Mvar Mnot_equal:",
+
+]
+
+const PREFIX_ELEMENT_OF = [
+    "(for (all|every|any))$:Min:^(,|and)$:Min:",
+    "(for (all|every|any))$:Min:^,$:Min:^(,|and|, and)$:Min:",
+    "for (all|every|any)$:Mvar:^in( the)?:D:", "for (all|every|any):Min:",
+    "for (all|every|any):D::Mvar:", "for (all|every|any):Mvar:",
+    "there (exists|is)( (an|a))?$:Mvar:^(such that|where)$:M:^in( the)?:D:",
+]
+
+const ONLY_ONE_SENTENCE = [
+    /*
+    "^there (exists (an|a|some)|is (a|an)|exist):D::Mvar:",
+    "^there (exists (an|a|some)|is (a|an)|exist):D::Mvar:^(so|such) that$:M:",
+    "^there (exists)( (an|a|some))?$:Mvar:^(such that|where)$:M:^in( the)?:D:",
+    "^there (exists)( (an|a|some))?$:Min:^(such that|where)$:M:",
+    "^there (exists)( (an|a|some))?$:Mvar:^(such that|where)$:M:",
+    "^there (exists|exist)( (an|a|some))?$:D: :Mvar:^(such that|where)$:M:",
+    */
+    "and all:D:$:Mvar:",
+    "for (all|every|any):D:$:Mvar Mset Min Mgreater_than Mgreater_than_or_equal Mless_than Mless_than_or_equal:",
+    "for (all|every|any)$:Mset Min Mgreater_than Mgreater_than_or_equal Mless_than Mless_than_or_equal:",
+    "for (all|every|any):D:Mset Min Mgreater_than Mgreater_than_or_equal Mless_than Mless_than_or_equal:",
+    "for (all|every|any)$:Mset Min Mgreater_than Mgreater_than_or_equal Mless_than Mless_than_or_equal:M:",
+    "(for (all|every|any))$:Mset Min:^(,|and)$:Mset Min:",
+    "(for (all|every|any))$:Mset Min:^,$:Mset Min:^(,|and|, and)$:Mset Min:",
+    "for (all|every|any)$:Mvar:^in( the)?:D:",
+    "for (all|every|any):D:$:Mvar:(,)?:M:",
+    "for (all|every|any):D:$:Mvar:",
+    "for (all|every|any)$:Mvar:",
+    "for (all|every|any):Mvar:in the:D:",
+    "for (all|every|any):Min:",
+    "for (all|every|any):D:$:Mvar Mgreater_than Min:",
+]
+
+
+
+
+specific variable quantifiying something 
+
+
+let one_def = [
+  Sequence [Word "let$"; Variable 0; Word "Min"; Word "Mgreater_than"; Word "Mgreater_than_or_equal"; Word "Mless_than"; Word "Mless_than_or_equal"; Word "^be arbitrary"];
+  Sequence [Word "(choose|consider|define)$"; Word "Mequal"; Word "Mnot_equal"];
+  Sequence [Word "(suppose|assume|let)(that)?$"; Word "Mequal"; Word "Mnot_equal"];
+  Sequence [Word "let$"; Word "Mset"];
+  Sequence [Word "(let)$"; Word "Min"; Word "^,$"; Word "Min"];
+  Sequence [Word "(let)$"; Word "Min"; Word "^,$"; Word "Min"; Word "^(,|and|, and)$"; Word "Min"];
+  Sequence [Word "let$"; Variable 0; Word "^(be|represent)( )?(an|a|any|some)?( )?arbitrary(,)?"; Definition 0];
+  Sequence [Word "and (let)?$"; Variable 0; Word "^(be|represent)( )?( (an|a|any|some))? arbitrary(,)?( )"; Definition 0];
+  Sequence [Word "and (let)?"; Word "Mset"; Word "Min"; Word "Mgreater_than"; Word "Mgreater_than_or_equal"; Word "Mless_than"; Word "Mless_than_or_equal"; Word "^be arbitrary"];
+  Sequence [Word "let$"; Variable 0; Word "^(be) (an|a|the)( )?"; Definition 0; Word "(and)?( )?(let)?( )?"];
+  Sequence [Word "let$"; Variable 0; Word "^(be)( )?(an|a|any|some)?( )?arbitrary(,)?"; Definition 0];
+  Sequence [Word "let$"; Word "M"; Word "^be"; Variable 0; Word "for (all|every|any)"; Variable 0; Word "^in the"; Definition 0];
+  Sequence [Word "let$"; Variable 0; Word "^(be )?arbitrary (so|such that) "; Word "M"];
+  Sequence [Word "let$"; Word "M"; Word "^(such that|where|with)$"; Word "M"];
+  Sequence [Word "(suppose|assume|let)(that)?$"; Word "Mequal"; Word "Mnot_equal"; Word "Mgreater_than"; Word "Mless_than"; Word "Mgreater_than_or_equal"; Word "Mless_than_or_equal"];
+  Sequence [Word "(suppose|assume)(that)?$"; Variable 0; Word "^is (an|a|any|some) (specific|arbitrary) "; Definition 0];
+  Sequence [Word "(suppose|assume)(that)?$"; Word "M"; Word "^is arbitrary$"];
+  Sequence [Word "(suppose|assume)(that)?$"; Variable 0; Word "^is arbitrary$"];
+  Sequence [Word "(suppose|assume)(that)?$"; Variable 0; Word "(are|is)"; Definition 0];
+  Sequence [Word "(suppose|assume)(that)?$"; Variable 0; Word "^is (an|a|the)"; Definition 0];
+  Sequence [Word "(suppose|assume)(that)?$"; Word "Min"];
+  Sequence [Word "(suppose|assume)(that)?$"; Word "Mequal"; Word "Mnot_equal"; Word "Mgreater_than"; Word "Mless_than"; Word "Mgreater_than_or_equal"; Word "Mless_than_or_equal"; Word "^and"; Variable 0; Word "^is( )?(an|a|the)"; Definition 0];
+  Sequence [Word "define$"; Variable 0; Word "^as ((an|any|some) (arbitrary )?)?"; Definition 0];
+  Sequence [Word "define$"; Variable 0; Word "^to be ((an|any|some) (arbitrary )?)?"; Definition 0];
+  Sequence [Word "(choose|consider|define)$"; Word "Min"; Word "^(such that|where|with)$"; Word "M"];
+  Sequence [Word "(choose|consider|define)$"; Word "Min"; Word "^(,|and)$"; Word "Min"];
+  Sequence [Word "(choose|consider|define)$"; Word "Min"; Word "^,$"; Word "Min"; Word "^(,|and|, and)$"; Word "Min"];
+  Sequence [Word "(choose|consider|define)$"; Variable 0; Word "^(such that|where|with)$"; Word "M"];
+  Sequence [Word "(choose|consider|define)$"; Variable 0; Word "^such that$"; Word "Mequal"; Word "Mnot_equal"];
+  Sequence [Word "(choose|consider|define)( (an|a) arbitrary)?$"; Word "Min"];
+  Sequence [Word "(choose|consider|define)( (an|a|some))?"; Definition 0; Word "^"; Variable 0];
+  Sequence [Word "(choose|consider|define)( (an|a|some)( arbitrary)?)?$"; Definition 0; Word "^"; Variable 0];
+  Sequence [Word "(choose|consider|define)( (an|a|some)( arbitrary)?)?"; Definition 0; Word "^"; Variable 0; Word "^(such that|where|with)$"; Word "M"];
+  Sequence [Word "(such that|where|with)"; Variable 0; Word "(is|are)( (an|a|some)?( )?(arbitrary)?)?"; Definition 0];
+  Sequence [Word "^there (exists (an|a|some)|is (an|a)|exist[^s])"; Definition 0; Word "^"; Variable 0];
+  Sequence [Word "^there (exists (an|a|some)|is (an|a)|exist[^s])"; Definition 0; Word "^"; Variable 0; Word "^(so|such) that$"; Word "M"];
+  Sequence [Word "^there (exists)( (an|a|some))?$"; Variable 0; Word "^(such that|where|with)$"; Word "M"; Word "^in( the)?"; Definition 0];
+  Sequence [Word "^there (exists)( (an|a|some))?$"; Word "Min"; Word "^(such that|where|with)"];
+  Sequence [Word "^there (exists)( (an|a|some))?$"; Definition 0; Word "^"; Variable 0; Word "^(such that|where|with)$"; Word "M"];
+  Sequence [Word "^there (exists)( (an|a|some))?$"; Variable 0; Word "^(such that|where)$"; Word "M"];
+  Sequence [Word "there (is|exists|exist)( (an|a|some))?$"; Variable 0; Word "^((, )?such that|where|with)$"; Word "M"; Word "^in( the)?"; Definition 0];
+  Sequence [Word "there (is|exists|exist)( (an|a|some))?$"; Word "Min"; Word "^((, )?such that|where|with)$"; Word "M"];
+  Sequence [Word "there (is|exists|exist)( (an|a|some))?$"; Variable 0; Word "^((, )?such that|where|with)$"; Word "M"];
+  Sequence [Word "there (is|exists|exist)( (an|a|some))?"; Definition 0; Word "^"; Variable 0; Word "^((, )?such that|where|with)$"; Word "M"];
+  Sequence [Word "there exists( (an|a|some))?"; Definition 0; Word "^"; Variable 0; Word "and"];
+  Sequence [Word "there (are|exists|exist)(( )?(a|an|some)?)"; Variable 0; Word "Mequal"; Word "Mnot_equal"];
+  Sequence [Word "there (are|exists|exist)"; Definition 0; Word "^"; Variable 0; Word "Mequal"; Word "Mnot_equal"];
+  Sequence [Word "there (exists (an|a|some)|is (an|a)|exist[^s])"; Definition 0; Word "^"; Variable 0];
+  Sequence [Word "case"; Word "Min"];
+  Sequence [Word "case"; Word "Mset"];
+  Sequence [Word "case"; Word "Mequal"; Word "Mnot_equal"];
+  Sequence [Word "case"; Variable 0; Word "is"; Definition 0];
+  Sequence [Word "(by|go by|do

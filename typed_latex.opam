@@ -12,9 +12,12 @@ bug-reports: "https://github.com/username/reponame/issues"
 depends: [
   "ocaml"
   "dune" {>= "3.8"}
-  "odoc" {with-doc}
-  "stdio"
   "core"
+  "stdio"
+  "menhir"
+  "ppx_deriving"
+  "re"
+  "odoc" {with-doc}
 ]
 build: [
   ["dune" "subst"] {dev}

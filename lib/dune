@@ -9,15 +9,39 @@
 (rule
  (targets latex_parser_messages.ml)
  (deps latex_parser.messages latex_parser.mly)
- (action (with-stdout-to %{targets} (run menhir --compile-errors %{deps}))))
+ (action
+  (with-stdout-to
+   %{targets}
+   (run menhir --compile-errors %{deps}))))
 
 (rule
  (targets math_parser_messages.ml)
  (deps math_parser.messages math_parser.mly)
- (action (with-stdout-to %{targets} (run menhir --compile-errors %{deps}))))
+ (action
+  (with-stdout-to
+   %{targets}
+   (run menhir --compile-errors %{deps}))))
 
 (library
  (name typed_latex)
- (modules ast typing math user util latex_lexer latex_parser latex_parser_messages math_lexer math_parser math_parser_messages)
- (libraries core menhirLib)
- (preprocess (pps ppx_sexp_conv ppx_deriving.show ppx_deriving.eq ppx_deriving.ord ppx_hash)))
+ (modules
+  ast
+  typing
+  math
+  user
+  patterns
+  util
+  latex_lexer
+  latex_parser
+  latex_parser_messages
+  math_lexer
+math_parser
+  math_parser_messages)
+ (libraries core menhirLib re)
+ (preprocess
+  (pps
+   ppx_sexp_conv
+   ppx_deriving.show
+   ppx_deriving.eq
+   ppx_deriving.ord
+   ppx_hash)))
