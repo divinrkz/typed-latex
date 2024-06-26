@@ -145,18 +145,8 @@ let type_check ast =
 
 let unwrap_node ({ pos = _; value = element } : Latex.t) = element
 
-<<<<<<< HEAD
-
-let unwrap_node ({pos = _; value = element}: Latex.t) = element
-let rec unwrap_to_document (node: Latex.t) =
-  match unwrap_node node with
-    | Latex.Environment ("\\begin{document}", _, _) -> Some node
-    | Latex.Latex children                          -> List.find_map ~f:unwrap_to_document children
-    | _ -> None
-=======
 let rec unwrap_to_document (node : Latex.t) =
   match unwrap_node node with
   | Latex.Environment ("\\begin{document}", _, _) -> Some node
   | Latex.Latex children -> List.find_map ~f:unwrap_to_document children
   | _ -> None
->>>>>>> 3f42a0f47872ff1d8ddd889b9b52519cb8366d5c

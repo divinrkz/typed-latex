@@ -33,3 +33,18 @@ let pp_hashtbl formatter ~pp_key ~pp_data t =
   Format.fprintf formatter "[%a]"
     (Format.pp_print_list ~pp_sep:(string_sep ", ") pp_pair)
     (Hashtbl.to_alist t)
+
+    let str_split (str: string) = Str.split (Str.regexp " ")
+
+    let read_file (filename: string) =
+      In_channel.with_file filename ~f:(fun input_c ->
+        In_channel.iter_lines input_c ~f:(fun line -> 
+          let words = str_split line in
+          match words with
+          | _ -> ()  (* Handle empty list case if necessary *)
+          | first :: _ -> print_endline first
+        )
+      )
+    
+    let extract_patterns (filename: string) = 
+      read_file filename

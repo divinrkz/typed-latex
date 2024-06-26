@@ -1,7 +1,7 @@
 const ONE_DEF = [
  // :Mvar: is a mathbox containing a variable, :D: is a definition phrase
     // Note: These strings are split on ':', so everything else is one of 'D', 'M', or a regular expression
-    "let $:Mset Min Mgreater_than Mgreater_than_or_equal Mless_than Mless_than_or_equal:^be arbitrary", 
+    "let $:Mset Min Mgreater_than Mgreater_than_or_equal M less_than Mless_than_or_equal:^be arbitrary", 
     "(choose|consider|define)$:Mequal Mnot_equal:",
     "(suppose|assume|let)(that)?$:Mequal Mnot_equal:", "let$:Mset:",
     "(let)$:Min:^(,|and)$:Min:",

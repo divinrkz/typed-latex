@@ -1,6 +1,6 @@
 open Core
 open Ast
-open User
+(* open User *)
 (* open Re.Perl *)
 
 type relation_type =
@@ -36,31 +36,33 @@ let rec relation_simplified_eq (relation : relation_type) (ast_rel : Ast.Math.t)
         (Ast.Math.Relation (bound_var, rem_bindings))
   | _ -> false
 
-type pattern =
-  | RegExpText of string
-  | Word of string
-  | Option of pattern
-  | Sequence of pattern list
-  | Any of pattern list
-  | Repeat of pattern
-  | Variable of int
-  | Relation of int
-  | SpecificRelation of int * relation_type
-  (* | Environment of regexp *)
+type id = string
+[@@deriving eq, show, sexp, hash, ord]
+
+type pattern = 
+    | Word of string
+    | Any of pattern list
+    | Sequence of pattern list
+    | Optional of pattern
+    | Repeat of pattern
+    | TypeName of id
+    | DefContainer 
+    | Relation of relation_type * id * id
 [@@deriving eq, show, sexp, hash, ord]
 
 let def =
-  Sequence [ Any [ Word "choose"; Word "consider"; Word "define" ]; Relation 0 ]
+  Sequence [ Any [ Word "choose"; Word "consider"; Word "define" ]]
 
 let test_pattern =
   Sequence
     [
       Any [ Word "choose"; Word "consider"; Word "define" ];
-      SpecificRelation (0, Ge);
     ]
 
 type result_t = (int, Math.t) Hashtbl.t
 
+(* let match_with (pat: pattern) (latex: Ast.Latex.t) = print_int "Hallo" in   *)
+(* 
 let match_with (pat : pattern) (latex : Ast.Latex.t) =
   let (mappings : result_t) = Hashtbl.create (module Int) in
   let rec recurse (pat : pattern) (node : Ast.Latex.t) =
@@ -112,4 +114,4 @@ let match_with (pat : pattern) (latex : Ast.Latex.t) =
           (show_pattern pat);
         false
   in
-  if recurse pat latex then Some mappings else None
+  if recurse pat latex then Some mappings else None *)

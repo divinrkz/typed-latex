@@ -15,19 +15,48 @@ include Util
 (* let result = parse_latex "$x \\in \\mathbb{R}$\n$y = \\{x, z\\}$" in *)
 (* let result = parse_latex "$P(x, y) = x - N^y$\n$P(1, 2)$\n$N = \\frac{1}{2}$" in *)
 
+
+type relation_type =
+  | Le
+  | Leq
+  | Ge
+  | Geq
+  | Eq
+  | In
+  | NotIn
+  | Subset
+  | Superset
+  | SubsetEq 
+  | SupersetEq
+[@@deriving eq, show, sexp, hash, ord]
+
+type id = string
+[@@deriving eq, show, sexp, hash, ord]
+
+type pattern = 
+    | Word of string
+    | Any of pattern list
+    | Sequence of pattern list
+    | Optional of pattern
+    | Repeat of pattern
+    | TypeName of id
+    | DefContainer 
+    | Relation of relation_type * id * id
+[@@deriving eq, show, sexp, hash, ord]
+
+(* let generate_patterns filename = 
+  let ic = open_in filenmae 
+  File.foreach(filename) { |line| puts line } *)
+    (* let lines = File.readlines(filename) *)
+
 let main () =
-<<<<<<< HEAD
-  let filename = "tex/sample2.tex" in
-  let result = try User.parse_latex_file filename with
-  | User.Error _ as e -> fprintf stderr "%s\n" (User.error_message e); exit (-1)
-=======
   let filename = "tex/sample4.tex" in
+  Util.extract_patterns "patterns.txt";
   let result =
     try User.parse_latex_file filename
     with User.Error _ as e ->
       fprintf stderr "%s\n" (User.error_message e);
       exit (-1)
->>>>>>> 3f42a0f47872ff1d8ddd889b9b52519cb8366d5c
   in
   match result with
   | None ->
@@ -44,27 +73,14 @@ let main () =
           Format.printf "Found document: %a\n" Ast.Latex.pp
             document_ast_contents
       | None -> Format.printf "Unable to find document\n");
-
-<<<<<<< HEAD
-    let document_ast = User.unwrap_to_document ast in
-    (match document_ast with 
-      | Some document_ast_contents -> Format.printf "Found document: %a\n" Ast.Latex.pp document_ast_contents
-      | None -> Format.printf "Unable to find document\n"
-    );
-    match Patterns.match_with document_ast Patterns.test_pattern with
-      | Some mappings -> Format.printf "Success: %a\n" (Util.pp_hashtbl ~pp_key:Format.pp_print_int ~pp_data:Ast.Math.pp) mappings
-      | None -> Format.printf "Fail\n"
   )
-  
-  let () = main ();;
-  
-=======
-      match Patterns.match_with Patterns.def =<<? document_ast with
+
+
+      (* match Patterns.match_with Patterns.def =<<? document_ast with
       | Some mappings ->
           Format.printf "Success: %a\n"
             (Util.pp_hashtbl ~pp_key:Format.pp_print_int ~pp_data:Ast.Math.pp)
             mappings
-      | None -> Format.printf "Fail\n")
+      | None -> Format.printf "Fail\n") *)
 
 let () = main ()
->>>>>>> 3f42a0f47872ff1d8ddd889b9b52519cb8366d5c
