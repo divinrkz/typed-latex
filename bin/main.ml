@@ -48,7 +48,9 @@ type pattern =
 
 let main () =
   let filename = "tex/sample4.tex" in
-  Util.extract_patterns "pattern.txt";
+  (* Patterns.parse_file "pattern1.txt"; *)
+    print_int (List.hd Util.extract_patterns);
+  (* let x = Word "define" in print_endline x; *)
   (* print_endline content *)
   let result =
     try User.parse_latex_file filename
@@ -62,7 +64,7 @@ let main () =
       exit (-1)
   | Some ast ->
       let document_ast = User.unwrap_to_document ast in
-      (print_endline << latex_tree_format) <-<? document_ast
+      (print_endline << latex_trees_format) <-<? document_ast
 (* Format.printf "Parsed latex: %a\n" Ast.Latex.pp ast; *)
 (* try User.type_check ast with
    | User.Error _ as e -> fprintf stderr "%s\n" (User.error_message e); *)

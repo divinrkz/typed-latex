@@ -1,5 +1,6 @@
 open Core
-open Fn
+open Fn 
+open Re.Str
 
 let string_sep str formatter () = Format.pp_print_string formatter str
 let ( << ) = compose
@@ -39,26 +40,38 @@ let pp_hashtbl formatter ~pp_key ~pp_data t =
     (Hashtbl.to_alist t)
 
 
+(** [str_split str separator] splits the provided string [str] on a provided 
+    separator [sep] and returns a list of split strings
+    @param str string to split
+    @param sep separator string 
+    @return splitted list of string on separator
+    *)    
+let str_split (str: string) (sep: string) : string list =
+  split (regexp_string sep) str
 
-(* let extract_patterns (filename: string) = 
-  let read_file (filename: string) =
-    In_channel.with_file filename ~f:(fun input_c ->
-      In_channel.iter_lines input_c ~f:(fun line -> 
-       print_endline line
-      )
-    )
-    in read_file filename  *)
 
+(** [read_file_as_str filename] reads the content of the file specified by [filename]
+    line by line. The function writes the lines into a buffer and returns a string with 
+    each line followed by a newline character.
+
+    @param filename The name of file to be read.
+    @return String will all lines from file
+*)    
 let read_file_as_str (filename: string) = 
    let buffer = Buffer.create 4096 in 
     In_channel.with_file filename ~f:(fun input_c ->
       In_channel.iter_lines input_c ~f:(fun line -> 
           Buffer.add_string buffer line;
-          Buffer.add_char buffer '\n'
         )
   );
   Buffer.contents buffer
+  
 
 let extract_patterns (filename: string) = 
     let content = read_file_as_str filename in
-    print_endline content
+      let splits = str_split content "\"," in
+        let def = List.nth splits 0 in 
+          match def with 
+          | Some _ -> [1; 2; 3] 
+          | None -> []
+      (* List.iter splits ~f:(fun split -> print_endline ("here: " ^ split)) *)

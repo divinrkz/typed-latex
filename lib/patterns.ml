@@ -1,6 +1,9 @@
 open Core
 open Ast
 open User
+(* open Reopam list
+    *)
+
 (* open Re.Perl *)
 
 type relation_type =
@@ -54,6 +57,49 @@ let def =
     [
       Any [ Word "choose"; Word "consider"; Word "define" ]; Relation (Eq, 1, 2);
     ]
+
+(* Define regex patterns *)
+let regex_word = Re.Perl.compile_pat "[a-zA-Z]+"
+let regex_type_name = Re.Perl.compile_pat "\\$"
+let regex_relation = Re.Perl.compile_pat "M\\(less_than\\|less_than_or_equal\\|greater_than\\|greater_than_or_equal\\|equal\\|not_equal\\|set\\)"
+let regex_id = Re.Perl.compile_pat "M\\(in\\|var\\)"
+
+let parse_relation str =
+  match str with
+  | "Mless_than" -> Le
+  | "Mless_than_or_equal" -> Leq
+  | "Mgreater_than" -> Ge
+  | "Mgreater_than_or_equal" -> Geq
+  | "Mequal" -> Eq
+  | "Mnot_equal" -> NotIn
+  | "Mset" -> In
+  | _ -> failwith "Unknown relation type"
+
+let rec parse_tokens tokens =
+  match tokens with
+  | [] -> []
+  | token :: rest ->
+    if Re.execp regex_word token then
+      Word token :: parse_tokens rest
+    else if Re.execp regex_type_name token then
+      TypeName 1 :: parse_tokens rest 
+    else if Re.execp regex_relation token then
+      let rel = parse_relation token in
+      Relation (rel, 1, 2) :: parse_tokens rest 
+    else
+      failwith ("Unknown token: " ^ token)
+
+let parse_pattern str =
+  let tokens = Re.split (Re.Perl.compile_pat "[ \t\n\r]+") str in
+  Sequence (parse_tokens tokens)
+
+let parse_file filename =
+  In_channel.with_file filename ~f:(fun input_c ->
+    In_channel.iter_lines input_c ~f:(fun line ->
+      let pattern = parse_pattern line in
+      print_endline (show_pattern pattern)
+    )
+  )
 
 type proof_token =
   | PunctuationToken of string
