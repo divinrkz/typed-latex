@@ -3,7 +3,8 @@
 (menhir
  ; (flags --explain --inspection --table --dump --strict)
  ; (flags --explain --inspection --table --dump --list-errors lib/latex_parser.mly)
- (flags --explain --inspection --table --dump)
+ ;   (flags --explain --inspection --table --dump)
+ (flags --inspection --table --dump)
  (modules latex_parser math_parser))
 
 (rule
@@ -31,6 +32,7 @@
   math
   user
   patterns
+  proof_lex
   util
   latex_lexer
   latex_parser
@@ -39,10 +41,12 @@
   math_parser
   math_parser_messages)
  (libraries core menhirLib re)
+ ;  (flags -rectypes)
  (preprocess
   (pps
-   ppx_sexp_conv
+   ; ppx_sexp_conv
    ppx_deriving.show
    ppx_deriving.eq
    ppx_deriving.ord
-   ppx_hash)))
+   ; ppx_hash
+   ppx_jane)))

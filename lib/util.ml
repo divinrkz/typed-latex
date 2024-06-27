@@ -3,6 +3,7 @@ open Fn
 open Re.Str
 
 let string_sep str formatter () = Format.pp_print_string formatter str
+
 let ( << ) = compose
 
 (** Option monad **)
@@ -16,7 +17,7 @@ let ( >>|? ) (x : 'a option) (f : 'a -> 'b) = Option.map x ~f
 let ( |<<? ) (f : 'a -> 'b) (x : 'a option) = Option.map x ~f
 
 (* Side-effect map *)
-let ( <-<? ) (f : 'a -> unit) (x : 'a option) = Option.iter ~f: f x
+let ( <-<? ) (f : 'a -> unit) (x : 'a option) = Option.iter ~f x
 
 (** List monad **)
 
@@ -29,7 +30,7 @@ let ( >>|: ) (x : 'a list) (f : 'a -> 'b) = List.map x ~f
 let ( |<<: ) (f : 'a -> 'b) (x : 'a list) = List.map x ~f
 
 (* Side-effect map *)
-let ( <-<: ) (f : 'a -> unit) (x : 'a list) = List.iter ~f: f x
+let ( <-<: ) (f : 'a -> unit) (x : 'a list) = List.iter ~f x
 
 let pp_hashtbl formatter ~pp_key ~pp_data t =
   let pp_pair formatter (k, d) =
