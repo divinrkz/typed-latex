@@ -52,6 +52,7 @@ type pattern =
   | Sequence of pattern list
   | Optional of pattern
   | Repeat of pattern
+  | OptRepeat of pattern
   | TypeName of MatchID.t
   | DefContainer of MatchID.t
   | Relation of relation_type * MatchID.t * MatchID.t
@@ -80,22 +81,28 @@ end = struct
     | TypeNameMatch of string
     | ExpressionMatch of Math.t
 
-    and t = value MatchID.Map.t
+  and t = value MatchID.Map.t
 
   let empty = MatchID.Map.empty
 
-  let put (map : t) (k : MatchID.t) (v : value) = Core.Map.set map ~key:k ~data:v
+  let put (map : t) (k : MatchID.t) (v : value) =
+    Core.Map.set map ~key:k ~data:v
 end
 
 type context = proof_token list * MatchContainer.t
+type nd_context = context list
 
-let rec match_rec (context : context) (pat : pattern) =
+let rec match_rec (pat : pattern) (context : context) =
   match (pat, context) with
-  | Word p_word, (WordToken word :: remainder, _) when String.equal p_word word
-    ->
-      [ (remainder, MatchContainer.empty) ]
-  | Any patterns, _ -> match_rec context =<<: patterns
-  (* | Sequence patterns, _ ->  *)
+  | Word p_word, (WordToken word :: remainder, matches)
+    when String.equal p_word word ->
+      [ (remainder, matches) ]
+  | Any ps, _ -> flip match_rec context =<<: ps
+  | Sequence [], _ -> [ context ]
+  | Sequence (p :: ps), _ -> match_rec (Sequence ps) =<<: match_rec p context
+  | Optional p, _ -> context :: match_rec p context
+  | OptRepeat p, _ -> context :: (match_rec pat =<<: match_rec p context)
+  | Repeat p, _ -> match_rec (Sequence [ p; OptRepeat p ]) context
   | _ -> []
 
 (* type result_t = (int, Math.t) Hashtbl.t *)
