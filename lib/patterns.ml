@@ -47,16 +47,17 @@ module MatchID = struct
 end
 
 type pattern =
+  (* Primary *)
   | Word of string
   | Any of pattern list
   | Sequence of pattern list
   | Optional of pattern
   | Repeat of pattern
-  | OptRepeat of pattern
   | TypeName of MatchID.t
-  | DefContainer of MatchID.t
+  | DefContainer of pattern * MatchID.t
   | Relation of relation_type * MatchID.t * MatchID.t
-[@@deriving eq, show, sexp, hash, ord]
+  (* Auxiliary *)
+  | OptRepeat of pattern
 
 let def =
   Sequence
@@ -92,6 +93,28 @@ end
 type context = proof_token list * MatchContainer.t
 type nd_context = context list
 
+let box_context (match_id : MatchID.t) (exterior_matches : MatchContainer.t)
+    (interior_context : context) =
+  match interior_context with
+  | tokens, interior_matches ->
+      ( tokens,
+        MatchContainer.put exterior_matches match_id
+          (DefContainerMatch interior_matches) )
+
+let rec extract_type_names (opt : bool) (tokens : proof_token list) =
+  match tokens with
+  | WordToken word :: remainder ->
+      if List.mem ~equal:String.equal Util.non_type_words word then
+        if opt then [ ("", tokens) ] else []
+      else
+        (word, remainder)
+        :: ((fun (s, r) -> (word ^ s, r)) |<<: extract_type_names true remainder)
+  | _ -> if opt then [ ("", tokens) ] else []
+
+let box_type_name (match_id : MatchID.t) (exterior_matches : MatchContainer.t)
+    ((name, tokens) : string * proof_token list) =
+  (tokens, MatchContainer.put exterior_matches match_id (TypeNameMatch name))
+
 let rec match_rec (pat : pattern) (context : context) =
   match (pat, context) with
   | Word p_word, (WordToken word :: remainder, matches)
@@ -103,6 +126,15 @@ let rec match_rec (pat : pattern) (context : context) =
   | Optional p, _ -> context :: match_rec p context
   | OptRepeat p, _ -> context :: (match_rec pat =<<: match_rec p context)
   | Repeat p, _ -> match_rec (Sequence [ p; OptRepeat p ]) context
+  | TypeName match_id, (tokens, exterior_matches) ->
+      let type_name_opts = extract_type_names false tokens in
+      box_type_name match_id exterior_matches |<<: type_name_opts
+  | DefContainer (p, match_id), (tokens, exterior_matches) ->
+      let interior_contexts = match_rec p (tokens, MatchContainer.empty) in
+      box_context match_id exterior_matches |<<: interior_contexts
+  (* | ( Relation (relation_type, left_id, right_id),
+      (MathToken math :: remainder, exterior_matches) ) when ->
+      [] *)
   | _ -> []
 
 (* type result_t = (int, Math.t) Hashtbl.t *)
