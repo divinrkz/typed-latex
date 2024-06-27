@@ -1,7 +1,8 @@
 open Core
+open Proof_lex
 open Ast
 open User
-(* open Re.Perl *)
+open Fn
 
 type relation_type =
   | Le
@@ -17,26 +18,33 @@ type relation_type =
   | SupersetEq
 [@@deriving eq, show, sexp, hash, ord]
 
-let rec relation_simplified_eq (relation : relation_type) (ast_rel : Ast.Math.t)
-    =
+let rec relation_simplified_eq (relation : relation_type) (ast_rel : Math.t) =
   match (relation, ast_rel) with
-  | Le, Ast.Math.Relation (_, (Ast.Math.Le, _) :: _) -> true
-  | Leq, Ast.Math.Relation (_, (Ast.Math.Leq, _) :: _) -> true
-  | Ge, Ast.Math.Relation (_, (Ast.Math.Ge, _) :: _) -> true
-  | Geq, Ast.Math.Relation (_, (Ast.Math.Geq, _) :: _) -> true
-  | Eq, Ast.Math.Relation (_, (Ast.Math.Eq, _) :: _) -> true
-  | In, Ast.Math.Relation (_, (Ast.Math.In, _) :: _) -> true
-  | NotIn, Ast.Math.Relation (_, (Ast.Math.NotIn, _) :: _) -> true
-  | Subset, Ast.Math.Relation (_, (Ast.Math.Subset, _) :: _) -> true
-  | Superset, Ast.Math.Relation (_, (Ast.Math.Superset, _) :: _) -> true
-  | SubsetEq, Ast.Math.Relation (_, (Ast.Math.SubsetEq, _) :: _) -> true
-  | SupersetEq, Ast.Math.Relation (_, (Ast.Math.SupersetEq, _) :: _) -> true
-  | relation, Ast.Math.Relation (bound_var, _ :: rem_bindings) ->
-      relation_simplified_eq relation
-        (Ast.Math.Relation (bound_var, rem_bindings))
+  | Le, Math.Relation (_, (Math.Le, _) :: _) -> true
+  | Leq, Math.Relation (_, (Math.Leq, _) :: _) -> true
+  | Ge, Math.Relation (_, (Math.Ge, _) :: _) -> true
+  | Geq, Math.Relation (_, (Math.Geq, _) :: _) -> true
+  | Eq, Math.Relation (_, (Math.Eq, _) :: _) -> true
+  | In, Math.Relation (_, (Math.In, _) :: _) -> true
+  | NotIn, Math.Relation (_, (Math.NotIn, _) :: _) -> true
+  | Subset, Math.Relation (_, (Math.Subset, _) :: _) -> true
+  | Superset, Math.Relation (_, (Math.Superset, _) :: _) -> true
+  | SubsetEq, Math.Relation (_, (Math.SubsetEq, _) :: _) -> true
+  | SupersetEq, Math.Relation (_, (Math.SupersetEq, _) :: _) -> true
+  | relation, Math.Relation (bound_var, _ :: rem_bindings) ->
+      relation_simplified_eq relation (Math.Relation (bound_var, rem_bindings))
   | _ -> false
 
-type id = int [@@deriving eq, show, sexp, hash, ord]
+module MatchID = struct
+  module T = struct
+    type t = int [@@deriving eq, show, sexp, hash, ord, compare]
+  end
+
+  include T
+  include Comparable.Make (T)
+
+  let from_int = id
+end
 
 type pattern =
   | Word of string
@@ -44,78 +52,57 @@ type pattern =
   | Sequence of pattern list
   | Optional of pattern
   | Repeat of pattern
-  | TypeName of id
-  | DefContainer of id
-  | Relation of relation_type * id * id
+  | TypeName of MatchID.t
+  | DefContainer of MatchID.t
+  | Relation of relation_type * MatchID.t * MatchID.t
 [@@deriving eq, show, sexp, hash, ord]
 
 let def =
   Sequence
     [
-      Any [ Word "choose"; Word "consider"; Word "define" ]; Relation (Eq, 1, 2);
+      Any [ Word "choose"; Word "consider"; Word "define" ];
+      Relation (Eq, MatchID.from_int 1, MatchID.from_int 2);
     ]
 
-type proof_token =
-  | PunctuationToken of string
-  | WordToken of string
-  | MathToken of Ast.Math.t
+module rec MatchContainer : sig
+  type value =
+    | DefContainerMatch of t
+    | TypeNameMatch of string
+    | ExpressionMatch of Math.t
 
-let tokenize_word (word : string) =
-  match word with
-  | "." | "," | ";" | "-" | "(" | ")" | "\u{U+2013}" | "\u{U+2014}" ->
-      PunctuationToken word
-  | _ -> WordToken word
+  and t = value MatchID.Map.t
 
-let rec tokenize_rec (working_tokenization : proof_token list list)
-    (latex : Latex.t) =
-  match working_tokenization with
-  | head :: tail -> (
-      match User.unwrap_node latex with
-      | Latex.Word word -> (tokenize_word word :: head) :: tail
-      | Latex.Latex children ->
-          List.fold ~f:tokenize_rec ~init:working_tokenization children
-      | Latex.Environment (name, args, children) ->
-          environment_tokenizer working_tokenization name args children
-      | Latex.Command (name, children) ->
-          command_tokenizer working_tokenization name children
-      | Latex.Mathmode _ as math_latex ->
-          math_tokenizer working_tokenization math_latex
-      | Latex.Multiline _ as math_latex ->
-          math_tokenizer working_tokenization math_latex
-      | Latex.Newline -> working_tokenization
-      | Latex.Whitespace -> working_tokenization)
-  | [] -> []
+  val empty : t
+  val put : t -> MatchID.t -> value -> t
+end = struct
+  type value =
+    | DefContainerMatch of t
+    | TypeNameMatch of string
+    | ExpressionMatch of Math.t
 
-and environment_tokenizer (working_tokenization : proof_token list list)
-    (name : string) (args : Latex.t list) (children : Latex.t list) =
-  match (name, args, children) with
-  | _, _, children ->
-      ([] :: List.concat_no_order (List.map ~f:(tokenize_rec [ [] ]) children))
-      @ working_tokenization
+    and t = value MatchID.Map.t
 
-and command_tokenizer (working_tokenization : proof_token list list)
-    (name : string) (children : Latex.t list) =
-  match (name, children) with
-  | _, arg :: [] -> tokenize_rec working_tokenization arg
-  | _ -> working_tokenization
+  let empty = MatchID.Map.empty
 
-and math_tokenizer (working_tokenization : proof_token list list)
-    (math_latex : Latex.latex) =
-  match (working_tokenization, parse_math math_latex) with
-  | [], _ -> []
-  | _, [] -> working_tokenization
-  | head :: tail, math :: [] -> (MathToken math :: head) :: tail
-  | _, math_lines ->
-      List.map ~f:(fun math -> [ MathToken math ]) math_lines
-      @ working_tokenization
+  let put (map : t) (k : MatchID.t) (v : value) = Core.Map.set map ~key:k ~data:v
+end
 
-let tokenize (latex : Latex.t) = tokenize_rec [ [] ] latex
+type context = proof_token list * MatchContainer.t
 
-type result_t = (int, Math.t) Hashtbl.t
+let rec match_rec (context : context) (pat : pattern) =
+  match (pat, context) with
+  | Word p_word, (WordToken word :: remainder, _) when String.equal p_word word
+    ->
+      [ (remainder, MatchContainer.empty) ]
+  | Any patterns, _ -> match_rec context =<<: patterns
+  (* | Sequence patterns, _ ->  *)
+  | _ -> []
 
-(* let match_with (pat : pattern) (latex : Ast.Latex.t) =
+(* type result_t = (int, Math.t) Hashtbl.t *)
+
+(* let match_with (pat : pattern) (latex : Latex.t) =
    let (mappings : result_t) = Hashtbl.create (module Int) in
-   let rec recurse (pat : pattern) (node : Ast.Latex.t) =
+   let rec recurse (pat : pattern) (node : Latex.t) =
      match (pat, node) with
      | Word y, { pos = _; value = Word x } ->
          String.equal (String.lowercase x) (String.lowercase y)

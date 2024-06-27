@@ -1,4 +1,4 @@
-(lang dune 3.8)
+(lang dune 3.16)
 
 (name typed_latex)
 
@@ -15,7 +15,7 @@
 
 (documentation https://url/to/documentation)
 
-(using menhir 2.1)
+(using menhir 3.0)
 
 (package
  (name typed_latex)
