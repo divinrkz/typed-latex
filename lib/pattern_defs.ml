@@ -40,7 +40,7 @@ let parse_relation_type (relation_type: string) =
   @param line_counter The current line number being processed, used for debugging output.
   @param seq A reference to the sequence being constructed.
 *)     
-let parse_words words_str line_counter seq =
+let parse_words words_str seq =
   let word_splits = str_split words_str ' ' in
     let rec process_words words acc =
       match words with
@@ -62,7 +62,6 @@ let parse_words words_str line_counter seq =
           let new_acc =
             match matched_lst with
             | [] ->
-              print_endline ("Line " ^ string_of_int line_counter ^ ": No match found.");
               acc
             | [str] -> acc @ [Word str]
             | _ -> process_words matched_lst acc
@@ -72,8 +71,8 @@ let parse_words words_str line_counter seq =
       seq := parse_word word_splits !seq
   
 (* Function to process the first split *)
-let process_first_split first_split line_counter seq =
-  parse_words first_split line_counter seq
+let process_first_split first_split seq =
+  parse_words first_split seq
   
     
 let parse_relations relations_str =
@@ -112,7 +111,7 @@ let parse_patterns filename =
       let segment_splits = str_split line ':' in
       match List.nth segment_splits 0 with
       | None -> print_endline ("Line " ^ string_of_int !line_counter ^ ": No first split found.")
-      | Some first_split -> process_first_split first_split !line_counter seq;
+      | Some first_split -> process_first_split first_split seq;
         match List.nth segment_splits 1 with
         | None -> print_endline ("Line " ^ string_of_int !line_counter ^ ": No second split found.")
         | Some second_split ->
