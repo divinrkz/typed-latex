@@ -3,6 +3,8 @@ open Proof_lex
 open Ast
 open User
 open Fn
+open Tree_print
+open Ast_print
 
 type relation_type =
   | Le
@@ -59,7 +61,8 @@ module MatchID = struct
   include T
   include Comparable.Make (T)
 
-  let from_int = id
+  let from_int : int -> t = id
+  let to_string (match_id : t) : string = "<" ^ string_of_int match_id ^ ">"
 end
 
 type pattern =
@@ -89,8 +92,8 @@ let any_relation_pattern (match_id : MatchID.t) =
 let def =
   Sequence
     [
-      Any [ Word "choose"; Word "consider"; Word "define" ];
-      Relation (Eq, MatchID.from_int 1);
+      Any [ Word "choose"; Word "let"; Word "consider"; Word "define" ];
+      any_known_relation_pattern 1;
     ]
 
 module rec MatchContainer : sig
@@ -103,6 +106,9 @@ module rec MatchContainer : sig
 
   val empty : t
   val put : t -> MatchID.t -> value -> t
+  val compare : t -> t -> int
+  val to_string_tree : t -> tree_print_node
+  val tree_format : t -> string
 end = struct
   type value =
     | DefContainerMatch of t
@@ -115,6 +121,37 @@ end = struct
 
   let put (map : t) (k : MatchID.t) (v : value) =
     Core.Map.set map ~key:k ~data:v
+
+  let rec recursive_size (map : t) =
+    List.sum (module Int) ~f:recursive_value_size (Core.Map.data map)
+
+  and recursive_value_size (v : value) =
+    match v with DefContainerMatch sub_map -> recursive_size sub_map | _ -> 1
+
+  let compare (a : t) (b : t) =
+    Int.compare (recursive_size a) (recursive_size b)
+
+  let rec to_string_tree (map : t) =
+    Branch
+      ( Some "MatchContainer",
+        ascociation_to_string_tree |<<: Core.Map.to_alist map )
+
+  and ascociation_to_string_tree ((k, v) : MatchID.t * value) =
+    Branch (Some ("@" ^ MatchID.to_string k), [ value_to_string_tree v ])
+
+  and value_to_string_tree (v : value) =
+    match v with
+    | DefContainerMatch sub_map -> to_string_tree sub_map
+    | TypeNameMatch type_name -> Leaf type_name
+    | RelationMatch (ERelation (rel_type, left, right)) ->
+        Branch
+          ( Some ("Relation: " ^ show_relation_type rel_type),
+            [
+              Branch (Some "@left", [ latex_math_to_string_tree left ]);
+              Branch (Some "@right", [ latex_math_to_string_tree right ]);
+            ] )
+
+  let tree_format = tree_format "| " << to_string_tree
 end
 
 type context = proof_token list * MatchContainer.t
@@ -159,7 +196,7 @@ let box_relation (match_id : MatchID.t) (tokens : proof_token list)
 let rec match_rec (pat : pattern) (context : context) =
   match (pat, context) with
   | Word p_word, (WordToken word :: remainder, matches)
-    when String.equal p_word word ->
+    when String.equal p_word (String.lowercase word) ->
       [ (remainder, matches) ]
   | Any ps, _ -> flip match_rec context =<<: ps
   | Sequence [], _ -> [ context ]
@@ -180,3 +217,14 @@ let rec match_rec (pat : pattern) (context : context) =
       box_relation match_id remainder exterior_matches
       |<<: find_elementary_relation relation_type e_relations
   | _ -> []
+
+let compare_context ((a_tokens, a_matches) : context)
+    ((b_tokens, b_matches) : context) =
+  let match_comparison = MatchContainer.compare a_matches b_matches in
+  if match_comparison = 0 then
+    Int.compare (List.length b_tokens) (List.length a_tokens)
+  else match_comparison
+
+let match_pattern (pat : pattern) (tokenization : proof_token list) =
+  let matched_contexts = match_rec pat (tokenization, MatchContainer.empty) in
+  List.max_elt ~compare:compare_context matched_contexts
