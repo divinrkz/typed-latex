@@ -16,7 +16,34 @@ type relation_type =
   | Superset
   | SubsetEq
   | SupersetEq
+  | Other
 [@@deriving eq, show, sexp, hash, ord]
+
+type elementary_relation = ERelation of relation_type * Math.t * Math.t
+
+let ast_to_elementary_relation_type (ast_rel_t : Math.relation) =
+  match ast_rel_t with
+  | Math.Le -> Le
+  | Math.Leq -> Leq
+  | Math.Ge -> Ge
+  | Math.Geq -> Geq
+  | Math.Eq -> Eq
+  | Math.In -> In
+  | Math.NotIn -> NotIn
+  | Math.Subset -> Subset
+  | Math.Superset -> Superset
+  | Math.SubsetEq -> SubsetEq
+  | Math.SupersetEq -> SupersetEq
+  | _ -> Other
+
+let rec extract_elementary_relations (bound : Math.t)
+    (tail : (Math.relation * Math.t) list) =
+  match tail with
+  | (ast_rel_t, right) :: (_, left) :: remaining ->
+      ERelation (ast_to_elementary_relation_type ast_rel_t, left, right)
+      :: extract_elementary_relations bound remaining
+  | (ast_rel_t, right) :: [] -> [ERelation (ast_to_elementary_relation_type ast_rel_t, bound, right)]
+  | [] -> []
 
 let rec relation_simplified_eq (relation : relation_type) (ast_rel : Math.t) =
   match (relation, ast_rel) with

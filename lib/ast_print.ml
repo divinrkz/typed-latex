@@ -87,8 +87,8 @@ and latex_math_to_string_tree (math : Math.t) =
         ( Some "Logic",
           Branch (Some "@bound", [ latex_math_to_string_tree bound ])
           :: (latex_math_logic_to_string_tree |<<: relations) )
-  | IntLiteral num -> Leaf (string_of_int num)
-  | FloatLiteral num -> Leaf (string_of_float num)
+  | IntLiteral num -> Leaf ("IntLiteral: " ^ string_of_int num)
+  | FloatLiteral num -> Leaf ("FloatLiteral: " ^ string_of_float num)
   | SetComprehension (expr, relation) ->
       Branch
         ( Some "SetComprehension",
