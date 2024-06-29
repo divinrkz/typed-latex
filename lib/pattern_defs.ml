@@ -4,7 +4,7 @@ open Util
 
 (* Regex patterns *)
 let regex_first_split = "|?[a-zA-Z]+|?"
-let regex_optional_pattern = "(([^()]*))"
+let regex_optional = "\(([^()]+)\)\\?"
 let relation_regex = "[a-zA-Z]+"
 
 let list_relation_types_pattern (match_id : MatchID.t)
@@ -32,12 +32,30 @@ let parse_relation_type (relation_type: string) =
    | "Mless_than_or_equal" -> Leq
    | _ -> Other
 
+let parse_relations relations_str =
+  let relation_splits = str_split relations_str ' ' in 
+    let rec parse_relation splits = 
+      match splits with
+      | [] -> []
+      | relation :: rest -> Relation (parse_relation_type relation, 1) :: parse_relation rest 
+    in
+    parse_relation relation_splits
+
+let parse_typenames str = 
+  let typename_splits = str_split str ' ' in 
+    let rec parse_typename splits = 
+        match splits with 
+        | [] -> []
+        | str :: rest -> Word str :: parse_typename rest
+    in 
+    parse_typename typename_splits
+      
+    
 (** 
-  [parse_words relations_str line_counter seq] processes the [relations_str] by splitting it into words, 
+  [parse_words relations_str d seq] processes the [relations_str] by splitting it into words, 
   matching them against a regex, and updating the [seq] reference with the results.
 
-  @param relations_str The string to be processed.
-  @param line_counter The current line number being processed, used for debugging output.
+  @param relations_str The string to be processed. d
   @param seq A reference to the sequence being constructed.
 *)     
 let parse_words words_str seq =
@@ -58,47 +76,39 @@ let parse_words words_str seq =
         match splits with
         | [] -> acc
         | word :: rest ->
-          let matched_lst = Util.regex_matcher word regex_first_split in
+          let optional_matches = Util.regex_matcher word regex_optional in
           let new_acc =
-            match matched_lst with
-            | [] ->
-              acc
-            | [str] -> acc @ [Word str]
-            | _ -> process_words matched_lst acc
+            match optional_matches with
+            | [opt] -> 
+              let stripped_opt = String.sub opt ~pos:1 ~len:(String.length opt - 3) in (* Remove the leading '(' and trailing ')?' *)
+                acc @ [Optional (Word stripped_opt)]
+            | _ -> 
+              let matched_lst = Util.regex_matcher word regex_first_split in
+              match matched_lst with
+              | [] -> acc
+              | [str] -> acc @ [Word str]
+              | _ -> process_words matched_lst acc
           in
           parse_word rest new_acc
       in
       seq := parse_word word_splits !seq
-  
-(* Function to process the first split *)
+    
+
+(** 
+  [process_first_split first_split seq] processes the [first_split] of a line by calling [parse_words].
+
+  @param first_split The first segment of the line to be processed.
+  @param seq A reference to the sequence being constructed.
+*)
 let process_first_split first_split seq =
   parse_words first_split seq
   
-    
-let parse_relations relations_str =
-  let relation_splits = str_split relations_str ' ' in 
-    let rec parse_relation splits = 
-      match splits with
-      | [] -> []
-      | relation :: rest -> Relation (parse_relation_type relation, 1) :: parse_relation rest 
-    in
-    parse_relation relation_splits
-
-let parse_typenames str = 
-  let typename_splits = str_split str ' ' in 
-    let rec parse_typename splits = 
-        match splits with 
-        | [] -> []
-        | str :: rest -> Word str :: parse_typename rest
-    in 
-    parse_typename typename_splits
-     
       
 (** 
   [parse_patterns filename] reads lines from a file, splits each line into segments, and processes the segments
   to construct a sequence of patterns.
 
-  @param filename The name of the file to read from.
+  @param filename The name of the file to read patterns from.
 *)
 let parse_patterns filename =
   In_channel.with_file filename ~f:(fun input_c ->

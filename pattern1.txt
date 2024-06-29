@@ -1,2 +1,3 @@
 let $:Mset Min Mgreater_than Mgreater_than_or_equal Mless_than Mless_than_or_equal:^be arbitrary
 (choose|consider|define)$:Mequal Mnot_equal:
+(suppose|assume|let) (igose)?$:Mequal Mnot_equal:
