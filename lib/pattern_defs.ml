@@ -80,7 +80,7 @@ let parse_words words_str seq =
           let new_acc =
             match optional_matches with
             | [opt] -> 
-              let stripped_opt = String.sub opt ~pos:1 ~len:(String.length opt - 3) in (* Remove the leading '(' and trailing ')?' *)
+              let stripped_opt = Util.regex_first_matcher opt regex_first_split in 
                 acc @ [Optional (Word stripped_opt)]
             | _ -> 
               let matched_lst = Util.regex_matcher word regex_first_split in
