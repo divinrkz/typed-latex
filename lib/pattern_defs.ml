@@ -4,7 +4,7 @@ open Util
 
 (* Regex patterns *)
 let regex_first_split = "|?[a-zA-Z]+|?"
-let regex_optional = "\(([^()]+)\)\\?"
+let regex_optional = "\\(([^()]+)\\)\\?"
 let relation_regex = "[a-zA-Z]+"
 
 let list_relation_types_pattern (match_id : MatchID.t)
@@ -33,11 +33,17 @@ let parse_relation_type (relation_type: string) =
    | _ -> Other
 
 let parse_relations relations_str =
+  let def_container = ref [] in 
   let relation_splits = str_split relations_str ' ' in 
     let rec parse_relation splits = 
       match splits with
       | [] -> []
-      | relation :: rest -> Relation (parse_relation_type relation, 1) :: parse_relation rest 
+      | relation_type :: rest -> let parsed = parse_relation_type relation_type in
+                            match parsed with 
+                            | Other -> match relation_type with 
+                                        | "Mvar" -> def_container := DefContainer (!def_container :: [Expression (parsed)], 0)
+                                        | "D" ->  def_container := DefContainer (!def_container :: any_known_relation_pattern 1, 0)
+                            | _ -> DefContainer (Relation (parse_relation_type relation_type, 1), 1) :: parse_relation rest 
     in
     parse_relation relation_splits
 
@@ -119,18 +125,17 @@ let parse_patterns filename =
       print_string ("\nLine [" ^ (string_of_int !line_counter) ^ "]: ");
       print_endline ("\"" ^ line ^ "\"");
       let segment_splits = str_split line ':' in
-      match List.nth segment_splits 0 with
-      | None -> print_endline ("Line " ^ string_of_int !line_counter ^ ": No first split found.")
-      | Some first_split -> process_first_split first_split seq;
+        match List.nth segment_splits 0 with
+          | None -> print_endline ("Line " ^ string_of_int !line_counter ^ ": No first split found.")
+          | Some first_split -> process_first_split first_split seq;
         match List.nth segment_splits 1 with
-        | None -> print_endline ("Line " ^ string_of_int !line_counter ^ ": No second split found.")
-        | Some second_split ->
-          let parsed = Any (parse_relations second_split) in
-          seq := !seq @ [parsed];
-          print_endline ("Extracted pattern: " ^ show_pattern (Sequence !seq))
+          | None -> print_endline ("Line " ^ string_of_int !line_counter ^ ": No second split found.")
+          | Some second_split ->
+            let parsed = parse_relations second_split in
+              seq := !seq @ Any ([parsed]);
+              print_endline ("Extracted pattern: " ^ show_pattern (Sequence !seq))
     );
   )
-
 
 
 let def1 =
