@@ -6,6 +6,18 @@ open Fn
 open Tree_print
 open Ast_print
 
+module MatchID = struct
+  module T = struct
+    type t = int [@@deriving eq, show, sexp, hash, ord, compare]
+  end
+
+  include T
+  include Comparable.Make (T)
+
+  let from_int : int -> t = id
+  let to_string (match_id : t) : string = "<" ^ string_of_int match_id ^ ">"
+end
+
 type relation_type =
   | Le
   | Leq
@@ -53,18 +65,6 @@ let rec extract_elementary_relations (bound : Math.t)
       [ ERelation (ast_to_elementary_relation_type ast_rel_t, bound, right) ]
   | [] -> []
 
-module MatchID = struct
-  module T = struct
-    type t = int [@@deriving eq, show, sexp, hash, ord, compare]
-  end
-
-  include T
-  include Comparable.Make (T)
-
-  let from_int : int -> t = id
-  let to_string (match_id : t) : string = "<" ^ string_of_int match_id ^ ">"
-end
-
 type pattern =
   (* Primary *)
   | Word of string
@@ -80,8 +80,13 @@ type pattern =
 
 let list_relation_types_pattern (match_id : MatchID.t)
     (allowed_relation_types : relation_type list) =
-  Any
+    Any
     ((fun rel_type -> Relation (rel_type, match_id)) |<<: allowed_relation_types)
+(* 
+let list_relation_types_pattern (match_id : MatchID.t)
+    (allowed_relation_types : relation_type list) =
+  Any (List.map (fun rel_type -> Relation (rel_type, match_id)) allowed_relation_types) *)
+
 
 let any_known_relation_pattern (match_id : MatchID.t) =
   list_relation_types_pattern match_id all_known_relation_types
