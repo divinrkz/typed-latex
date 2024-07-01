@@ -32,7 +32,7 @@ let main () =
       print_endline "Paarsed latex.";
       let document_ast = User.unwrap_to_document =<<? parsed_latex in
       print_endline << latex_tree_format <-<? document_ast;
-      let pattern = Patterns.def in
+      let pattern = Pattern_defs.def in
       let tokenization = Proof_lex.tokenize |<<? document_ast in
       (fun token_streams ->
         print_endline
@@ -57,22 +57,5 @@ let main () =
          else "Did not match the pattern");
       let matches = Pair.second |<<? matched_context in
       print_endline << Patterns.MatchContainer.tree_format <-<? matches
-(* Format.printf "Parsed latex: %a\n" Ast.Latex.pp ast; *)
-(* try User.type_check ast with
-   | User.Error _ as e -> fprintf stderr "%s\n" (User.error_message e); *)
-(* let pattern = User.Sequence [Word "Hello"; Variable 0] in *)
-
-(* (match document_ast with
-   | Some document_ast_contents ->
-       Format.printf "Found document: %a\n" Ast.Latex.pp
-         document_ast_contents
-   | None -> Format.printf "Unable to find document\n"); *)
-
-(* match Patterns.match_with Patterns.def =<<? document_ast with
-   | Some mappings ->
-       Format.printf "Success: %a\n"
-         (Util.pp_hashtbl ~pp_key:Format.pp_print_int ~pp_data:Ast.Math.pp)
-         mappings
-   | None -> Format.printf "Fail\n" *)
 
 let () = main ()

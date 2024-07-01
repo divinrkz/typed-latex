@@ -75,57 +75,47 @@ type pattern =
   | TypeName of MatchID.t
   | DefContainer of pattern * MatchID.t
   | Relation of relation_type * MatchID.t
+  | Expression of MatchID.t
   (* Auxiliary *)
   | OptRepeat of pattern
 
-let list_relation_types_pattern (match_id : MatchID.t)
-    (allowed_relation_types : relation_type list) =
-  Any
-    ((fun rel_type -> Relation (rel_type, match_id)) |<<: allowed_relation_types)
-
-let any_known_relation_pattern (match_id : MatchID.t) =
-  list_relation_types_pattern match_id all_known_relation_types
-
-let any_relation_pattern (match_id : MatchID.t) =
-  list_relation_types_pattern match_id all_relation_types
-
-let def =
-  Sequence
-    [
-      Any [ Word "choose"; Word "let"; Word "consider"; Word "define" ];
-      any_known_relation_pattern 1;
-    ]
-
 module rec MatchContainer : sig
-  type value =
+  type match_value =
     | DefContainerMatch of t
     | TypeNameMatch of string
     | RelationMatch of elementary_relation
+    | ExpressionMatch of Math.t
 
-  and t = value MatchID.Map.t
+  and t = match_value list MatchID.Map.t
 
   val empty : t
-  val put : t -> MatchID.t -> value -> t
+  val put : t -> MatchID.t -> match_value -> t
   val compare : t -> t -> int
   val to_string_tree : t -> tree_print_node
   val tree_format : t -> string
 end = struct
-  type value =
+  type match_value =
     | DefContainerMatch of t
     | TypeNameMatch of string
     | RelationMatch of elementary_relation
+    | ExpressionMatch of Math.t
 
-  and t = value MatchID.Map.t
+  and t = match_value list MatchID.Map.t
 
   let empty = MatchID.Map.empty
 
-  let put (map : t) (k : MatchID.t) (v : value) =
-    Core.Map.set map ~key:k ~data:v
+  let put (map : t) (k : MatchID.t) (v : match_value) =
+    Core.Map.add_multi map ~key:k ~data:v
 
   let rec recursive_size (map : t) =
-    List.sum (module Int) ~f:recursive_value_size (Core.Map.data map)
+    List.sum
+      (module Int)
+      ~f:recursive_multi_match_value_size (Core.Map.data map)
 
-  and recursive_value_size (v : value) =
+  and recursive_multi_match_value_size (vs : match_value list) =
+    List.sum (module Int) ~f:recursive_match_value_size vs
+
+  and recursive_match_value_size (v : match_value) =
     match v with DefContainerMatch sub_map -> recursive_size sub_map | _ -> 1
 
   let compare (a : t) (b : t) =
@@ -136,10 +126,10 @@ end = struct
       ( Some "MatchContainer",
         ascociation_to_string_tree |<<: Core.Map.to_alist map )
 
-  and ascociation_to_string_tree ((k, v) : MatchID.t * value) =
-    Branch (Some ("@" ^ MatchID.to_string k), [ value_to_string_tree v ])
+  and ascociation_to_string_tree ((k, vs) : MatchID.t * match_value list) =
+    Branch (Some ("@" ^ MatchID.to_string k), match_value_to_string_tree |<<: vs)
 
-  and value_to_string_tree (v : value) =
+  and match_value_to_string_tree (v : match_value) =
     match v with
     | DefContainerMatch sub_map -> to_string_tree sub_map
     | TypeNameMatch type_name -> Leaf type_name
@@ -150,6 +140,8 @@ end = struct
               Branch (Some "@left", [ latex_math_to_string_tree left ]);
               Branch (Some "@right", [ latex_math_to_string_tree right ]);
             ] )
+    | ExpressionMatch expression ->
+        Branch (Some "Expression", [ latex_math_to_string_tree expression ])
 
   let tree_format = tree_format "| " << to_string_tree
 end
@@ -172,7 +164,7 @@ let rec extract_type_names (opt : bool) (tokens : proof_token list) =
         if opt then [ ("", tokens) ] else []
       else
         (word, remainder)
-        :: ((fun (s, r) -> (word ^ s, r)) |<<: extract_type_names true remainder)
+        :: ((fun (s, r) -> (word ^ " " ^ s, r)) |<<: extract_type_names true remainder)
   | _ -> if opt then [ ("", tokens) ] else []
 
 let box_type_name (match_id : MatchID.t) (exterior_matches : MatchContainer.t)
@@ -216,6 +208,11 @@ let rec match_rec (pat : pattern) (context : context) =
       let e_relations = extract_elementary_relations ast_head ast_relations in
       box_relation match_id remainder exterior_matches
       |<<: find_elementary_relation relation_type e_relations
+  | Expression match_id, (MathToken expression :: remainder, matches) ->
+      [
+        ( remainder,
+          MatchContainer.put matches match_id (ExpressionMatch expression) );
+      ]
   | _ -> []
 
 let compare_context ((a_tokens, a_matches) : context)
