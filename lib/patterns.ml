@@ -5,6 +5,7 @@ open Ast
 open Fn
 open Tree_print
 open Ast_print
+open Util
 
 module MatchID = struct
   module T = struct
@@ -77,6 +78,7 @@ type pattern =
   | Relation of relation_type * MatchID.t
   (* Auxiliary *)
   | OptRepeat of pattern
+[@@deriving eq, show, sexp, hash, ord]
 
 let list_relation_types_pattern (match_id : MatchID.t)
     (allowed_relation_types : relation_type list) =
@@ -141,7 +143,7 @@ let parse_relations relations_str =
     let rec parse_relation splits = 
       match splits with
       | [] -> []
-      | relation :: rest -> Relation (parse_relation_type relation, 1, 2) :: parse_relation rest 
+      | relation :: rest -> Relation (parse_relation_type relation, 1) :: parse_relation rest 
     in
     parse_relation relation_splits
 
@@ -183,26 +185,6 @@ let parse_patterns filename =
     )
   )
 
-
-(* let def = Sequence [(Patterns.Sequence [(Patterns.Word "let")]);
-  (Patterns.Any
-     [(Patterns.Relation (Patterns.Subset, 1, 2));
-       (Patterns.Relation (Patterns.In, 1, 2));
-       (Patterns.Relation (Patterns.Ge, 1, 2));
-       (Patterns.Relation (Patterns.Geq, 1, 2));
-       (Patterns.Relation (Patterns.Le, 1, 2));
-       (Patterns.Relation (Patterns.Leq, 1, 2))])
-  ])
-   *)
-
-
-(* let parse_file filename =
-  In_channel.with_file filename ~f:(fun input_c ->
-    In_channel.iter_lines input_c ~f:(fun line ->
-      let pattern = parse_pattern line in
-      print_endline (show_pattern pattern)
-    )
-  ) *)
 
 type proof_token =
   | PunctuationToken of string
