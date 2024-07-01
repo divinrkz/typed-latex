@@ -48,6 +48,7 @@ type pattern =
 
 let main () =
   let filename = "tex/sample4.tex" in
+  Patterns.parse_patterns "pattern1.txt";
   let parsed_latex =
     try User.parse_latex_file filename
     with User.Error _ as e ->

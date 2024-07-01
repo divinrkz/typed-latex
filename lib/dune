@@ -33,6 +33,7 @@
   math
   user
   patterns
+  pattern_defs
   proof_lex
   util
   latex_lexer
