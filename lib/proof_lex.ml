@@ -1,25 +1,19 @@
 open Core
 open Ast
 open User
+open Fn
 
-type proof_token =
-  | PunctuationToken of string
-  | WordToken of string
-  | MathToken of Math.t
-
-let tokenize_word (word : string) =
-  match word with
-  | "." | "," | ";" | "-" | "(" | ")" | "–" | "—" -> PunctuationToken word
-  | _ -> WordToken word
+type proof_token = WordToken of string | MathToken of Math.t
 
 let rec tokenize_rec (working_tokenization : proof_token list list)
     (latex : Latex.t) =
   match working_tokenization with
   | head :: tail -> (
       match User.unwrap_node latex with
-      | Latex.Word word -> (tokenize_word word :: head) :: tail
+      | Latex.Word word -> (WordToken word :: head) :: tail
       | Latex.Latex children ->
-          List.fold ~f:tokenize_rec ~init:working_tokenization children
+          List.fold_right ~f:(flip tokenize_rec) ~init:working_tokenization
+            children
       | Latex.Environment (name, args, children) ->
           environment_tokenizer working_tokenization name args children
       | Latex.Command (name, children) ->
@@ -35,6 +29,8 @@ let rec tokenize_rec (working_tokenization : proof_token list list)
 and environment_tokenizer (working_tokenization : proof_token list list)
     (name : string) (args : Latex.t list) (children : Latex.t list) =
   match (name, args, children) with
+  | "\\begin{document}", _, children ->
+      List.fold_right ~f:(flip tokenize_rec) ~init:working_tokenization children
   | _, _, children ->
       ([] :: List.concat_no_order (List.map ~f:(tokenize_rec [ [] ]) children))
       @ working_tokenization

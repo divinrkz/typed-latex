@@ -2,10 +2,6 @@ open Core
 open Fn 
 
 
-let string_sep str formatter () = Format.pp_print_string formatter str
-
-let ( << ) = compose
-
 (** Option monad **)
 
 (* Monadic bind *)
@@ -31,6 +27,11 @@ let ( |<<: ) (f : 'a -> 'b) (x : 'a list) = List.map x ~f
 
 (* Side-effect map *)
 let ( <-<: ) (f : 'a -> unit) (x : 'a list) = List.iter ~f x
+
+(** Pretty-printing **)
+
+let string_sep str formatter () = Format.pp_print_string formatter str
+let ( << ) = compose
 
 let pp_hashtbl formatter ~pp_key ~pp_data t =
   let pp_pair formatter (k, d) =
@@ -83,3 +84,84 @@ let regex_matcher (str: string) (regex: string) =
     Some (Str.matched_string str)
   with
     Not_found_s _ -> None
+(** Tuples **)
+
+module Pair : sig
+  type ('a, 'b) t = ('a * 'b)
+  val first : ('a, 'b) t -> 'a
+  val second : ('a, 'b) t -> 'b
+end = struct
+  type ('a, 'b) t = ('a * 'b)
+  let first (x, _) = x
+  let second (_, x) = x
+end
+
+module Triple : sig
+  type ('a, 'b, 'c) t = ('a * 'b * 'c)
+  val first : ('a, 'b, 'c) t -> 'a
+  val second : ('a, 'b, 'c) t -> 'b
+  val third : ('a, 'b, 'c) t -> 'c
+end = struct
+  type ('a, 'b, 'c) t = ('a * 'b * 'c)
+  let first (x, _, _) = x
+  let second (_, x, _) = x
+  let third (_, _, x) = x
+end
+
+(** Other **)
+
+let non_type_words =
+  [
+    ".";
+    ",";
+    ";";
+    ":";
+    "(";
+    ")";
+    "–";
+    "—";
+    "\"";
+    "\'";
+    "and";
+    "or";
+    "but";
+    "not";
+    "nor";
+    "yet";
+    "only";
+    "once";
+    "then";
+    "now";
+    "that";
+    "while";
+    "if";
+    "unless";
+    "though";
+    "because";
+    "since";
+    "so";
+    "as";
+    "whether";
+    "neither";
+    "accordingly";
+    "also";
+    "consequently";
+    "conversely";
+    "finally";
+    "furthermore";
+    "hence";
+    "however";
+    "instead";
+    "likewise";
+    "meanwhile";
+    "moreover";
+    "nevertheless";
+    "next";
+    "nonetheless";
+    "otherwise";
+    "similarly";
+    "still";
+    "subsequently";
+    "therefore";
+    "thus";
+  ]
