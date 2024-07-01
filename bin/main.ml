@@ -48,7 +48,7 @@ type pattern =
 
 let main () =
   let filename = "tex/sample4.tex" in
-  Patterns.extract_patterns "pattern1.txt";
+  Patterns.parse_patterns "pattern1.txt";
      (* Util.extract_patterns "pattern1.txt"; *)
   (* let x = Word "define" in print_endline x; *)
   (* print_endline content *)

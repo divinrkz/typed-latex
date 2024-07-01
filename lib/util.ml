@@ -70,8 +70,9 @@ let read_file_as_str (filename: string) =
 
 (* Regex patterns *)
 let word_regex = "[a-zA-Z]+"
+let relation_regex = "[a-zA-Z]+"
 let regex_type_name = Re.Perl.compile_pat "\\$"
-let regex_relation = Re.Perl.compile_pat "M\\(less_than\\|less_than_or_equal\\|greater_than\\|greater_than_or_equal\\|equal\\|not_equal\\|set\\)"
+let regex_relation = Re.Perl.compile_pat "Mset|Min|Mgreater_than_or_equal|Mgreater_than|Mless_than_or_equal|Mless_than"
 let regex_id = Re.Perl.compile_pat "M\\(in\\|var\\)"
 
 

@@ -67,17 +67,7 @@ let def =
     ]
 
 (* 
-let parse_relation str =
-  match str with
-  | "Mless_than" -> Le
-  | "Mless_than_or_equal" -> Leq
-  | "Mgreater_than" -> Ge
-  | "Mgreater_than_or_equal" -> Geq
-  | "Mequal" -> Eq
-  | "Mnot_equal" -> NotIn
-  | "Mset" -> In
-  | _ -> failwith "Unknown relation type"
-
+ v x
 let rec parse_tokens tokens =
   match tokens with
   | [] -> []
@@ -97,25 +87,78 @@ let parse_pattern str =
   Sequence (parse_tokens tokens)
  *)
 
- 
+ let get_nth (lst: string list) idx = match List.nth lst idx with 
+ | Some elem -> elem
+ | None -> ""
 
- let parse_patterns filename = 
+let parse_relation_type (relation_type: string) = 
+   match relation_type with
+   | "Mset" -> Subset
+   | "Min" -> In
+   | "Mgreater_than" -> Ge
+   | "Mgreater_than_or_equal" -> Geq
+   | "Mless_than" -> Le
+   | "Mless_than_or_equal" -> Leq
+   | _ -> failwith "Unknown relation type"
+
+let parse_relations relations_str =
+  let relation_splits = str_split relations_str " " in 
+    let rec parse_relation splits = 
+      match splits with
+      | [] -> []
+      | relation :: rest -> Relation (parse_relation_type relation, 1, 2) :: parse_relation rest 
+    in
+    parse_relation relation_splits
+
+
+let parse_typenames str = 
+  let typename_splits = str_split str " " in 
+    let rec parse_typename splits = 
+        match splits with 
+        | [] -> []
+        | str :: rest -> Word str :: parse_typename rest
+    in 
+    parse_typename typename_splits
+      
+let parse_patterns filename = 
+  let seq = ref (Sequence []) in 
   In_channel.with_file filename ~f:(fun input_c ->
     let line_counter = ref 0 in 
-    In_channel.iter_lines input_c ~f:(fun line -> 
-      incr line_counter;
-      print_string ((string_of_int !line_counter) ^ ": ");
-      print_endline line;
-      let splits = Util.str_split line ":" in
-      match List.hd splits with 
-      | Some split -> (
-          match Util.regex_matcher split Util.word_regex with
-          | Some str -> print_endline str
-          | None -> print_endline ("Line " string_from_int !line_counter ^ "No match found.")
-        )
-      | None -> ()
+      In_channel.iter_lines input_c ~f:(fun line -> 
+        incr line_counter;
+        print_string ((string_of_int !line_counter) ^ ": ");
+        print_endline line;
+        let splits = Util.str_split line ":" in
+          let first_split = get_nth splits 0 in 
+            (match Util.regex_matcher first_split Util.word_regex with
+               | Some str -> (* sequence @ Word str;*) seq := Sequence [Word str] 
+              | None -> print_endline ("Line " ^ string_of_int !line_counter ^ "No match found.")
+            ); 
+          let second_split = get_nth splits 1 in 
+            (let parsed = Any (parse_relations second_split) in 
+            (* sequence @ parsed *)
+              seq := Sequence (!seq :: [parsed]);
+          );
+          let third_split = get_nth splits 2 in
+            (let parsed =  parse_typenames third_split in 
+              (* sequence @ parsed *)
+                seq := Sequence (!seq :: parsed);
+                print_endline (show_pattern !seq)
+            );
     )
   )
+
+
+(* let def = Sequence [(Patterns.Sequence [(Patterns.Word "let")]);
+  (Patterns.Any
+     [(Patterns.Relation (Patterns.Subset, 1, 2));
+       (Patterns.Relation (Patterns.In, 1, 2));
+       (Patterns.Relation (Patterns.Ge, 1, 2));
+       (Patterns.Relation (Patterns.Geq, 1, 2));
+       (Patterns.Relation (Patterns.Le, 1, 2));
+       (Patterns.Relation (Patterns.Leq, 1, 2))])
+  ])
+   *)
 
 
 (* let parse_file filename =
