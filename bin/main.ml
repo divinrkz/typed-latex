@@ -20,7 +20,7 @@ open Util
 
 let main () =
   let filename = "tex/sample4.tex" in
-  let seq = Pattern_defs.parse_patterns "pattern1.txt" in 
+  let seq = Pattern_defs.parse_patterns "pattern.txt" in 
   (* let matches = Util.regex_matcher "let $" "[a-zA-Z]+" in  *)
   print_endline "";
   let parsed_latex =

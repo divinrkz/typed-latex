@@ -76,7 +76,7 @@ let regex_first_matcher (str: string) (regex: string) =
     let _ = Str.search_forward regexp str 0 in
     Str.matched_string str
   with
-    Not_found_s _ -> ""
+    _ -> ""
 
 
   

@@ -27,26 +27,31 @@ let parse_relation_type (relation_type: string) =
    | "Mset" -> In
    | "Min" -> In
    | "Mgreater_than" -> Ge
+   | "Mequal" -> Eq
+   | "Mnot_equal" -> NotEq
    | "Mgreater_than_or_equal" -> Geq
    | "Mless_than" -> Le
    | "Mless_than_or_equal" -> Leq
    | _ -> Other
 
-let parse_relations relations_str =
-  let def_container = ref [] in 
-  let relation_splits = str_split relations_str ' ' in 
-    let rec parse_relation splits = 
-      match splits with
-      | [] -> []
-      | relation_type :: rest -> let parsed = parse_relation_type relation_type in
-                            match parsed with 
-                            | Other -> match relation_type with 
-                                        | "Mvar" -> def_container := DefContainer (!def_container :: [Expression (parsed)], 0)
-                                        | "D" ->  def_container := DefContainer (!def_container :: any_known_relation_pattern 1, 0)
-                            | _ -> DefContainer (Relation (parse_relation_type relation_type, 1), 1) :: parse_relation rest 
-    in
-    parse_relation relation_splits
 
+let parse_relations relations_str =
+  let def_container = ref [] in
+  let relation_splits = str_split relations_str ' ' in
+  let rec parse_relation splits =
+    match splits with
+    | [] -> !def_container
+    | relation :: rest ->
+      let parsed_relation = Relation (parse_relation_type relation, 1) in
+      def_container := !def_container @ [parsed_relation];
+      parse_relation rest
+  in
+  let relations = parse_relation relation_splits in
+    match relations with 
+    | [_] ->  [DefContainer (Expression 1, 1)]
+    | _ ->  [DefContainer (Any relations, 1)]
+
+    
 let parse_typenames str = 
   let typename_splits = str_split str ' ' in 
     let rec parse_typename splits = 
@@ -132,8 +137,18 @@ let parse_patterns filename =
           | None -> print_endline ("Line " ^ string_of_int !line_counter ^ ": No second split found.")
           | Some second_split ->
             let parsed = parse_relations second_split in
-              seq := !seq @ Any ([parsed]);
-              print_endline ("Extracted pattern: " ^ show_pattern (Sequence !seq))
+              seq := !seq @ parsed;
+              (* print_endline "Sol: "^ show_pattern par  *)
+        match List.nth segment_splits 2 with
+        | None -> print_endline ("Line " ^ string_of_int !line_counter ^ ": No first split found.")
+        | Some third_split -> process_first_split third_split seq;
+              (* (let parsed =  parse_typenames third_split in 
+                  seq := Sequence (!seq :: parsed);
+                  print_endline (show_pattern !seq)
+              ); *)
+        
+        print_endline ("Extracted pattern: " ^ show_pattern (Sequence !seq))
+
     );
   )
 
