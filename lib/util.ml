@@ -48,9 +48,9 @@ let pp_hashtbl formatter ~pp_key ~pp_data t =
     @param sep separator string 
     @return splitted list of string on separator
     *)    
-let str_split str sep =
-  Str.split (Str.regexp sep) str
+let str_split str sep = String.split str ~on:sep
 
+let str_ends_with str suffix = Stdlib.String.ends_with ~suffix:suffix str
 
 
 (** [read_file_as_str filename] reads the content of the file specified by [filename]
@@ -69,6 +69,17 @@ let read_file_as_str (filename: string) =
   );
   Buffer.contents buffer
 
+
+let regex_first_matcher (str: string) (regex: string) =
+  try
+    let regexp = Str.regexp regex in
+    let _ = Str.search_forward regexp str 0 in
+    Str.matched_string str
+  with
+    _ -> ""
+
+
+  
 (** [regex_matcher str regex] returns a list of all substrings in [str] that match the given [regex].
     @param str The input string to search for matches.
     @param regex The regular expression pattern to match against the input string.
@@ -92,6 +103,9 @@ let regex_matcher (str: string) (regex: string) =
   in
   find_all_matches [] 0 
 
+
+
+
 (** Tuples **)
 module Pair : sig
   type ('a, 'b) t = ('a * 'b)
@@ -114,6 +128,7 @@ end = struct
   let second (_, x, _) = x
   let third (_, _, x) = x
 end
+
 
 (** Other **)
 

@@ -42,7 +42,7 @@
   math_lexer
   math_parser
   math_parser_messages)
- (libraries core menhirLib re str)
+ (libraries core menhirLib str re)
  ;  (flags -rectypes)
  (preprocess
   (pps

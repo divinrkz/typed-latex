@@ -2,9 +2,9 @@ open Core
 open Patterns
 open Util
 
-
 (* Regex patterns *)
-let regex_first_split = "[a-zA-Z]+"
+let regex_first_split = "|?[a-zA-Z]+|?"
+let regex_optional = "\\(([^()]+)\\)\\?"
 let relation_regex = "[a-zA-Z]+"
 
 let list_relation_types_pattern (match_id : MatchID.t)
@@ -27,22 +27,33 @@ let parse_relation_type (relation_type: string) =
    | "Mset" -> In
    | "Min" -> In
    | "Mgreater_than" -> Ge
+   | "Mequal" -> Eq
+   | "Mnot_equal" -> NotEq
    | "Mgreater_than_or_equal" -> Geq
    | "Mless_than" -> Le
    | "Mless_than_or_equal" -> Leq
-   | _ -> failwith "Unknown relation type"
+   | _ -> Other
+
 
 let parse_relations relations_str =
-  let relation_splits = str_split relations_str " " in 
-    let rec parse_relation splits = 
-      match splits with
-      | [] -> []
-      | relation :: rest -> Relation (parse_relation_type relation, 1) :: parse_relation rest 
-    in
-    parse_relation relation_splits
+  let def_container = ref [] in
+  let relation_splits = str_split relations_str ' ' in
+  let rec parse_relation splits =
+    match splits with
+    | [] -> !def_container
+    | relation :: rest ->
+      let parsed_relation = Relation (parse_relation_type relation, 1) in
+      def_container := !def_container @ [parsed_relation];
+      parse_relation rest
+  in
+  let relations = parse_relation relation_splits in
+    match relations with 
+    | [_] ->  [DefContainer (Expression 1, 1)]
+    | _ ->  [DefContainer (Any relations, 1)]
 
+    
 let parse_typenames str = 
-  let typename_splits = str_split str " " in 
+  let typename_splits = str_split str ' ' in 
     let rec parse_typename splits = 
         match splits with 
         | [] -> []
@@ -50,58 +61,96 @@ let parse_typenames str =
     in 
     parse_typename typename_splits
       
+    
+(** 
+  [parse_words relations_str d seq] processes the [relations_str] by splitting it into words, 
+  matching them against a regex, and updating the [seq] reference with the results.
 
-(* let parse_patterns filename = 
-  let seq = ref [] in 
+  @param relations_str The string to be processed. d
+  @param seq A reference to the sequence being constructed.
+*)     
+let parse_words words_str seq =
+  let word_splits = str_split words_str ' ' in
+    let rec process_words words acc =
+      match words with
+      | [] -> acc
+      | [str] -> acc @ [Word str]
+      | str1 :: str2 :: rest ->
+          let stripped_str1 = if str_ends_with str1 "|" then String.sub str1 ~pos:0 ~len:(String.length str1 - 1) else str1 in
+          let stripped_str2 = if str_ends_with str2 "|" then String.sub str2 ~pos:0 ~len:(String.length str2 - 1) else str2 in
+          if str_ends_with str1 "|" || str_ends_with str2 "|" then
+            acc @ [Any [Word stripped_str1; Word stripped_str2]] @ process_words rest [] 
+          else
+            acc @ [Word str1] @ process_words (str2 :: rest) []
+    in
+      let rec parse_word splits acc =
+        match splits with
+        | [] -> acc
+        | word :: rest ->
+          let optional_matches = Util.regex_matcher word regex_optional in
+          let new_acc =
+            match optional_matches with
+            | [opt] -> 
+              let stripped_opt = Util.regex_first_matcher opt regex_first_split in 
+                acc @ [Optional (Word stripped_opt)]
+            | _ -> 
+              let matched_lst = Util.regex_matcher word regex_first_split in
+              match matched_lst with
+              | [] -> acc
+              | [str] -> acc @ [Word str]
+              | _ -> process_words matched_lst acc
+          in
+          parse_word rest new_acc
+      in
+      seq := parse_word word_splits !seq
+    
+
+(** 
+  [process_first_split first_split seq] processes the [first_split] of a line by calling [parse_words].
+
+  @param first_split The first segment of the line to be processed.
+  @param seq A reference to the sequence being constructed.
+*)
+let process_first_split first_split seq =
+  parse_words first_split seq
+  
+      
+(** 
+  [parse_patterns filename] reads lines from a file, splits each line into segments, and processes the segments
+  to construct a sequence of patterns.
+
+  @param filename The name of the file to read patterns from.
+*)
+let parse_patterns filename =
   In_channel.with_file filename ~f:(fun input_c ->
-    let line_counter = ref 0 in 
-      In_channel.iter_lines input_c ~f:(fun line -> 
-        incr line_counter;
-        print_string ("Line " ^ (string_of_int !line_counter) ^ ": ");
-        print_endline line;
-        let splits = Util.str_split line ":" in
-          let first_split = get_nth splits 0 in 
-            let matched_lst = Util.regex_matcher first_split regex_first_split in 
-              (match matched_lst with
-                | [] ->  print_endline ("Line " ^ string_of_int !line_counter ^ "No match found.")
-                (* TODO: Fix append *)
-                | [str] -> seq := !seq @ [Word str]
-                | _ -> (fun str -> seq := !seq @ [Word str]) <-<: matched_lst
-              );  
+    let line_counter = ref 0 in
+    In_channel.iter_lines input_c ~f:(fun line ->
+    let seq = ref [] in
+      incr line_counter;
+      print_string ("\nLine [" ^ (string_of_int !line_counter) ^ "]: ");
+      print_endline ("\"" ^ line ^ "\"");
+      let segment_splits = str_split line ':' in
+        match List.nth segment_splits 0 with
+          | None -> print_endline ("Line " ^ string_of_int !line_counter ^ ": No first split found.")
+          | Some first_split -> process_first_split first_split seq;
+        match List.nth segment_splits 1 with
+          | None -> print_endline ("Line " ^ string_of_int !line_counter ^ ": No second split found.")
+          | Some second_split ->
+            let parsed = parse_relations second_split in
+              seq := !seq @ parsed;
+              (* print_endline "Sol: "^ show_pattern par  *)
+        match List.nth segment_splits 2 with
+        | None -> print_endline ("Line " ^ string_of_int !line_counter ^ ": No first split found.")
+        | Some third_split -> process_first_split third_split seq;
+              (* (let parsed =  parse_typenames third_split in 
+                  seq := Sequence (!seq :: parsed);
+                  print_endline (show_pattern !seq)
+              ); *)
+        
+        print_endline ("Extracted pattern: " ^ show_pattern (Sequence !seq))
 
-          (* let second_split = get_nth splits 1 in 
-            (let parsed = Any (parse_relations second_split) in 
-              seq := Sequence (!seq :: [parsed]);
-          );
-          let third_split = get_nth splits 2 in
-            (let parsed =  parse_typenames third_split in 
-                seq := Sequence (!seq :: parsed);
-                print_endline ("Extracted pattern: " ^ show_pattern !seq)
-            ); *)
-    )
-  ) 
-  Sequence !seq *)
-
-  let parse_patterns filename = 
-    let seq = ref [] in 
-    In_channel.with_file filename ~f:(fun input_c ->
-      let line_counter = ref 0 in 
-      In_channel.iter_lines input_c ~f:(fun line -> 
-        incr line_counter;
-        print_string ("Line " ^ (string_of_int !line_counter) ^ ": ");
-        print_endline line;
-        let splits = Util.str_split line ":" in
-        let first_split = List.nth_exn splits 0 in 
-        let matched_lst = Util.regex_matcher first_split regex_first_split in 
-        match matched_lst with
-        | [] -> print_endline ("Line " ^ string_of_int !line_counter ^ ": No match found.")
-        | [str] -> 
-            seq := !seq @ [Word str]
-        | _ -> 
-            (fun str -> seq := !seq @ [Word str]) <-<: matched_lst
-      )
     );
-    Sequence !seq  
+  )
 
 
 let def1 =

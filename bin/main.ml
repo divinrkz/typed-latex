@@ -18,41 +18,11 @@ open Util
 (* let result = parse_latex "$P(x, y) = x - N^y$\n$P(1, 2)$\n$N = \\frac{1}{2}$" in *)
 
 
-type relation_type =
-  | Le
-  | Leq
-  | Ge
-  | Geq
-  | Eq
-  | In
-  | NotIn
-  | Subset
-  | Superset
-  | SubsetEq 
-  | SupersetEq
-[@@deriving eq, show, sexp, hash, ord]
-
-type id = string
-[@@deriving eq, show, sexp, hash, ord]
-
-type pattern = 
-    | Word of string
-    | Any of pattern list
-    | Sequence of pattern list
-    | Optional of pattern
-    | Repeat of pattern
-    | TypeName of id
-    | DefContainer 
-    | Relation of relation_type * id * id
-[@@deriving eq, show, sexp, hash, ord]
-
-
 let main () =
   let filename = "tex/sample4.tex" in
-  let seq = Pattern_defs.parse_patterns "pattern1.txt" in 
-  print_endline ("Extracted pattern: " ^ show_pattern seq);
+  let seq = Pattern_defs.parse_patterns "pattern.txt" in 
   (* let matches = Util.regex_matcher "let $" "[a-zA-Z]+" in  *)
-
+  print_endline "";
   let parsed_latex =
     try User.parse_latex_file filename
     with User.Error _ as e ->
@@ -64,7 +34,7 @@ let main () =
       fprintf stderr "Unable to parse. Exiting...\n";
       exit (-1)
   | Some _ ->
-      print_endline "Paarsed latex.";
+      print_endline "Parsed latex.";
       let document_ast = User.unwrap_to_document =<<? parsed_latex in
       print_endline << latex_tree_format <-<? document_ast;
       let pattern = Pattern_defs.def1 in

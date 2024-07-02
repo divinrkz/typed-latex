@@ -10,6 +10,7 @@ let relation_name (relation : Math.relation) =
   | Ge -> "Ge"
   | Geq -> "Geq"
   | Eq -> "Eq"
+  | NotEq -> "NotEq"
   | In -> "In"
   | NotIn -> "NotIn"
   | Subset -> "Subset"

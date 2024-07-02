@@ -13,6 +13,7 @@ type relation_type =
 | Ge
 | Geq
 | Eq
+| NotEq
 | In
 | NotIn
 | Subset
@@ -22,7 +23,7 @@ type relation_type =
 | Other
 [@@deriving eq, show, sexp, hash, ord]
 
-let all_known_relation_types =  [ Le; Leq; Ge; Geq; Eq; In; NotIn; Subset; Superset; SubsetEq; SupersetEq ]
+let all_known_relation_types =  [ Le; Leq; Ge; Geq; Eq; NotEq; In; NotIn; Subset; Superset; SubsetEq; SupersetEq ]
   
 let all_relation_types = Other :: all_known_relation_types
 
@@ -36,6 +37,7 @@ let ast_to_elementary_relation_type (ast_rel_t : Math.relation) =
     | Math.Geq -> Geq
     | Math.Eq -> Eq
     | Math.In -> In
+    | Math.NotEq -> NotEq
     | Math.NotIn -> NotIn
     | Math.Subset -> Subset
     | Math.Superset -> Superset

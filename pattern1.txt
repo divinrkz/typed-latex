@@ -1,1 +1,0 @@
-(choose|consider|define)$:Mequal Mnot_equal:

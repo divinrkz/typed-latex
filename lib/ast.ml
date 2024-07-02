@@ -14,6 +14,7 @@ module rec Math : sig
     | Ge
     | Geq
     | Eq
+    | NotEq
     | In
     | NotIn
     | Subset
@@ -66,6 +67,7 @@ end = struct
     | Ge
     | Geq
     | Eq
+    | NotEq
     | In
     | NotIn
     | Subset
@@ -136,6 +138,7 @@ end = struct
     | Ge -> Format.fprintf formatter ">"
     | Geq -> Format.fprintf formatter ">="
     | Eq -> Format.fprintf formatter "="
+    | NotEq -> Format.fprintf formatter "!="
     | In -> Format.fprintf formatter "IN"
     | NotIn -> Format.fprintf formatter "NOTIN"
     | Subset -> Format.fprintf formatter "SUBSET"
@@ -431,6 +434,12 @@ end = struct
                       add_constraint (prev_t, t);
                       add_constraint (t, prev_t);
                       iter t tl
+                  | NotEq, expr ->
+                    (* TODO: NotEq *)
+                    let t = recurse env expr in
+                    add_constraint (prev_t, t);
+                    add_constraint (t, prev_t);
+                    iter t tl    
                   | Equiv m, expr ->
                       let t = recurse env expr in
                       let m_t = recurse env m in
