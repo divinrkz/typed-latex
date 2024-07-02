@@ -18,8 +18,8 @@ open Util
 
 
 let main () =
-  let filename = "tex/sample4.tex" in
-  Pattern_defs.parse_patterns "pattern.txt"; 
+  let filename = "assets/tex/sample4.tex" in
+  Pattern_defs.parse_patterns "assets/patterns/formatted-patterns.txt"; 
   print_endline "";
   let parsed_latex =
     try User.parse_latex_file filename
