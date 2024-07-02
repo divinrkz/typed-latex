@@ -1,6 +1,8 @@
 open Core
 open Typed_latex
-include Util
+open Ast_print
+open Patterns
+open Util
 
 (* TODO: add basic expansion step to expand user-defined macros *)
 
@@ -44,43 +46,51 @@ type pattern =
     | Relation of relation_type * id * id
 [@@deriving eq, show, sexp, hash, ord]
 
-(* let generate_patterns filename = 
-  let ic = open_in filenmae 
-  File.foreach(filename) { |line| puts line } *)
-    (* let lines = File.readlines(filename) *)
 
 let main () =
   let filename = "tex/sample4.tex" in
-  Util.extract_patterns "patterns.txt";
-  let result =
+  let seq = Pattern_defs.parse_patterns "pattern1.txt" in 
+  print_endline ("Extracted pattern: " ^ show_pattern seq);
+  (* let matches = Util.regex_matcher "let $" "[a-zA-Z]+" in  *)
+
+  let parsed_latex =
     try User.parse_latex_file filename
     with User.Error _ as e ->
       fprintf stderr "%s\n" (User.error_message e);
       exit (-1)
   in
-  match result with
+  match parsed_latex with
   | None ->
       fprintf stderr "Unable to parse. Exiting...\n";
       exit (-1)
-  | Some ast -> (
-      (* Format.printf "Parsed latex: %a\n" Ast.Latex.pp ast; *)
-      (* try User.type_check ast with
-         | User.Error _ as e -> fprintf stderr "%s\n" (User.error_message e); *)
-      (* let pattern = User.Sequence [Word "Hello"; Variable 0] in *)
-      let document_ast = User.unwrap_to_document ast in
-      (match document_ast with
-      | Some document_ast_contents ->
-          Format.printf "Found document: %a\n" Ast.Latex.pp
-            document_ast_contents
-      | None -> Format.printf "Unable to find document\n");
-  )
-
-
-      (* match Patterns.match_with Patterns.def =<<? document_ast with
-      | Some mappings ->
-          Format.printf "Success: %a\n"
-            (Util.pp_hashtbl ~pp_key:Format.pp_print_int ~pp_data:Ast.Math.pp)
-            mappings
-      | None -> Format.printf "Fail\n") *)
+  | Some _ ->
+      print_endline "Paarsed latex.";
+      let document_ast = User.unwrap_to_document =<<? parsed_latex in
+      print_endline << latex_tree_format <-<? document_ast;
+      let pattern = Pattern_defs.def1 in
+      let tokenization = Proof_lex.tokenize |<<? document_ast in
+      (fun token_streams ->
+        print_endline
+          ("Found "
+          ^ string_of_int (List.length token_streams)
+          ^ " token stream(s)"))
+      <-<? tokenization;
+      let first_token_stream = List.hd =<<? tokenization in
+      (fun stream ->
+        print_endline ("Stream length: " ^ string_of_int (List.length stream)))
+      <-<? first_token_stream;
+      List.iter ~f:(fun token ->
+          match token with
+          | Proof_lex.WordToken word -> print_endline ("| WordToken: " ^ word)
+          | Proof_lex.MathToken _ -> print_endline "| MathToken")
+      <-<? first_token_stream;
+      let matched_context =
+        Patterns.match_pattern pattern =<<? first_token_stream
+      in
+      print_endline
+        (if is_some matched_context then "Matched the pattern"
+         else "Did not match the pattern");
+      let matches = Pair.second |<<? matched_context in
+      print_endline << Patterns.MatchContainer.tree_format <-<? matches
 
 let () = main ()
