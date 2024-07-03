@@ -1,7 +1,6 @@
 open Core
 open Typed_latex
 open Ast_print
-open Patterns
 open Util
 
 (* TODO: add basic expansion step to expand user-defined macros *)
@@ -20,8 +19,7 @@ open Util
 
 let main () =
   let filename = "tex/sample4.tex" in
-  let seq = Pattern_defs.parse_patterns "pattern.txt" in 
-  (* let matches = Util.regex_matcher "let $" "[a-zA-Z]+" in  *)
+  Pattern_defs.parse_patterns "pattern.txt"; 
   print_endline "";
   let parsed_latex =
     try User.parse_latex_file filename
