@@ -1,0 +1,124 @@
+{
+  "kind": "ast.root",
+  "content": [
+    {
+      "kind": "command",
+      "name": "documentclass",
+      "args": [
+        {
+          "kind": "arg.group",
+          "content": [
+            {
+              "kind": "text.string",
+              "content": "article"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "kind": "softbreak"
+    },
+    {
+      "kind": "command",
+      "name": "usepackage",
+      "args": [
+        {
+          "kind": "arg.group",
+          "content": [
+            {
+              "kind": "text.string",
+              "content": "tikz"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "kind": "softbreak"
+    },
+    {
+      "kind": "command",
+      "name": "usepackage",
+      "args": [
+        {
+          "kind": "arg.group",
+          "content": [
+            {
+              "kind": "text.string",
+              "content": "mathtools"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "kind": "env",
+      "name": "document",
+      "args": [],
+      "content": [
+        {
+          "kind": "parbreak"
+        },
+        {
+          "kind": "command",
+          "name": "DeclarePairedDelimiter",
+          "args": []
+        },
+        {
+          "kind": "command",
+          "name": "set",
+          "args": []
+        },
+        {
+          "kind": "command",
+          "name": "{",
+          "args": []
+        },
+        {
+          "kind": "command",
+          "name": "}",
+          "args": []
+        },
+        {
+          "kind": "parbreak"
+        },
+        {
+          "kind": "displayMath",
+          "content": [
+            {
+              "kind": "arg.group",
+              "content": [
+                {
+                  "kind": "math.character",
+                  "content": "x"
+                },
+                {
+                  "kind": "command",
+                  "name": "vert",
+                  "args": []
+                },
+                {
+                  "kind": "math.character",
+                  "content": "x"
+                },
+                {
+                  "kind": "command",
+                  "name": "in",
+                  "args": []
+                },
+                {
+                  "kind": "math.character",
+                  "content": "L"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "kind": "parbreak"
+        }
+      ]
+    }
+  ]
+}

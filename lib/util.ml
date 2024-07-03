@@ -29,6 +29,20 @@ let ( |<<: ) (f : 'a -> 'b) (x : 'a list) = List.map x ~f
 let ( <-<: ) (f : 'a -> unit) (x : 'a list) = List.iter ~f x
 let ( >->: ) (x : 'a list) (f : 'a -> unit) = List.iter ~f x
 
+(** Result monad **)
+
+(* Monadic bind *)
+let ( >>=! ) (x : ('a, 'e) result) (f : 'a -> ('b, 'e) result) = Result.bind x ~f
+let ( =<<! ) (f : 'a -> ('b, 'e) result) (x : ('a, 'e) result) = Result.bind x ~f
+
+(* Functor map *)
+let ( >>|! ) (x : ('a, 'e) result) (f : 'a -> 'b) = Result.map x ~f
+let ( |<<! ) (f : 'a -> 'b) (x : ('a, 'e) result) = Result.map x ~f
+
+(* Side-effect map *)
+let ( <-<! ) (f : 'a -> unit) (x : ('a, 'e) result) = Result.iter ~f x
+let ( >->! ) (x : ('a, 'e) result) (f : 'a -> unit) = Result.iter ~f x
+
 (** Pretty-printing **)
 
 let string_sep str formatter () = Format.pp_print_string formatter str

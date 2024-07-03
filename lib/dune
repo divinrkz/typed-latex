@@ -36,13 +36,14 @@
   pattern_defs
   proof_lex
   util
+  latex_deserializer
   latex_lexer
   latex_parser
   latex_parser_messages
   math_lexer
   math_parser
   math_parser_messages)
- (libraries core menhirLib re)
+ (libraries core menhirLib re yojson)
  ;  (flags -rectypes)
  (preprocess
   (pps
