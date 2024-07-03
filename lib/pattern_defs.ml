@@ -2,6 +2,36 @@ open Core
 open Patterns
 open Util
 
+
+type match_id_counters = {
+  type_name: int ref;
+  def_container: int ref;
+  relation: int ref;
+  expression: int ref;
+}
+
+let id_counters: match_id_counters = {
+  type_name = ref 0;
+  def_container = ref 0;
+  relation = ref 0;
+  expression = ref 0;
+}
+
+
+(** Generate a new ID for a given pattern variant *)
+let generate_match_id (pattern_case: string) = 
+    match pattern_case with 
+    | "TypeName" -> incr id_counters.type_name;   
+                    !(id_counters.type_name) 
+    | "DefContainer" -> incr id_counters.def_container;
+                        !(id_counters.def_container) 
+    | "Relation" -> incr id_counters.relation;
+                    !(id_counters.relation) 
+    | "Expression" -> incr id_counters.expression;
+                      !(id_counters.expression) 
+    | _ -> failwith "Invalid pattern case"
+
+
 (* Regex patterns *)
 let regex_first_split = "|?[a-zA-Z]+|?"
 let regex_optional = "\\(([^()]+)\\)\\?"
@@ -18,13 +48,9 @@ let any_known_relation_pattern (match_id : MatchID.t) =
 let any_relation_pattern (match_id : MatchID.t) =
   list_relation_types_pattern match_id all_relation_types
 
- let get_nth (lst: string list) idx = match List.nth lst idx with 
- | Some elem -> elem
- | None -> ""
-
 let parse_relation_type (relation_type: string) = 
    match relation_type with
-   | "Mset" -> In
+   | "Mset" -> Subset 
    | "Min" -> In
    | "Mgreater_than" -> Ge
    | "Mequal" -> Eq
@@ -35,6 +61,12 @@ let parse_relation_type (relation_type: string) =
    | _ -> Other
 
 
+(** 
+  [parse_relations relations_str] processes the [relations_str] by splitting it into relations, 
+  and parsing each relation to pattern types
+
+  @param relations_str The string to be processed. 
+*)       
 let parse_relations relations_str =
   let def_container = ref [] in
   let relation_splits = str_split relations_str ' ' in
@@ -42,31 +74,20 @@ let parse_relations relations_str =
     match splits with
     | [] -> !def_container
     | relation :: rest ->
-      let parsed_relation = Relation (parse_relation_type relation, 1) in
+      let parsed_relation = Relation (parse_relation_type relation, generate_match_id "Relation") in
       def_container := !def_container @ [parsed_relation];
       parse_relation rest
   in
   let relations = parse_relation relation_splits in
     match relations with 
-    | [_] ->  [DefContainer (Expression 1, 1)]
-    | _ ->  [DefContainer (Any relations, 1)]
+    | [_] ->  [DefContainer (Expression (generate_match_id "Expression"), generate_match_id "DefContainer")]
+    | _ ->  [DefContainer (Any relations, generate_match_id "DefContainer")]
 
-    
-let parse_typenames str = 
-  let typename_splits = str_split str ' ' in 
-    let rec parse_typename splits = 
-        match splits with 
-        | [] -> []
-        | str :: rest -> Word str :: parse_typename rest
-    in 
-    parse_typename typename_splits
-      
-    
 (** 
-  [parse_words relations_str d seq] processes the [relations_str] by splitting it into words, 
+  [parse_words relations_str seq] processes the [relations_str] by splitting it into words, 
   matching them against a regex, and updating the [seq] reference with the results.
 
-  @param relations_str The string to be processed. d
+  @param relations_str The string to be processed.
   @param seq A reference to the sequence being constructed.
 *)     
 let parse_words words_str seq =
@@ -138,17 +159,11 @@ let parse_patterns filename =
           | Some second_split ->
             let parsed = parse_relations second_split in
               seq := !seq @ parsed;
-              (* print_endline "Sol: "^ show_pattern par  *)
         match List.nth segment_splits 2 with
         | None -> print_endline ("Line " ^ string_of_int !line_counter ^ ": No first split found.")
         | Some third_split -> process_first_split third_split seq;
-              (* (let parsed =  parse_typenames third_split in 
-                  seq := Sequence (!seq :: parsed);
-                  print_endline (show_pattern !seq)
-              ); *)
-        
+      
         print_endline ("Extracted pattern: " ^ show_pattern (Sequence !seq))
-
     );
   )
 

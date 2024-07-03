@@ -78,7 +78,6 @@ let regex_first_matcher (str: string) (regex: string) =
   with
     _ -> ""
 
-
   
 (** [regex_matcher str regex] returns a list of all substrings in [str] that match the given [regex].
     @param str The input string to search for matches.
