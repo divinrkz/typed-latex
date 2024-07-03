@@ -13,6 +13,7 @@ let ( |<<? ) (f : 'a -> 'b) (x : 'a option) = Option.map x ~f
 
 (* Side-effect map *)
 let ( <-<? ) (f : 'a -> unit) (x : 'a option) = Option.iter ~f x
+let ( >->? ) (x : 'a option) (f : 'a -> unit) = Option.iter ~f x
 
 (** List monad **)
 
@@ -26,6 +27,7 @@ let ( |<<: ) (f : 'a -> 'b) (x : 'a list) = List.map x ~f
 
 (* Side-effect map *)
 let ( <-<: ) (f : 'a -> unit) (x : 'a list) = List.iter ~f x
+let ( >->: ) (x : 'a list) (f : 'a -> unit) = List.iter ~f x
 
 (** Pretty-printing **)
 
@@ -43,28 +45,47 @@ let pp_hashtbl formatter ~pp_key ~pp_data t =
 (** Tuples **)
 
 module Pair : sig
-  type ('a, 'b) t = ('a * 'b)
+  type ('a, 'b) t = 'a * 'b
+
   val first : ('a, 'b) t -> 'a
   val second : ('a, 'b) t -> 'b
 end = struct
-  type ('a, 'b) t = ('a * 'b)
+  type ('a, 'b) t = 'a * 'b
+
   let first (x, _) = x
   let second (_, x) = x
 end
 
 module Triple : sig
-  type ('a, 'b, 'c) t = ('a * 'b * 'c)
+  type ('a, 'b, 'c) t = 'a * 'b * 'c
+
   val first : ('a, 'b, 'c) t -> 'a
   val second : ('a, 'b, 'c) t -> 'b
   val third : ('a, 'b, 'c) t -> 'c
 end = struct
-  type ('a, 'b, 'c) t = ('a * 'b * 'c)
+  type ('a, 'b, 'c) t = 'a * 'b * 'c
+
   let first (x, _, _) = x
   let second (_, x, _) = x
   let third (_, _, x) = x
 end
 
+(** Strings **)
+
+module String = struct
+  include String
+
+  let non_stupid_slice (str : string) (start : int) (stop : int) =
+    let len = length str in
+    let m_start, m_stop = (start % len, stop % len) in
+    if Int.equal m_start m_stop then make 0 (Char.unsafe_of_int 0)
+    else slice str m_start m_stop
+end
+
 (** Other **)
+
+let word_split_chars = [ '.'; ','; ';'; '/'; '('; ')' ]
+let sentence_split_words = [ "."; ";" ]
 
 let non_type_words =
   [
