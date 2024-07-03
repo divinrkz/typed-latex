@@ -1,4 +1,4 @@
-run: parse_latex run_only
+run: run_only
 
 run_only:
 	dune exec typed_latex

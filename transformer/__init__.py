@@ -2,18 +2,20 @@ import itertools
 import string
 from json import JSONEncoder, dumps
 from string import whitespace
+import os
 
 import TexSoup as soup
 import TexSoup.utils as soup_utils
 from TexSoup import TexSoup, TexNode
 
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+ASSETS_BASE_DIR = f"{BASE_DIR}/assets/tex/"
 
 def indent(substr: str) -> str:
     return "\t" + substr.replace("\n", "\n\t")
 
-
 def read_latex(file_name: str) -> TexNode:
-    with open("sample.tex", 'r') as latex_file:
+    with open(f"{ASSETS_BASE_DIR}{file_name}", 'r') as latex_file:
         return TexSoup(latex_file.read())
 
 
