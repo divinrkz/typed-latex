@@ -20,7 +20,7 @@ let id_counters: match_id_counters = {
 
 
 (** Generate a new ID for a given pattern variant *)
-let generate_id (pattern_case: string) = 
+let generate_match_id (pattern_case: string) = 
     match pattern_case with 
     | "TypeName" -> incr id_counters.type_name;   
                     !(id_counters.type_name) 
@@ -75,14 +75,14 @@ let parse_relations relations_str =
     match splits with
     | [] -> !def_container
     | relation :: rest ->
-      let parsed_relation = Relation (parse_relation_type relation, generate_id "Relation") in
+      let parsed_relation = Relation (parse_relation_type relation, generate_match_id "Relation") in
       def_container := !def_container @ [parsed_relation];
       parse_relation rest
   in
   let relations = parse_relation relation_splits in
     match relations with 
-    | [_] ->  [DefContainer (Expression (generate_id "Expression"), generate_id "DefContainer")]
-    | _ ->  [DefContainer (Any relations, generate_id "DefContainer")]
+    | [_] ->  [DefContainer (Expression (generate_match_id "Expression"), generate_match_id "DefContainer")]
+    | _ ->  [DefContainer (Any relations, generate_match_id "DefContainer")]
 
 (** 
   [parse_words relations_str seq] processes the [relations_str] by splitting it into words, 
