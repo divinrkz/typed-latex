@@ -2,12 +2,6 @@ open Core
 open Patterns
 open Util
 
-(* Regex patterns *)
-let regex_first_split = "|?[a-zA-Z]+|?"
-let regex_optional = "\\(([^()]+)\\)\\?"
-let relation_regex = "[a-zA-Z]+"
-
-
 
 type match_id_counters = {
   type_name: int ref;
@@ -36,6 +30,11 @@ let generate_id (pattern_case: string) =
                       !(id_counters.expression) 
     | _ -> failwith "Invalid pattern case"
 
+
+(* Regex patterns *)
+let regex_first_split = "|?[a-zA-Z]+|?"
+let regex_optional = "\\(([^()]+)\\)\\?"
+let relation_regex = "[a-zA-Z]+"
 
 let list_relation_types_pattern (match_id : MatchID.t)
     (allowed_relation_types : relation_type list) =
@@ -163,9 +162,7 @@ let parse_patterns filename =
         | None -> print_endline ("Line " ^ string_of_int !line_counter ^ ": No first split found.")
         | Some third_split -> process_first_split third_split seq;
       
-        print_endline ("Extracted pattern: " ^ show_pattern (Sequence !seq));
-        let id = generate_id "TypeName" in  
-          print_endline ("generate_id: " ^ string_of_int (id))
+        print_endline ("Extracted pattern: " ^ show_pattern (Sequence !seq))
     );
   )
 
