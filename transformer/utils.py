@@ -1,11 +1,15 @@
-RELATIONS = [ '<', '>', r'\leq', r'\geq', r'\leqq', r'\leqslant', r'\lesssim',
-              r'\lessapprox', r'\prec', r'\preceq', r'\lessgtr', r'\lesseqgtr',
-              r'\geq', r'\geqq', r'\geqslant', r'\gtrsim', r'\gtrapprox', r'\succ', 
-              r'\succeq', r'\succsim', r'\nless', r'\ngtr', r'\nleq', r'\ngeq',
-              r'\lneq', r'\gneq', r'\nleqslant', r'\ngeqslant', r'\ll', r'\lll', r'\gg', r'\ggg']
+import string
+from string import whitespace 
+import re
+from sympy.parsing.latex import parse_latex
+
+RELATIONS = [ '<', '>', r'\\leq', r'\\geq', r'\\leqq', r'\\leqslant', r'\\lesssim',
+              r'\\lessapprox', r'\\prec', r'\\preceq', r'\\lessgtr', r'\\lesseqgtr',
+              r'\\geq', r'\\geqq', r'\\geqslant', r'\\gtrsim', r'\\gtrapprox', r'\\succ', 
+              r'\\succeq', r'\\succsim', r'\\nless', r'\\ngtr', r'\\nleq', r'\\ngeq',
+              r'\\lneq', r'\\gneq', r'\\nleqslant', r'\\ngeqslant', r'\\ll', r'\\lll', r'\\gg', r'\\ggg']
 
 MATH_MODE_ENV = ['equation', 'split', 'gather', 'multiline']
-
 
 def indent(substr: str) -> str:
     return "\t" + substr.replace("\n", "\n\t")
@@ -71,3 +75,91 @@ def merge_around_multiple_separators(input_list, separator):
 
     return merged_strings
     
+def split_by_separators(string):
+    pattern = '|'.join(RELATIONS)
+    return re.split(pattern, string)
+    
+    
+def has_relation(string):
+    escaped_relations = [re.escape(rel) for rel in RELATIONS]
+    pattern = '|'.join(escaped_relations)
+    return re.search(pattern, string) is not None
+
+    
+def parse_inequalities(compound_inequality): 
+    print(split_by_separators(compound_inequality))
+    
+    parts = split_by_separators(compound_inequality)
+
+    # Parse each part separately
+    parsed_inequalities = [parse_latex(part.strip()) for part in parts]
+
+    inequalities = []
+    
+    index = 0
+    for separator in re.findall('|'.join(RELATIONS), compound_inequality):
+        if separator == '<':
+            inequalities.append(parsed_inequalities[index] < parsed_inequalities[index + 1])
+        elif separator == '>':
+            inequalities.append(parsed_inequalities[index] > parsed_inequalities[index + 1])
+        elif separator == '\\leq':
+            inequalities.append(parsed_inequalities[index] <= parsed_inequalities[index + 1])
+        elif separator == '\\geq':
+            inequalities.append(parsed_inequalities[index] >= parsed_inequalities[index + 1])
+        elif separator == '\\leqq':
+            inequalities.append(parsed_inequalities[index] <= parsed_inequalities[index + 1])
+        elif separator == '\\leqslant':
+            inequalities.append(parsed_inequalities[index] <= parsed_inequalities[index + 1])
+        elif separator == '\\lesssim':
+            inequalities.append(parsed_inequalities[index] <= parsed_inequalities[index + 1])
+        elif separator == '\\lessapprox':
+            inequalities.append(parsed_inequalities[index] <= parsed_inequalities[index + 1])
+        elif separator == '\\prec':
+            inequalities.append(parsed_inequalities[index] < parsed_inequalities[index + 1])
+        elif separator == '\\preceq':
+            inequalities.append(parsed_inequalities[index] <= parsed_inequalities[index + 1])
+        elif separator == '\\lessgtr':
+            inequalities.append(parsed_inequalities[index] != parsed_inequalities[index + 1])
+        elif separator == '\\lesseqgtr':
+            inequalities.append(parsed_inequalities[index] <= parsed_inequalities[index + 1])
+        elif separator == '\\geqq':
+            inequalities.append(parsed_inequalities[index] >= parsed_inequalities[index + 1])
+        elif separator == '\\geqslant':
+            inequalities.append(parsed_inequalities[index] >= parsed_inequalities[index + 1])
+        elif separator == '\\gtrsim':
+            inequalities.append(parsed_inequalities[index] > parsed_inequalities[index + 1])
+        elif separator == '\\gtrapprox':
+            inequalities.append(parsed_inequalities[index] > parsed_inequalities[index + 1])
+        elif separator == '\\succ':
+            inequalities.append(parsed_inequalities[index] > parsed_inequalities[index + 1])
+        elif separator == '\\succeq':
+            inequalities.append(parsed_inequalities[index] >= parsed_inequalities[index + 1])
+        elif separator == '\\succsim':
+            inequalities.append(parsed_inequalities[index] > parsed_inequalities[index + 1])
+        elif separator == '\\nless':
+            inequalities.append(parsed_inequalities[index] >= parsed_inequalities[index + 1])
+        elif separator == '\\ngtr':
+            inequalities.append(parsed_inequalities[index] <= parsed_inequalities[index + 1])
+        elif separator == '\\nleq':
+            inequalities.append(parsed_inequalities[index] > parsed_inequalities[index + 1])
+        elif separator == '\\ngeq':
+            inequalities.append(parsed_inequalities[index] < parsed_inequalities[index + 1])
+        elif separator == '\\lneq':
+            inequalities.append(parsed_inequalities[index] < parsed_inequalities[index + 1])
+        elif separator == '\\gneq':
+            inequalities.append(parsed_inequalities[index] > parsed_inequalities[index + 1])
+        elif separator == '\\nleqslant':
+            inequalities.append(parsed_inequalities[index] > parsed_inequalities[index + 1])
+        elif separator == '\\ngeqslant':
+            inequalities.append(parsed_inequalities[index] < parsed_inequalities[index + 1])
+        elif separator == '\\ll':
+            inequalities.append(parsed_inequalities[index] << parsed_inequalities[index + 1])
+        elif separator == '\\lll':
+            inequalities.append(parsed_inequalities[index] << parsed_inequalities[index + 1])
+        elif separator == '\\gg':
+            inequalities.append(parsed_inequalities[index] >> parsed_inequalities[index + 1])
+        elif separator == '\\ggg':
+            inequalities.append(parsed_inequalities[index] >> parsed_inequalities[index + 1])
+        index += 1
+    return inequalities
+       

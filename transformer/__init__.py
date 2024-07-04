@@ -1,14 +1,16 @@
 from json import JSONEncoder, dumps
+
 from TexSoup.data import TexNode, TexArgs, BraceGroup, BracketGroup
 from TexSoup.utils import Token
 from TexSoup import TexSoup
 from sympy import srepr, And
 from sympy.parsing.latex import parse_latex
-from utils import RELATIONS, MATH_MODE_ENV, indent, remove_trailing_dollars, split_to_words, is_sublist, merge_around_multiple_separators
+from utils import MATH_MODE_ENV, remove_trailing_dollars, split_to_words, is_sublist, merge_around_multiple_separators, has_relation, parse_inequalities
 
 ASSETS_BASE_DIR = f"assets"
 TEX_BASE_DIR = f"{ASSETS_BASE_DIR}/tex"
 JSON_BASE_DIR = f"{ASSETS_BASE_DIR}/json"
+
 
 def read_latex(file_name: str) -> TexNode:
     """
@@ -30,28 +32,33 @@ def json_like_nonprim_encode(obj):
             }
         else:
             splits = split_to_words(str(obj))
-            # print('splits', splits[3:])
 
             if splits[0] == '$' and splits[len(splits) - 1] == '$':
-  
                 multiline_math = [element for element in str(obj).split(r"\\") if element]
         
                 if (len(multiline_math) > 1):
+                    print('here')
+                    print(multiline_math)
+                    
                     (type, sympy_exprs) = ("MultilineMath", [srepr(parse_latex(math_element)) for math_element in multiline_math])
                 else: 
                     formatted = remove_trailing_dollars(str(obj))
-                    print("Formatted", formatted)
-                    print("Obj", obj)
-                    print("splits", splits)
-                    (type, sympy_exprs) = ("Math", srepr(parse_latex(remove_trailing_dollars(formatted))))
+                    parsed = None;
+                    if has_relation(formatted):
+                        parsed = srepr(And(*parse_inequalities(formatted)))
+                    else: 
+                        parsed = srepr(parse_latex(formatted))
+
+                    
+                    (type, sympy_exprs) = ("Math", parsed)
                 return {"type": type, "value": sympy_exprs}
             
             elif splits[0] == "\\":
                 if splits[1] == 'begin': 
                     if splits[3] in MATH_MODE_ENV and not is_sublist(splits[3:], ['\\', 'begin', '{']):               
-    
-                        # multiline_math = [element for element in str(obj.).split(r"\\") if element]
+
                         multiline_math = [element for element in merge_around_multiple_separators(obj.contents, r"\\") if element]
+                        print("multiline", multiline_math)
                         
                         return {
                             "type": "Environment",
@@ -111,35 +118,10 @@ def count_occurrences(main_string, substring):
     return main_string.count(substring)
 
 if __name__ == "__main__":
-    latex: TexSoup = read_latex("sample3.tex")
+    latex: TexSoup = read_latex("sample2.tex")
     # print('latex', srepr(parse_latex(r'${x \vert x \in L}$')))
-    
     # print('latex', srepr(parse_latex(r'y \subseteq \mathbb{N}')))
-    
-        # Input compound inequality
-    compound_inequality = 'a \leq d \leq 9 \leq u'
 
-    # Split into individual inequalities
-    rela
-    if count_occurrences(compound_inequality, r'\leq') > 1:
-        parts = compound_inequality.split(r'\leq')
-
-        # Parse each part separately
-        parsed_inequalities = [parse_latex(part.strip()) for part in parts]
-
-        # Combine the inequalities using logical operators
-        inequalities = []
-        for i in range(len(parsed_inequalities) - 1):
-            inequalities.append(parsed_inequalities[i] < parsed_inequalities[i + 1])
-
-        # Combine all inequalities using And
-        combined_inequality = And(*inequalities)
-
-        print(srepr(combined_inequality))
-    else: 
-        print (srepr(parse_latex(compound_inequality)))
-
-    # print('latex', srepr(parse_latex(r'1 \leq e \leq d')))
-    # json_str = dumps(latex, cls=TexJsonEncoder, indent=2)
-    # with open(f"{JSON_BASE_DIR}/parsed-latex.json", 'w') as json_file:
-    #     json_file.write(json_str)
+    json_str = dumps(latex, cls=TexJsonEncoder, indent=2)
+    with open(f"{JSON_BASE_DIR}/parsed-latex.json", 'w') as json_file:
+        json_file.write(json_str)

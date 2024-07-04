@@ -84,30 +84,278 @@
       "name": "document",
       "children": [
         {
-          "type": "Comment",
-          "value": "% All begin commands must be paired with an end command somewhere"
+          "type": "Macro",
+          "name": "title",
+          "args": [
+            {
+              "type": "Text",
+              "value": "{A Simple Proof in Number Theory}"
+            }
+          ]
+        },
+        {
+          "type": "Macro",
+          "name": "author",
+          "args": [
+            {
+              "type": "Text",
+              "value": "{Author Name}"
+            }
+          ]
+        },
+        {
+          "type": "Macro",
+          "name": "date",
+          "args": [
+            {
+              "type": "Text",
+              "value": "{\\today}"
+            }
+          ]
+        },
+        {
+          "type": "Macro",
+          "name": "maketitle",
+          "args": []
+        },
+        {
+          "type": "Macro",
+          "name": "section",
+          "args": [
+            {
+              "type": "Text",
+              "value": "{Proof}"
+            }
+          ]
+        },
+        {
+          "type": "Macro",
+          "name": "textbf",
+          "args": [
+            {
+              "type": "Text",
+              "value": "{Theorem:}"
+            }
+          ]
         },
         {
           "type": "Text",
-          "value": "\n    consider "
+          "value": " For any integer "
         },
         {
           "type": "Math",
-          "value": "Mul(Symbol('x'), Mul(Symbol('in'), Mul(Symbol('N'), Symbol('mathbb'))))"
+          "value": "Symbol('a')"
         },
         {
           "type": "Text",
-          "value": ". Let "
+          "value": ", if "
         },
         {
           "type": "Math",
-          "value": "Equality(Symbol('y'), Add(Symbol('x'), Float('1.5', precision=53)))"
+          "value": "LessThan(Symbol('a'), Symbol('b'))"
+        },
+        {
+          "type": "Text",
+          "value": ", then "
+        },
+        {
+          "type": "Math",
+          "value": "LessThan(Add(Symbol('a'), Symbol('c')), Add(Symbol('b'), Symbol('c')))"
+        },
+        {
+          "type": "Text",
+          "value": " for any integer "
+        },
+        {
+          "type": "Math",
+          "value": "Symbol('c')"
+        },
+        {
+          "type": "Text",
+          "value": ".\n\n"
+        },
+        {
+          "type": "Macro",
+          "name": "textbf",
+          "args": [
+            {
+              "type": "Text",
+              "value": "{Proof:}"
+            }
+          ]
+        },
+        {
+          "type": "Text",
+          "value": "\nLet "
+        },
+        {
+          "type": "Math",
+          "value": "Symbol('a')"
+        },
+        {
+          "type": "Text",
+          "value": " and "
+        },
+        {
+          "type": "Math",
+          "value": "Symbol('c')"
+        },
+        {
+          "type": "Text",
+          "value": " be arbitrary integers such that "
+        },
+        {
+          "type": "Math",
+          "value": "LessThan(Symbol('a'), Symbol('b'))"
+        },
+        {
+          "type": "Text",
+          "value": ". We need to show that "
+        },
+        {
+          "type": "Math",
+          "value": "LessThan(Add(Symbol('a'), Symbol('c')), Add(Symbol('b'), Symbol('c')))"
+        },
+        {
+          "type": "Text",
+          "value": ".\n\nGiven "
+        },
+        {
+          "type": "Math",
+          "value": "LessThan(Symbol('a'), Symbol('b'))"
+        },
+        {
+          "type": "Text",
+          "value": ", we can add the integer "
+        },
+        {
+          "type": "Math",
+          "value": "Symbol('c')"
+        },
+        {
+          "type": "Text",
+          "value": " to both sides of the inequality:\n"
+        },
+        {
+          "type": "Environment",
+          "name": "equation",
+          "children": [
+            {
+              "type": "Environment",
+              "name": "split",
+              "children": [
+                {
+                  "type": "MultilineMath",
+                  "value": [
+                    "LessThan(Add(Symbol('a'), Symbol('c')), Add(Symbol('b'), Symbol('c')))"
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "Text",
+          "value": "\nThis follows from the basic properties of inequalities, where adding the same number to both sides of an inequality preserves the inequality.\n\nThus, we have shown that if "
+        },
+        {
+          "type": "Math",
+          "value": "LessThan(Symbol('a'), Symbol('b'))"
+        },
+        {
+          "type": "Text",
+          "value": ", then "
+        },
+        {
+          "type": "Math",
+          "value": "LessThan(Add(Symbol('a'), Symbol('c')), Add(Symbol('b'), Symbol('c')))"
+        },
+        {
+          "type": "Text",
+          "value": " for any integer "
+        },
+        {
+          "type": "Math",
+          "value": "Symbol('c')"
+        },
+        {
+          "type": "Text",
+          "value": ". "
+        },
+        {
+          "type": "Macro",
+          "name": "n",
+          "args": []
+        },
+        {
+          "type": "Text",
+          "value": "\nThis just a line to add all the inequalities Let "
+        },
+        {
+          "type": "Math",
+          "value": "Equality(Symbol('x'), Integer(3))"
+        },
+        {
+          "type": "Text",
+          "value": " and "
+        },
+        {
+          "type": "Math",
+          "value": "Equality(Symbol('y'), Integer(4))"
+        },
+        {
+          "type": "Text",
+          "value": ". So, "
+        },
+        {
+          "type": "Math",
+          "value": "Unequality(Symbol('x'), Symbol('y'))"
+        },
+        {
+          "type": "Text",
+          "value": ". Also, we could say "
+        },
+        {
+          "type": "Math",
+          "value": "StrictGreaterThan(Symbol('y'), Symbol('x'))"
+        },
+        {
+          "type": "Text",
+          "value": " and "
+        },
+        {
+          "type": "Math",
+          "value": "GreaterThan(Symbol('y'), Symbol('x'))"
+        },
+        {
+          "type": "Text",
+          "value": " is also valid.\n\nAlso, "
+        },
+        {
+          "type": "Math",
+          "value": "Equality(Equality(Symbol('n'), Symbol('m')), Symbol('p'))"
+        },
+        {
+          "type": "Text",
+          "value": " and "
+        },
+        {
+          "type": "Math",
+          "value": "And(StrictLessThan(Integer(0), Symbol('x')), StrictLessThan(Symbol('x'), Integer(16)))"
+        },
+        {
+          "type": "Text",
+          "value": " and for "
+        },
+        {
+          "type": "Math",
+          "value": "Mul(Symbol('y'), Mul(Symbol('in'), Mul(Symbol('N'), Symbol('mathbb'))))"
+        },
+        {
+          "type": "Math",
+          "value": "And(GreaterThan(Symbol('b'), Symbol('c')), LessThan(Symbol('a'), Symbol('b')), StrictLessThan(Symbol('c'), Symbol('d')))"
         }
       ]
-    },
-    {
-      "type": "Comment",
-      "value": "% This is the end of the document"
     }
   ]
 }
