@@ -115,8 +115,8 @@ and deserialize_assoc_type (mapping : json_map) (type_name : string) :
 
 and deserialize_latex (children_json : Json.t) : RawLatex.t_res =
   match children_json with
-  | `List children ->
-      let children_des = deserialize_from_json |<<: children in
+  | `List child_nodes ->
+      let children_des = deserialize_from_json |<<: child_nodes in
       let children_overall = Result.all children_des in
       let latex_gen children = RawLatex.Latex children in
       latex_gen |<<! children_overall
@@ -125,12 +125,25 @@ and deserialize_latex (children_json : Json.t) : RawLatex.t_res =
 and deserialize_environment (name_json : Json.t) (children_json : Json.t) :
     RawLatex.t_res =
   match (name_json, children_json) with
-  | `String name, `List children ->
-      let children_des = deserialize_from_json |<<: children in
+  | `String name, `List child_nodes ->
+      let children_des = deserialize_from_json |<<: child_nodes in
       let children_overall = Result.all children_des in
       let environment_gen children = RawLatex.Environment (name, children) in
       environment_gen |<<! children_overall
   | `String _, _ -> Error (IncorrectAttrType (name_json, JsonString))
+  | _ -> Error (IncorrectAttrType (children_json, JsonList))
+
+and deserialize_macro (args_json : Json.t) (children_json : Json.t) :
+    RawLatex.t_res =
+  match (args_json, children_json) with
+  | `List arg_nodes, `List child_nodes ->
+      let args_des = deserialize_from_json |<<: arg_nodes in
+      let args_overall = Result.all args_des in
+      let children_des = deserialize_from_json |<<: child_nodes in
+      let children_overall = Result.all children_des in
+      let environment_gen args children = RawLatex.Macro (args, children) in
+      (environment_gen |<<! args_overall) *<<! children_overall
+  | `List _, _ -> Error (IncorrectAttrType (args_json, JsonList))
   | _ -> Error (IncorrectAttrType (children_json, JsonList))
 
 and deserialize_text (text_json : Json.t) : RawLatex.t_res =
