@@ -13,7 +13,7 @@ def indent(substr: str) -> str:
 
 
 def read_latex(file_name: str) -> TexNode:
-    with open("sample.tex", 'r') as latex_file:
+    with open(file_name, 'r') as latex_file:
         return TexSoup(latex_file.read())
 
 

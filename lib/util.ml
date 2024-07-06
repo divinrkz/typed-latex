@@ -1,15 +1,39 @@
 open Core
 open Fn
 
+(** Functions **)
+let ( << ) = compose
+
+let ( <<< ) (f : 'a -> 'b) (x : 'a) = f x
+let ( >>> ) (x : 'a) (f : 'a -> 'b) = f x
+let apply2 f = flip (flip << f)
+let defer2 f = flip << flip f
+
 (** Option monad **)
 
 (* Monadic bind *)
 let ( >>=? ) (x : 'a option) (f : 'a -> 'b option) = Option.bind x ~f
 let ( =<<? ) (f : 'a -> 'b option) (x : 'a option) = Option.bind x ~f
 
+(* Reverse monadic bind *)
+let ( =>>? ) (x : 'a) (f : ('a -> 'b option) option) = ( >>> ) x =<<? f
+let ( <<=? ) (f : ('a -> 'b option) option) (x : 'a) = ( >>> ) x =<<? f
+
+(* Applicative chain *)
+let ( >>*? ) (x : 'a option) (f : ('a -> 'b) option) = Option.apply f x
+let ( *<<? ) (f : ('a -> 'b) option) (x : 'a option) = Option.apply f x
+
 (* Functor map *)
 let ( >>|? ) (x : 'a option) (f : 'a -> 'b) = Option.map x ~f
 let ( |<<? ) (f : 'a -> 'b) (x : 'a option) = Option.map x ~f
+
+(* Reverse functor map *)
+let ( |>>? ) (x : 'a) (f : ('a -> 'b) option) = ( >>> ) x |<<? f
+let ( <<|? ) (f : ('a -> 'b) option) (x : 'a) = ( >>> ) x |<<? f
+
+(* Monadic chain-bind *)
+let ( >>=*? ) (x : 'a option) (f : ('a -> 'b option) option) = ( >>=? ) x =<<? f
+let ( *=<<? ) (f : ('a -> 'b option) option) (x : 'a option) = ( >>=? ) x =<<? f
 
 (* Side-effect map *)
 let ( <-<? ) (f : 'a -> unit) (x : 'a option) = Option.iter ~f x
@@ -21,9 +45,25 @@ let ( >->? ) (x : 'a option) (f : 'a -> unit) = Option.iter ~f x
 let ( >>=: ) (x : 'a list) (f : 'a -> 'b list) = List.bind x ~f
 let ( =<<: ) (f : 'a -> 'b list) (x : 'a list) = List.bind x ~f
 
+(* Reverse monadic bind *)
+let ( =>>: ) (x : 'a) (f : ('a -> 'b list) list) = ( >>> ) x =<<: f
+let ( <<=: ) (f : ('a -> 'b list) list) (x : 'a) = ( >>> ) x =<<: f
+
 (* Functor map *)
 let ( >>|: ) (x : 'a list) (f : 'a -> 'b) = List.map x ~f
 let ( |<<: ) (f : 'a -> 'b) (x : 'a list) = List.map x ~f
+
+(* Reverse functor map *)
+let ( |>>: ) (x : 'a) (f : ('a -> 'b) list) = ( >>> ) x |<<: f
+let ( <<|: ) (f : ('a -> 'b) list) (x : 'a) = ( >>> ) x |<<: f
+
+(* Applicative chain *)
+let ( >>*: ) (x : 'a list) (f : ('a -> 'b) list) = ( >>|: ) x =<<: f
+let ( *<<: ) (f : ('a -> 'b) list) (x : 'a list) = ( >>|: ) x =<<: f
+
+(* Monadic chain-bind *)
+let ( >>=*: ) (x : 'a list) (f : ('a -> 'b list) list) = ( >>=: ) x =<<: f
+let ( *=<<: ) (f : ('a -> 'b list) list) (x : 'a list) = ( >>=: ) x =<<: f
 
 (* Side-effect map *)
 let ( <-<: ) (f : 'a -> unit) (x : 'a list) = List.iter ~f x
@@ -32,21 +72,52 @@ let ( >->: ) (x : 'a list) (f : 'a -> unit) = List.iter ~f x
 (** Result monad **)
 
 (* Monadic bind *)
-let ( >>=! ) (x : ('a, 'e) result) (f : 'a -> ('b, 'e) result) = Result.bind x ~f
-let ( =<<! ) (f : 'a -> ('b, 'e) result) (x : ('a, 'e) result) = Result.bind x ~f
+let ( >>=! ) (x : ('a, 'e) result) (f : 'a -> ('b, 'e) result) =
+  Result.bind x ~f
+
+let ( =<<! ) (f : 'a -> ('b, 'e) result) (x : ('a, 'e) result) =
+  Result.bind x ~f
+
+(* Reverse functor map *)
+let ( =>>! ) (x : 'a) (f : ('a -> ('b, 'e) result, 'e) result) =
+  ( >>> ) x =<<! f
+
+let ( <<=! ) (f : ('a -> ('b, 'e) result, 'e) result) (x : 'a) =
+  ( >>> ) x =<<! f
 
 (* Functor map *)
 let ( >>|! ) (x : ('a, 'e) result) (f : 'a -> 'b) = Result.map x ~f
 let ( |<<! ) (f : 'a -> 'b) (x : ('a, 'e) result) = Result.map x ~f
 
+(* Reverse functor map *)
+let ( |>>! ) (x : 'a) (f : ('a -> 'b, 'e) result) = ( >>> ) x |<<! f
+let ( <<|! ) (f : ('a -> 'b, 'e) result) (x : 'a) = ( >>> ) x |<<! f
+
+(* Applicative chain *)
+let ( >>*! ) (x : ('a, 'e) result) (f : ('a -> 'b, 'e) result) =
+  ( >>|! ) x =<<! f
+
+let ( *<<! ) (f : ('a -> 'b, 'e) result) (x : ('a, 'e) result) =
+  ( >>|! ) x =<<! f
+
+(* Monadic chain-bind *)
+let ( >>=*! ) (x : ('a, 'e) result) (f : ('a -> ('b, 'e) result, 'e) result) =
+  ( >>=! ) x =<<! f
+
+let ( *=<<! ) (f : ('a -> ('b, 'e) result, 'e) result) (x : ('a, 'e) result) =
+  ( >>=! ) x =<<! f
+
 (* Side-effect map *)
 let ( <-<! ) (f : 'a -> unit) (x : ('a, 'e) result) = Result.iter ~f x
 let ( >->! ) (x : ('a, 'e) result) (f : 'a -> unit) = Result.iter ~f x
 
+(** Functor casts **)
+let ( <!<! ) (err : 'e1) (x : ('a, 'e0) result) =
+  Result.map_error ~f:(fun _ -> err) x
+
 (** Pretty-printing **)
 
 let string_sep str formatter () = Format.pp_print_string formatter str
-let ( << ) = compose
 
 let pp_hashtbl formatter ~pp_key ~pp_data t =
   let pp_pair formatter (k, d) =
