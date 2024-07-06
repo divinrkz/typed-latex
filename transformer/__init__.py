@@ -88,13 +88,6 @@ def json_like_nonprim_encode(obj):
         return {"type": "Text", "value": obj}
     return str(obj)
 
-# def unwrap_multiline_math(obj):
-#     splits = split_to_words(str(obj))
-#     print("Splitting", splits);
-#     print("Unwrapping", obj)
-#     if splits[1] == 'begin': 
-#         if splits[3] in MATH_MODE_ENV:
-   
 
 def json_like_encode(obj):
     if isinstance(obj, (str, int, float)):
