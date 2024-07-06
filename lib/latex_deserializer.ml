@@ -102,8 +102,10 @@ and deserialize_assoc_type_val (mapping : json_map) (type_val : Json.t) :
 and deserialize_assoc_type (mapping : json_map) (type_name : string) :
     RawLatex.t_res =
   match type_name with
-  | "Latex" -> Error NotImplemented
-  | "Environment" -> Error NotImplemented
+  | "Latex" -> deserialize_latex =<<! json_map_get_attr mapping "Children"
+  | "Environment" ->
+      (deserialize_environment |<<! json_map_get_attr mapping "Name")
+      *=<<! json_map_get_attr mapping "Children"
   | "Math" -> Error NotImplemented
   | "MultilineMath" -> Error NotImplemented
   | "Macro" -> Error NotImplemented
@@ -111,12 +113,27 @@ and deserialize_assoc_type (mapping : json_map) (type_name : string) :
   | "Newline" -> Ok Newline
   | _ -> Error (UnknownNodeType type_name)
 
-(* and deserialize_latex (json : Json.t) : RawLatex.t_res =
-    match json with
-    | `String text -> Ok (Text text)
-    | _ -> Error (IncorrectAttrType (json, JsonString)) *)
-  
-and deserialize_text (json : Json.t) : RawLatex.t_res =
-  match json with
-  | `String text -> Ok (Text text)
-  | _ -> Error (IncorrectAttrType (json, JsonString))
+and deserialize_latex (children_json : Json.t) : RawLatex.t_res =
+  match children_json with
+  | `List children ->
+      let children_des = deserialize_from_json |<<: children in
+      let children_overall = Result.all children_des in
+      let latex_gen children = RawLatex.Latex children in
+      latex_gen |<<! children_overall
+  | _ -> Error (IncorrectAttrType (children_json, JsonList))
+
+and deserialize_environment (name_json : Json.t) (children_json : Json.t) :
+    RawLatex.t_res =
+  match (name_json, children_json) with
+  | `String name, `List children ->
+      let children_des = deserialize_from_json |<<: children in
+      let children_overall = Result.all children_des in
+      let environment_gen children = RawLatex.Environment (name, children) in
+      environment_gen |<<! children_overall
+  | `String _, _ -> Error (IncorrectAttrType (name_json, JsonString))
+  | _ -> Error (IncorrectAttrType (children_json, JsonList))
+
+and deserialize_text (text_json : Json.t) : RawLatex.t_res =
+  match text_json with
+  | `String text -> Ok (RawLatex.Text text)
+  | _ -> Error (IncorrectAttrType (text_json, JsonString))
