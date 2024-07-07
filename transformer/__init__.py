@@ -5,7 +5,8 @@ from TexSoup.utils import Token
 from TexSoup import TexSoup
 from sympy import srepr, And
 from sympy.parsing.latex import parse_latex
-from utils import MATH_MODE_ENV, remove_trailing_dollars, split_to_words, is_sublist, merge_around_multiple_separators, has_relation, parse_inequalities
+from utils import MATH_MODE_ENV, remove_trailing_dollars, split_to_words, is_sublist, merge_around_multiple_separators
+from utils import has_relation, parse_inequalities, split_and_filter_non_empty
 
 ASSETS_BASE_DIR = f"assets"
 TEX_BASE_DIR = f"{ASSETS_BASE_DIR}/tex"
@@ -37,8 +38,6 @@ def json_like_nonprim_encode(obj):
                 multiline_math = [element for element in str(obj).split(r"\\") if element]
         
                 if (len(multiline_math) > 1):
-                    print('here')
-                    print(multiline_math)
                     
                     (type, sympy_exprs) = ("MultilineMath", [srepr(parse_latex(math_element)) for math_element in multiline_math])
                 else: 
@@ -48,8 +47,6 @@ def json_like_nonprim_encode(obj):
                         parsed = srepr(And(*parse_inequalities(formatted)))
                     else: 
                         parsed = srepr(parse_latex(formatted))
-
-                    
                     (type, sympy_exprs) = ("Math", parsed)
                 return {"type": type, "value": sympy_exprs}
             
@@ -57,16 +54,27 @@ def json_like_nonprim_encode(obj):
                 if splits[1] == 'begin': 
                     if splits[3] in MATH_MODE_ENV and not is_sublist(splits[3:], ['\\', 'begin', '{']):               
 
-                        multiline_math = [element for element in merge_around_multiple_separators(obj.contents, r"\\") if element]
-                        print("multiline", multiline_math)
+                        merged_multiline_math = [element for element in merge_around_multiple_separators(obj.contents, r"\\") if element]
+                        multiline_math = split_and_filter_non_empty(merged_multiline_math[0])
                         
+                        parsed_multimaths = []
+                        
+                        for math_element in multiline_math:
+                            if has_relation(math_element):
+                                parsed = srepr(And(*parse_inequalities(math_element)))
+                                parsed_multimaths.append(parsed)
+                                
+                            else: 
+                                parsed = srepr(parse_latex(math_element))
+                                parsed_multimaths.append(parsed)
+                            
                         return {
                             "type": "Environment",
                             "name": splits[3],
                             "children": [
                                 {
                                 "type": "MultilineMath",
-                                "value": [srepr(parse_latex(math_element)) for math_element in multiline_math]
+                                "value": parsed_multimaths
                                 }
                             ]
                         }
@@ -112,8 +120,9 @@ def count_occurrences(main_string, substring):
 
 if __name__ == "__main__":
     latex: TexSoup = read_latex("sample2.tex")
-    # print('latex', srepr(parse_latex(r'${x \vert x \in L}$')))
+    # print('latex', srepr(parse_latex(r'x \in \mathbb{N}')))
     # print('latex', srepr(parse_latex(r'y \subseteq \mathbb{N}')))
+    # print('latex', srepr(parse_latex(r'')))
 
     json_str = dumps(latex, cls=TexJsonEncoder, indent=2)
     with open(f"{JSON_BASE_DIR}/parsed-latex.json", 'w') as json_file:

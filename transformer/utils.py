@@ -163,3 +163,5 @@ def parse_inequalities(compound_inequality):
         index += 1
     return inequalities
        
+def split_and_filter_non_empty(string):
+    return [line.strip() for line in string.split('\n') if line.strip()]
