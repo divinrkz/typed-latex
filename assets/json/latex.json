@@ -1,0 +1,82 @@
+{
+  "type": "Latex",
+  "children": {
+    "type": "Environment",
+    "name": "document",
+    "children": [
+      {
+        "type": "Macro",
+        "value": "maketitle",
+        "args": []
+      },
+      {
+        "type": "Macro",
+        "value": "section",
+        "args": [
+          "Hello World!"
+        ]
+      },
+      {
+        "type": "Macro",
+        "value": "newcommand",
+        "args": [
+          "reverseconcat",
+          "3",
+          "#3#2#1"
+        ]
+      },
+      {
+        "type": "Macro",
+        "value": "textbf",
+        "args": [
+          "Hello World!"
+        ]
+      },
+      {
+        "type": "Macro",
+        "value": "LaTeX",
+        "args": []
+      },
+      {
+        "type": "Macro",
+        "value": "LaTeX",
+        "args": [
+          ""
+        ]
+      },
+      {
+        "type": "Environment",
+        "name": "equation",
+        "children": [
+          {
+            "type": "Macro",
+            "value": "label",
+            "args": [
+              "eq1"
+            ]
+          },
+          {
+            "type": "Environment",
+            "name": "split",
+            "children": [
+            ]
+          }
+        ]
+      },
+      {
+        "type": "Macro",
+        "value": "LaTeX",
+        "args": [
+          ""
+        ]
+      },
+      {
+        "type": "Macro",
+        "value": "LaTeX",
+        "args": [
+          ""
+        ]
+      }
+    ]
+  }
+}

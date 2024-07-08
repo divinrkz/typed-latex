@@ -1,0 +1,181 @@
+{
+  "type": "Latex",
+  "children": {
+    "type": "Environment",
+    "name": "document",
+    "children": [
+      {
+        "type": "Comment",
+        "value": "% All begin commands must be paired with an end command somewhere"
+      },
+      {
+        "type": "Macro",
+        "name": "maketitle",
+        "args": []
+      },
+      {
+        "type": "Comment",
+        "value": "% creates title using information in preamble (title, author, date)"
+      },
+      {
+        "type": "Macro",
+        "name": "section",
+        "args": [
+          "Hello World!"
+        ]
+      },
+      {
+        "type": "Comment",
+        "value": "% creates a section"
+      },
+      {
+        "type": "Macro",
+        "name": "newcommand",
+        "args": [
+          "reverseconcat",
+          "[3]",
+          "#3#2#1"
+        ]
+      },
+      {
+        "type": "Macro",
+        "name": "textbf",
+        "args": [
+          "Hello World!"
+        ]
+      },
+      {
+        "type": "Text",
+        "value": " Today I am learning "
+      },
+      {
+        "type": "Macro",
+        "name": "LaTeX",
+        "args": []
+      },
+      {
+        "type": "Text",
+        "value": ". "
+      },
+      {
+        "type": "Comment",
+        "value": "%notice how the command will end at the first non-alphabet charecter such as the . after \\LaTeX"
+      },
+      {
+        "type": "Macro",
+        "name": "LaTeX",
+        "args": [
+          ""
+        ]
+      },
+      {
+        "type": "Text",
+        "value": " is a great program for writing math. I can write in line math such as "
+      },
+      {
+        "type": "MultilineMath",
+        "value": [
+          "[Equality(Symbol('b'), Mul(Integer(-1), Pow(Add(Mul(Integer(-1), Pow(Symbol('a'), Integer(2))), Pow(Symbol('c'), Integer(2))), Rational(1, 2)))), Equality(Symbol('b'), Pow(Add(Mul(Integer(-1), Pow(Symbol('a'), Integer(2))), Pow(Symbol('c'), Integer(2))), Rational(1, 2))), Equality(Symbol('c'), Mul(Integer(-1), Pow(Add(Pow(Symbol('a'), Integer(2)), Pow(Symbol('b'), Integer(2))), Rational(1, 2)))), Equality(Symbol('c'), Pow(Add(Pow(Symbol('a'), Integer(2)), Pow(Symbol('b'), Integer(2))), Rational(1, 2))), Equality(Symbol('a'), Mul(Integer(-1), Pow(Add(Mul(Integer(-1), Pow(Symbol('b'), Integer(2))), Pow(Symbol('c'), Integer(2))), Rational(1, 2)))), Equality(Symbol('a'), Pow(Add(Mul(Integer(-1), Pow(Symbol('b'), Integer(2))), Pow(Symbol('c'), Integer(2))), Rational(1, 2)))]",
+          "[Equality(Symbol('x'), Integer(-1)), Equality(Symbol('x'), Integer(1))]"
+        ]
+      },
+      {
+        "type": "Comment",
+        "value": "%$ tells LaTexX to compile as math"
+      },
+      {
+        "type": "Text",
+        "value": "\n     . I can also give equations their own space: \n    "
+      },
+      {
+        "type": "Environment",
+        "name": "equation",
+        "children": [
+          {
+            "type": "Macro",
+            "name": "label",
+            "args": [
+              "eq1"
+            ]
+          },
+          {
+            "type": "Comment",
+            "value": "% Creates an equation environment and is compiled as math"
+          },
+          {
+            "type": "Environment",
+            "name": "split",
+            "children": [
+              {
+                "type": "Macro",
+                "name": "gamma",
+                "args": []
+              },
+              {
+                "type": "Text",
+                "value": "^2+"
+              },
+              {
+                "type": "Macro",
+                "name": "theta",
+                "args": []
+              },
+              {
+                "type": "Text",
+                "value": "^2="
+              },
+              {
+                "type": "Macro",
+                "name": "omega",
+                "args": []
+              },
+              {
+                "type": "Text",
+                "value": "^2\n            "
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "type": "Text",
+        "value": "\n    If I do not leave any blank lines "
+      },
+      {
+        "type": "Macro",
+        "name": "LaTeX",
+        "args": [
+          ""
+        ]
+      },
+      {
+        "type": "Text",
+        "value": " will continue  this text without making it into a new paragraph.  Notice how there was no indentation in the text after equation (1).  \n    Also notice how even though I\n    "
+      },
+      {
+        "type": "Math",
+        "value": "[Equality(Symbol('b'), Mul(Integer(-1), Pow(Add(Mul(Integer(-1), Pow(Symbol('a'), Integer(2))), Pow(Symbol('c'), Integer(2))), Rational(1, 2)))), Equality(Symbol('b'), Pow(Add(Mul(Integer(-1), Pow(Symbol('a'), Integer(2))), Pow(Symbol('c'), Integer(2))), Rational(1, 2))), Equality(Symbol('c'), Mul(Integer(-1), Pow(Add(Pow(Symbol('a'), Integer(2)), Pow(Symbol('b'), Integer(2))), Rational(1, 2)))), Equality(Symbol('c'), Pow(Add(Pow(Symbol('a'), Integer(2)), Pow(Symbol('b'), Integer(2))), Rational(1, 2))), Equality(Symbol('a'), Mul(Integer(-1), Pow(Add(Mul(Integer(-1), Pow(Symbol('b'), Integer(2))), Pow(Symbol('c'), Integer(2))), Rational(1, 2)))), Equality(Symbol('a'), Pow(Add(Mul(Integer(-1), Pow(Symbol('b'), Integer(2))), Pow(Symbol('c'), Integer(2))), Rational(1, 2)))]"
+      },
+      {
+        "type": "Text",
+        "value": " hit enter after that sentence and here "
+      },
+      {
+        "type": "Macro",
+        "name": "downarrow",
+        "args": []
+      },
+      {
+        "type": "Macro",
+        "name": "LaTeX",
+        "args": [
+          ""
+        ]
+      },
+      {
+        "type": "Text",
+        "value": " formats the sentence without any break.  Also   look  how      it   doesn't     matter          how    many  spaces     I put     between       my    words.\n    \n    For a new paragraph I can leave a blank space in my code. \n\n"
+      }
+    ]
+  }
+}
