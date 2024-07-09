@@ -18,16 +18,17 @@
     \newcommand{reverseconcat}[3]{#3#2#1}
 
     \textbf{Hello World!} Today I am learning \LaTeX. %notice how the command will end at the first non-alphabet charecter such as the . after \LaTeX
-     \LaTeX{} is a great program for writing math. I can write in line math such as $a^2+b^2=c^2\\x^2 + 3 = 4$ %$ tells LaTexX to compile as math
+     \LaTeX{} is a great program for writing math. I can write in line math such as $\frac{d}{dx}(x^{2}+x)$ %$ tells LaTexX to compile as math
      . I can also give equations their own space: 
     \begin{equation}  \label{eq1} % Creates an equation environment and is compiled as math
         \begin{split}
-    \gamma^2+\theta^2=\omega^2
+            \gamma^2+\theta^2=\omega^2 \\
+            \gamma = \sqrt{\omega^2 - \theta^2}
             \end{split}
     \end{equation}
     If I do not leave any blank lines \LaTeX{} will continue  this text without making it into a new paragraph.  Notice how there was no indentation in the text after equation (1).  
     Also notice how even though I
-    $a^2+b^2=c^2$ hit enter after that sentence and here \downarrow
+    $a^2+b^2=c^2$ hit enter after that sentence and here 
      \LaTeX{} formats the sentence without any break.  Also   look  how      it   doesn't     matter          how    many  spaces     I put     between       my    words.
     
     For a new paragraph I can leave a blank space in my code. 
