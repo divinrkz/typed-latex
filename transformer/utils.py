@@ -2,14 +2,12 @@ import string
 from string import whitespace 
 import re
 from sympy.parsing.latex import parse_latex
-
-RELATIONS = [ '<', '>', r'\\leq', r'\\geq', r'\\leqq', r'\\leqslant', r'\\lesssim',
-              r'\\lessapprox', r'\\prec', r'\\preceq', r'\\lessgtr', r'\\lesseqgtr',
-              r'\\geq', r'\\geqq', r'\\geqslant', r'\\gtrsim', r'\\gtrapprox', r'\\succ', 
-              r'\\succeq', r'\\succsim', r'\\nless', r'\\ngtr', r'\\nleq', r'\\ngeq',
-              r'\\lneq', r'\\gneq', r'\\nleqslant', r'\\ngeqslant', r'\\ll', r'\\lll', r'\\gg', r'\\ggg']
+from sympy import Interval, Contains, srepr, Symbol, And, sympify, Interval
+from notations import SET_NOTATIONS, INEQUALITY_NOTATIONS, EQUALITY_NOTATIONS
 
 MATH_MODE_ENV = ['equation', 'split', 'gather', 'multiline']
+
+
 
 def indent(substr: str) -> str:
     return "\t" + substr.replace("\n", "\n\t")
@@ -26,7 +24,6 @@ def remove_trailing_dollars(input_data):
         return input_data
     else:
         return input_data
-
 
 def split_to_words(text: str) -> list:
     words = []
@@ -47,7 +44,6 @@ def split_to_words(text: str) -> list:
         words.append("".join(buffer))
     return words
 
-
 def is_sublist(main_list, sub_list):
     len_main = len(main_list)
     len_sub = len(sub_list)
@@ -56,7 +52,6 @@ def is_sublist(main_list, sub_list):
         if main_list[i:i + len_sub] == sub_list:
             return True
     return False
-
 
 def merge_around_multiple_separators(input_list, separator):
     merged_strings = []
@@ -75,31 +70,66 @@ def merge_around_multiple_separators(input_list, separator):
 
     return merged_strings
     
-def split_by_separators(string):
-    pattern = '|'.join(RELATIONS)
+    
+    
+    
+def extract_notations(notation_list):
+    return [item['notation'] for item in notation_list]
+
+def get_notation(name: str, notation_list):
+    for item in notation_list:
+        if item['name'] == name:
+            return item['notation']
+    return None
+
+def extract_string_between_braces(latex_string):
+    pattern = r'\{([^}]*)\}'
+    matches = re.findall(pattern, latex_string)
+    return matches[0]
+    
+def split_by_separators(string, notation_list):
+    pattern = '|'.join([re.escape(rel) for rel in notation_list])
     return re.split(pattern, string)
     
+def has_inequality_relation(string):
+    escaped_relations = [re.escape(rel) for rel in extract_notations(INEQUALITY_NOTATIONS)]
     
-def has_relation(string):
-    escaped_relations = [re.escape(rel) for rel in RELATIONS]
     pattern = '|'.join(escaped_relations)
     return re.search(pattern, string) is not None
 
+def has_equality_relation(string):
+    escaped_relations = [re.escape(rel) for rel in extract_notations(EQUALITY_NOTATIONS)]
     
-def parse_inequalities(compound_inequality): 
-    print(split_by_separators(compound_inequality))
+    pattern = '|'.join(escaped_relations)
+    return re.search(pattern, string) is not None
     
-    parts = split_by_separators(compound_inequality)
+def has_set_relation(string):
+    escaped_relations = [re.escape(rel) for rel in extract_notations(SET_NOTATIONS)]
+    pattern = '|'.join(escaped_relations)
+    return re.search(pattern, string) is not None
 
-    # Parse each part separately
-    parsed_inequalities = [parse_latex(part.strip()) for part in parts]
+def has_interval(interval_string):
+    pattern = r'^[\[\(]\s*[^,\s]+\s*,\s*[^,\s]+\s*[\]\)]$'
+    return re.match(pattern, interval_string) is not None
 
+    
+def parse_inequalities(compound_inequality):     
+    parts = split_by_separators(compound_inequality, extract_notations(INEQUALITY_NOTATIONS))
+    parsed_inequalities = []
+    for part in parts:
+        if r'\mathbb' in part:
+            parsed_inequalities.append(f'Mathbb({srepr(Symbol(extract_string_between_braces(part.strip())))})')
+        elif has_interval(part.strip()):
+            parsed_inequalities.append(parse_interval(part.strip()))
+        else: 
+            parsed_inequalities.append(srepr(parse_latex(part.strip())))
     inequalities = []
     
     index = 0
-    for separator in re.findall('|'.join(RELATIONS), compound_inequality):
+    for separator in re.findall('|'.join([re.escape(rel) for rel in extract_notations(INEQUALITY_NOTATIONS)]), compound_inequality):
         if separator == '<':
-            inequalities.append(parsed_inequalities[index] < parsed_inequalities[index + 1])
+            inequalities.append( parsed_inequalities[index] < parsed_inequalities[index + 1])
+            
         elif separator == '>':
             inequalities.append(parsed_inequalities[index] > parsed_inequalities[index + 1])
         elif separator == '\\leq':
@@ -162,6 +192,86 @@ def parse_inequalities(compound_inequality):
             inequalities.append(parsed_inequalities[index] >> parsed_inequalities[index + 1])
         index += 1
     return inequalities
-       
+  
+  
+def parse_interval(interval_string):
+    interval_string = interval_string.replace(" ", "")
+    
+    left_inclusive = interval_string[0] == '['
+    right_inclusive = interval_string[-1] == ']'
+    
+    values = interval_string[1:-1].split(',')
+    
+    left = sympify(values[0])
+    right = sympify(values[1])
+    
+    return srepr(Interval(left, right, left_open=not left_inclusive, right_open=not right_inclusive))
+  
+  
+def parse_sets(set_string):     
+    parts = split_by_separators(set_string, extract_notations(SET_NOTATIONS))
+
+    parsed_sets = []
+    for part in parts:
+        if r'\mathbb' in part:
+            parsed_sets.append(f'Mathbb({srepr(Symbol(extract_string_between_braces(part.strip())))})')
+        elif has_interval(part.strip()):
+            parsed_sets.append(parse_interval(part.strip()))
+        else: 
+            parsed_sets.append(srepr(parse_latex(part.strip())))
+
+    set_relations = []
+    
+    index = 0
+    for separator in re.findall('|'.join([re.escape(rel) for rel in extract_notations(SET_NOTATIONS)]), set_string):
+        if separator == get_notation('In', SET_NOTATIONS):
+            set_relations.append(f'In({parsed_sets[index]}, {parsed_sets[index + 1]})')
+        elif separator == get_notation('ProperSubset', SET_NOTATIONS):
+            set_relations.append(f'ProperSubset({parsed_sets[index]}, {parsed_sets[index + 1]})')
+        elif separator == get_notation('Subset', SET_NOTATIONS):
+            set_relations.append(f'Subset({parsed_sets[index]}, {parsed_sets[index + 1]})')
+        elif separator == get_notation('NotIn', SET_NOTATIONS):
+            set_relations.append(f'NotIn({parsed_sets[index]}, {parsed_sets[index + 1]})')
+        elif separator == get_notation('ProperSupset', SET_NOTATIONS):
+            set_relations.append(f'ProperSupset({parsed_sets[index]}, {parsed_sets[index + 1]})')
+        elif separator == get_notation('Supset', SET_NOTATIONS):
+            set_relations.append(f'Supset({parsed_sets[index]}, {parsed_sets[index + 1]})')
+        elif separator == get_notation('Union', SET_NOTATIONS):
+            set_relations.append(f'Union({parsed_sets[index]}, {parsed_sets[index + 1]})')
+        elif separator == get_notation('Intersection', SET_NOTATIONS):
+            set_relations.append(f'Intersection({parsed_sets[index]}, {parsed_sets[index + 1]})')
+        elif separator == get_notation('Difference', SET_NOTATIONS):
+            set_relations.append(f'Difference({parsed_sets[index]}, {parsed_sets[index + 1]})')
+        index += 1    
+    return set_relations
+         
+
+def parse_equalities(string):
+    parts = split_by_separators(string, extract_notations(EQUALITY_NOTATIONS))
+    equalities = []
+    parsed = None
+    for part in parts:
+        if has_inequality_relation(part.strip()):
+            parsed = parse_inequalities(part.strip())
+        elif has_set_relation(part.strip()):
+            parsed = parse_sets(part.strip())  
+        else: 
+            parsed = srepr(parse_latex(part))
+        equalities.append(parsed[0])   
+    
+            
+    equality_relations = []
+    
+    index = 0
+    
+    for separator in re.findall('|'.join([re.escape(rel) for rel in extract_notations(EQUALITY_NOTATIONS)]), string):
+        if separator == get_notation('Equality', EQUALITY_NOTATIONS):          
+            equality_relations.append(f'Equality({equalities[index]}, {equalities[index+1]})')
+            
+        index += 1        
+
+
+    return equality_relations if len(equality_relations) > 0 else equalities[0]
+
 def split_and_filter_non_empty(string):
     return [line.strip() for line in string.split('\n') if line.strip()]
