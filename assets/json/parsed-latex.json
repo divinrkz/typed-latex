@@ -191,7 +191,7 @@
               "args": [
                 {
                   "type": "Text",
-                  "value": "eq1"
+                  "value": "{eq1}"
                 }
               ]
             },
@@ -200,58 +200,72 @@
               "value": "% Creates an equation environment and is compiled as math"
             },
             {
-              "type": "MultilineMath",
-              "name": "split",
-              "value": [
-                {
-                  "type": "Macro",
-                  "name": "gamma",
-                  "args": []
-                },
+              "type": "Macro",
+              "name": "gamma",
+              "args": [
                 {
                   "type": "Text",
-                  "value": "^2+"
-                },
-                {
-                  "type": "Macro",
-                  "name": "theta",
-                  "args": []
-                },
-                {
-                  "type": "Text",
-                  "value": "^2="
-                },
-                {
-                  "type": "Macro",
-                  "name": "omega",
-                  "args": []
-                },
+                  "value": ""
+                }
+              ]
+            },
+            {
+              "type": "Comment",
+              "value": "^2+"
+            },
+            {
+              "type": "Macro",
+              "name": "theta",
+              "args": [
                 {
                   "type": "Text",
-                  "value": "^2 "
-                },
+                  "value": ""
+                }
+              ]
+            },
+            {
+              "type": "Comment",
+              "value": "^2="
+            },
+            {
+              "type": "Macro",
+              "name": "omega",
+              "args": [
                 {
                   "type": "Text",
-                  "value": "\\\\"
-                },
-                {
-                  "type": "Macro",
-                  "name": "gamma",
-                  "args": []
-                },
+                  "value": ""
+                }
+              ]
+            },
+            {
+              "type": "Comment",
+              "value": "^2"
+            },
+            {
+              "type": "Comment",
+              "value": "\\\\"
+            },
+            {
+              "type": "Macro",
+              "name": "gamma",
+              "args": [
                 {
                   "type": "Text",
-                  "value": " = "
-                },
+                  "value": ""
+                }
+              ]
+            },
+            {
+              "type": "Comment",
+              "value": "="
+            },
+            {
+              "type": "Macro",
+              "name": "sqrt",
+              "args": [
                 {
-                  "type": "Macro",
-                  "name": "sqrt",
-                  "args": [
-                    {
-                      "type": "Text",
-                      "value": "\\omega^2 - \\theta^2"
-                    }
-                  ]
+                  "type": "Text",
+                  "value": "{\\omega^2 - \\theta^2}"
                 }
               ]
             }
@@ -277,7 +291,7 @@
         },
         {
           "type": "Math",
-          "value": "[Equality(Symbol('b'), Mul(Integer(-1), Pow(Add(Mul(Integer(-1), Pow(Symbol('a'), Integer(2))), Pow(Symbol('c'), Integer(2))), Rational(1, 2)))), Equality(Symbol('b'), Pow(Add(Mul(Integer(-1), Pow(Symbol('a'), Integer(2))), Pow(Symbol('c'), Integer(2))), Rational(1, 2))), Equality(Symbol('a'), Mul(Integer(-1), Pow(Add(Mul(Integer(-1), Pow(Symbol('b'), Integer(2))), Pow(Symbol('c'), Integer(2))), Rational(1, 2)))), Equality(Symbol('a'), Pow(Add(Mul(Integer(-1), Pow(Symbol('b'), Integer(2))), Pow(Symbol('c'), Integer(2))), Rational(1, 2))), Equality(Symbol('c'), Mul(Integer(-1), Pow(Add(Pow(Symbol('a'), Integer(2)), Pow(Symbol('b'), Integer(2))), Rational(1, 2)))), Equality(Symbol('c'), Pow(Add(Pow(Symbol('a'), Integer(2)), Pow(Symbol('b'), Integer(2))), Rational(1, 2)))]"
+          "value": "[Equality(Symbol('b'), Mul(Integer(-1), Pow(Add(Mul(Integer(-1), Pow(Symbol('a'), Integer(2))), Pow(Symbol('c'), Integer(2))), Rational(1, 2)))), Equality(Symbol('b'), Pow(Add(Mul(Integer(-1), Pow(Symbol('a'), Integer(2))), Pow(Symbol('c'), Integer(2))), Rational(1, 2))), Equality(Symbol('c'), Mul(Integer(-1), Pow(Add(Pow(Symbol('a'), Integer(2)), Pow(Symbol('b'), Integer(2))), Rational(1, 2)))), Equality(Symbol('c'), Pow(Add(Pow(Symbol('a'), Integer(2)), Pow(Symbol('b'), Integer(2))), Rational(1, 2))), Equality(Symbol('a'), Mul(Integer(-1), Pow(Add(Mul(Integer(-1), Pow(Symbol('b'), Integer(2))), Pow(Symbol('c'), Integer(2))), Rational(1, 2)))), Equality(Symbol('a'), Pow(Add(Mul(Integer(-1), Pow(Symbol('b'), Integer(2))), Pow(Symbol('c'), Integer(2))), Rational(1, 2)))]"
         },
         {
           "type": "Text",

@@ -79,28 +79,37 @@ def json_like_nonprim_encode(obj):
             
             elif splits[0] == "\\":
                 if splits[1] == 'begin': 
-                    if splits[3] in MATH_MODE_ENV and not is_sublist(splits[3:], ['\\', 'begin', '{']):
-                        print("conte", obj.contents)
-                        # multiline_math = [element for element in str(obj.).split(r"\\") if element]
-                        
+                    if splits[3] in MATH_MODE_ENV and not is_sublist(splits[3:], ['\\', 'begin', '{']):               
+                        children = []
+                        for child in obj.contents:
+                            if isinstance(child, TexNode):
+                                children.append({
+                                    "type": "Macro",
+                                    "name": child.name,
+                                    "args": [
+                                        {
+                                            "type": "Text",
+                                            "value": str(child.args)
+                                        }
+                                    ]
+                                })
+                            elif isinstance(child, Token):
+                                children.append({
+                                    "type": "Comment",
+                                    "value": str(child).strip()
+                                })
+                            else:
+                                multiline_math = merge_around_multiple_separators(obj.contents, r"\\")
+                                children.append({
+                                    "type": "MultilineMath",
+                                    "value": [srepr(latex2sympy(math_element)) for math_element in multiline_math]
+                                })
                         
                         return {
                             "type": "Environment",
                             "name": splits[3],
-                            "children": [
-                                {
-                                "type": "MultilineMath",
-                                "value": [srepr(latex2sympy(math_element)) for math_element in multiline_math]
-                                }
-                            ]
+                            "children": children
                         }
-                        
-                     
-                        return { "type": "MultilineMath",
-                                 "name": splits[3],
-                                 "value": [json_like_nonprim_encode(child) for child in obj.contents]
-                        }
-
                     return {"type": "Environment", "name": splits[3], "children": [json_like_encode(child) for child in obj.contents]}
                 else: 
                     return { 
@@ -135,21 +144,22 @@ def is_sublist(main_list, sub_list):
             return True
     return False
 
-def merge_around_separator(input_list, separator):
-    try:
-        # Find the index of the separator
-        index = input_list.index(separator)
-        
-        # Merge elements before the separator
-        first_part = ''.join(map(str, input_list[:index]))
-        
-        # Merge elements after the separator
-        second_part = ''.join(map(str, input_list[index + 1:]))
-        
-        return [first_part, second_part]
-    except ValueError:
-        # If the separator is not found, return the original list
-        return input_list
+def merge_around_multiple_separators(input_list, separator):
+    merged_strings = []
+    current_string = []
+
+    for item in input_list:
+        if item == separator:
+            if current_string:
+                merged_strings.append(''.join(map(str, current_string)))
+                current_string = []
+        else:
+            current_string.append(item)
+
+    if current_string:
+        merged_strings.append(''.join(map(str, current_string)))
+
+    return merged_strings
     
 def json_like_encode(obj):
     if isinstance(obj, (str, int, float)):
