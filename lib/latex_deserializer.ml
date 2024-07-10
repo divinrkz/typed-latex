@@ -12,8 +12,8 @@ module RawLatex = struct
 end
 
 let rec deserialize_from_json (json : Json.t): RawLatex.t_res =
-  match json with
+  (match json with
   | `Null -> Error UnknownError
   | `Assoc list_mapping -> 
-  | _ -> Error (NotImplemented json)
-let rec deserialize_assoc ()
+  | _ -> Error (NotImplemented json))
+  let rec deserialize_assoc ()

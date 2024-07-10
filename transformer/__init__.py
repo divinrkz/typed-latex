@@ -80,38 +80,29 @@ def json_like_nonprim_encode(obj):
             elif splits[0] == "\\":
                 if splits[1] == 'begin': 
                     if splits[3] in MATH_MODE_ENV and not is_sublist(splits[3:], ['\\', 'begin', '{']):               
-                        children = []
-                        for child in obj.contents:
-                            if isinstance(child, TexNode):
-                                children.append({
-                                    "type": "Macro",
-                                    "name": child.name,
-                                    "args": [
-                                        {
-                                            "type": "Text",
-                                            "value": str(child.args)
-                                        }
-                                    ]
-                                })
-                            elif isinstance(child, Token):
-                                children.append({
-                                    "type": "Comment",
-                                    "value": str(child).strip()
-                                })
-                            else:
-                                multiline_math = merge_around_multiple_separators(obj.contents, r"\\")
-                                children.append({
-                                    "type": "MultilineMath",
-                                    "value": [srepr(latex2sympy(math_element)) for math_element in multiline_math]
-                                })
+                        print("conte", obj.contents)
+                        # multiline_math = [element for element in str(obj.).split(r"\\") if element]
+                        multiline_math = [element for element in merge_around_multiple_separators(obj.contents, r"\\") if element]
                         
                         return {
                             "type": "Environment",
                             "name": splits[3],
-                            "children": children
+                            "children": [
+                                {
+                                "type": "MultilineMath",
+                                "value": [srepr(latex2sympy(math_element)) for math_element in multiline_math]
+                                }
+                            ]
                         }
+                        
+                     
+                        return { "type": "MultilineMath",
+                                 "name": splits[3],
+                                 "value": [json_like_nonprim_encode(child) for child in obj.contents]
+                        }
+
                     return {"type": "Environment", "name": splits[3], "children": [json_like_encode(child) for child in obj.contents]}
-                else: 
+                else:
                     return { 
                                 "type": "Macro",
                                 "name": splits[1],
