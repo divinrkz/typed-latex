@@ -71,6 +71,15 @@ let ( >->: ) (x : 'a list) (f : 'a -> unit) = List.iter ~f x
 
 (** Result monad **)
 
+module Result = struct
+  include Core.Result
+
+  let map_both (r : ('a, 'e) t) ~ok ~error =
+    match r with Ok x -> ok x | Error e -> error e
+
+  let tell (r : ('a, 'a) t) = map_both r ~ok:id ~error:id
+end
+
 (* Monadic bind *)
 let ( >>=! ) (x : ('a, 'e) result) (f : 'a -> ('b, 'e) result) =
   Result.bind x ~f
@@ -78,7 +87,7 @@ let ( >>=! ) (x : ('a, 'e) result) (f : 'a -> ('b, 'e) result) =
 let ( =<<! ) (f : 'a -> ('b, 'e) result) (x : ('a, 'e) result) =
   Result.bind x ~f
 
-(* Reverse functor map *)
+(* Reverse monadic bind *)
 let ( =>>! ) (x : 'a) (f : ('a -> ('b, 'e) result, 'e) result) =
   ( >>> ) x =<<! f
 
@@ -88,10 +97,14 @@ let ( <<=! ) (f : ('a -> ('b, 'e) result, 'e) result) (x : 'a) =
 (* Functor map *)
 let ( >>|! ) (x : ('a, 'e) result) (f : 'a -> 'b) = Result.map x ~f
 let ( |<<! ) (f : 'a -> 'b) (x : ('a, 'e) result) = Result.map x ~f
+let ( >>|!! ) (x : ('a, 'e1) result) (f : 'e1 -> 'e2) = Result.map_error x ~f
+let ( |<<!! ) (f : 'e1 -> 'e2) (x : ('a, 'e1) result) = Result.map_error x ~f
 
 (* Reverse functor map *)
 let ( |>>! ) (x : 'a) (f : ('a -> 'b, 'e) result) = ( >>> ) x |<<! f
 let ( <<|! ) (f : ('a -> 'b, 'e) result) (x : 'a) = ( >>> ) x |<<! f
+let ( |>>!! ) (x : 'e1) (f : ('a, 'e1 -> 'e2) result) = ( >>> ) x |<<!! f
+let ( <<|!! ) (f : ('a, 'e1 -> 'e2) result) (x : 'e1) = ( >>> ) x |<<!! f
 
 (* Applicative chain *)
 let ( >>*! ) (x : ('a, 'e) result) (f : ('a -> 'b, 'e) result) =
@@ -110,10 +123,13 @@ let ( *=<<! ) (f : ('a -> ('b, 'e) result, 'e) result) (x : ('a, 'e) result) =
 (* Side-effect map *)
 let ( <-<! ) (f : 'a -> unit) (x : ('a, 'e) result) = Result.iter ~f x
 let ( >->! ) (x : ('a, 'e) result) (f : 'a -> unit) = Result.iter ~f x
+let ( <-<!! ) (f : 'e -> unit) (x : ('a, 'e) result) = Result.iter_error ~f x
+let ( >->!! ) (x : ('a, 'e) result) (f : 'e -> unit) = Result.iter_error ~f x
 
 (** Functor casts **)
-let ( <!<! ) (err : 'e1) (x : ('a, 'e0) result) =
-  Result.map_error ~f:(fun _ -> err) x
+let ( <!<! ) (res : 'a) (x : ('a, 'e0) result) = (fun _ -> res) |<<! x
+
+let ( <!!<!! ) (err : 'e1) (x : ('a, 'e0) result) = (fun _ -> err) |<<!! x
 
 (** Pretty-printing **)
 
@@ -134,11 +150,13 @@ module Pair : sig
 
   val first : ('a, 'b) t -> 'a
   val second : ('a, 'b) t -> 'b
+  val build : 'a -> 'b -> ('a, 'b) t
 end = struct
   type ('a, 'b) t = 'a * 'b
 
   let first (x, _) = x
   let second (_, x) = x
+  let build x y = (x, y)
 end
 
 module Triple : sig
@@ -160,11 +178,14 @@ end
 module String = struct
   include String
 
-  let non_stupid_slice (str : string) (start : int) (stop : int) =
+  let non_stupid_slice (str : t) (start : int) (stop : int) =
     let len = length str in
     let m_start, m_stop = (start % len, stop % len) in
     if Int.equal m_start m_stop then make 0 (Char.unsafe_of_int 0)
     else slice str m_start m_stop
+
+  let opt_get (str : t) (i : int) : char option =
+    if Int.( >= ) i (length str) then None else Some (get str i)
 end
 
 (** Other **)

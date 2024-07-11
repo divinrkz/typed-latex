@@ -1,6 +1,4 @@
-run: parse_latex run_only
-
-run_only:
+run:
 	dune exec typed_latex
 
 test:
@@ -8,12 +6,6 @@ test:
 
 build:
 	dune build
-
-parse_latex:
-	./node_modules/latex-utensils/bin/luparse tex/sample.tex > parsed_latex.json
-
-install:
-	npm install latex-utensils
 
 # error:
 # 	menhir --list-errors lib/latex_parser.mly > lib/latex_parser.messages

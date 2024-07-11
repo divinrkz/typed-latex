@@ -1,7 +1,7 @@
 open Core
 open Ast
 open Util
-open Tree_print
+open String_tree
 
 let relation_name (relation : Math.relation) =
   match relation with
@@ -17,10 +17,6 @@ let relation_name (relation : Math.relation) =
   | SubsetEq -> "SubsetEq"
   | SupersetEq -> "SupersetEq"
   | Equiv _ -> "Equiv"
-
-let tree_format (indenter : string) (node : tree_print_node) =
-  List.fold ~f:(fun x y -> x ^ "\n" ^ y) ~init:""
-  @@ tree_format_rec indenter node
 
 let rec latex_to_string_tree (node : Latex.t) =
   match User.unwrap_node node with

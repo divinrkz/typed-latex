@@ -3,7 +3,7 @@ open Proof_lex
 open Ast
 open User
 open Fn
-open Tree_print
+open String_tree
 open Ast_print
 
 type relation_type =
@@ -91,7 +91,7 @@ module rec MatchContainer : sig
   val empty : t
   val put : t -> MatchID.t -> match_value -> t
   val compare : t -> t -> int
-  val to_string_tree : t -> tree_print_node
+  val to_string_tree : t -> string_tree
   val tree_format : t -> string
 end = struct
   type match_value =

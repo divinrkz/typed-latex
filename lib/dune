@@ -28,7 +28,7 @@
  (modules
   ast
   ast_print
-  tree_print
+  string_tree
   typing
   math
   user
