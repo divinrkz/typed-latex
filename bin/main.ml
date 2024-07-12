@@ -5,7 +5,7 @@ open Util
 module Json = Yojson.Basic
 
 let main () =
-  let filename = "tex/parsed-latex.json" in
+  let filename = "assets/json/parsed-latex.json" in
   let json = Json.from_file filename in
   let raw_latex = RawLatex.deserialize_from_json json in
   print_endline

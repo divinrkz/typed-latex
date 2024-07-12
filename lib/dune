@@ -43,7 +43,7 @@
   math_lexer
   math_parser
   math_parser_messages)
- (libraries core menhirLib re yojson)
+ (libraries core menhirLib re yojson str)
  ;  (flags -rectypes)
  (preprocess
   (pps
