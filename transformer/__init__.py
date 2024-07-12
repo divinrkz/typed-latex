@@ -5,8 +5,9 @@ import TexSoup
 from TexSoup.data import TexNode, TexArgs, BraceGroup, BracketGroup
 from TexSoup.utils import Token
 from TexSoup import TexSoup
-from latex2sympy2 import latex2sympy
+# from latex2sympy2 import latex2sympy
 from sympy import srepr
+from sympy.parsing.latex import parse_latex
 
 ASSETS_BASE_DIR = f"assets"
 TEX_BASE_DIR = f"{ASSETS_BASE_DIR}/tex"
@@ -65,16 +66,14 @@ def json_like_nonprim_encode(obj):
             }
         else:
             splits = split_to_words(str(obj))
-            
-     
-            
+                   
             if splits[0] == '$' and splits[len(splits) - 1] == '$':
                 multiline_math = [element for element in str(obj).split(r"\\") if element]
         
                 if (len(multiline_math) > 1):
-                    (type, sympy_exprs) = ("MultilineMath", [srepr(latex2sympy(math_element)) for math_element in multiline_math])
+                    (type, sympy_exprs) = ("MultilineMath", [srepr(parse_latex(math_element)) for math_element in multiline_math])
                 else: 
-                    (type, sympy_exprs) = ("Math", srepr(latex2sympy(str(obj))))
+                    (type, sympy_exprs) = ("Math", srepr(parse_latex(remove_first_and_last(str(obj)))))
                 return {"type": type, "value": sympy_exprs}
             
             elif splits[0] == "\\":
@@ -90,17 +89,11 @@ def json_like_nonprim_encode(obj):
                             "children": [
                                 {
                                 "type": "MultilineMath",
-                                "value": [srepr(latex2sympy(math_element)) for math_element in multiline_math]
+                                "value": [srepr(parse_latex(math_element)) for math_element in multiline_math]
                                 }
                             ]
                         }
                         
-                     
-                        return { "type": "MultilineMath",
-                                 "name": splits[3],
-                                 "value": [json_like_nonprim_encode(child) for child in obj.contents]
-                        }
-
                     return {"type": "Environment", "name": splits[3], "children": [json_like_encode(child) for child in obj.contents]}
                 else:
                     return { 
@@ -175,4 +168,4 @@ if __name__ == "__main__":
     json_str = dumps(latex, cls=TexJsonEncoder, indent=2)
     with open(f"{JSON_BASE_DIR}/parsed-latex.json", 'w') as json_file:
         json_file.write(json_str)
-    # print(json_str)
+    print(json_str)
