@@ -1,0 +1,12 @@
+- Build Json
+- Deserialize Json to Latex
+- Match Text with patterns
+- Extract matches
+- Perform Type Checking
+    - identify variables.
+    - find assignments/sets in.
+    - identify right hand expression.
+    - resolve types.
+
+
+*Assume no hoisting involved. 
