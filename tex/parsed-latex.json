@@ -206,8 +206,8 @@
                 {
                   "type": "MultilineMath",
                   "value": [
-                    "[Equality(Symbol('theta'), Mul(Integer(-1), Pow(Add(Mul(Integer(-1), Pow(Symbol('gamma'), Integer(2))), Pow(Symbol('omega'), Integer(2))), Rational(1, 2)))), Equality(Symbol('theta'), Pow(Add(Mul(Integer(-1), Pow(Symbol('gamma'), Integer(2))), Pow(Symbol('omega'), Integer(2))), Rational(1, 2))), Equality(Symbol('gamma'), Mul(Integer(-1), Pow(Mul(Add(Symbol('omega'), Mul(Integer(-1), Symbol('theta'))), Add(Symbol('omega'), Symbol('theta'))), Rational(1, 2)))), Equality(Symbol('gamma'), Pow(Mul(Add(Symbol('omega'), Mul(Integer(-1), Symbol('theta'))), Add(Symbol('omega'), Symbol('theta'))), Rational(1, 2))), Equality(Symbol('omega'), Mul(Integer(-1), Pow(Add(Pow(Symbol('gamma'), Integer(2)), Pow(Symbol('theta'), Integer(2))), Rational(1, 2)))), Equality(Symbol('omega'), Pow(Add(Pow(Symbol('gamma'), Integer(2)), Pow(Symbol('theta'), Integer(2))), Rational(1, 2)))]",
-                    "Pow(Add(Pow(Symbol('omega'), Integer(2)), Mul(Integer(-1), Pow(Symbol('theta'), Integer(2)))), Rational(1, 2))"
+                    "Equality(Add(Pow(Symbol('gamma'), Integer(2)), Pow(Symbol('theta'), Integer(2))), Pow(Symbol('omega'), Integer(2)))",
+                    "Equality(Symbol('gamma'), Pow(Add(Pow(Symbol('omega'), Integer(2)), Mul(Integer(-1), Pow(Symbol('theta'), Integer(2)))), Rational(1, 2)))"
                   ]
                 }
               ]
@@ -234,7 +234,7 @@
         },
         {
           "type": "Math",
-          "value": "[Equality(Symbol('c'), Mul(Integer(-1), Pow(Add(Pow(Symbol('a'), Integer(2)), Pow(Symbol('b'), Integer(2))), Rational(1, 2)))), Equality(Symbol('c'), Pow(Add(Pow(Symbol('a'), Integer(2)), Pow(Symbol('b'), Integer(2))), Rational(1, 2))), Equality(Symbol('a'), Mul(Integer(-1), Pow(Add(Mul(Integer(-1), Pow(Symbol('b'), Integer(2))), Pow(Symbol('c'), Integer(2))), Rational(1, 2)))), Equality(Symbol('a'), Pow(Add(Mul(Integer(-1), Pow(Symbol('b'), Integer(2))), Pow(Symbol('c'), Integer(2))), Rational(1, 2))), Equality(Symbol('b'), Mul(Integer(-1), Pow(Add(Mul(Integer(-1), Pow(Symbol('a'), Integer(2))), Pow(Symbol('c'), Integer(2))), Rational(1, 2)))), Equality(Symbol('b'), Pow(Add(Mul(Integer(-1), Pow(Symbol('a'), Integer(2))), Pow(Symbol('c'), Integer(2))), Rational(1, 2)))]"
+          "value": "Equality(Add(Pow(Symbol('a'), Integer(2)), Pow(Symbol('b'), Integer(2))), Pow(Symbol('c'), Integer(2)))"
         },
         {
           "type": "Text",
