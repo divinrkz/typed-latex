@@ -41,7 +41,7 @@
         },
         {
           "type": "Math",
-          "value": "false"
+          "value": "And(LessThan(Integer(5), Symbol('x')), StrictLessThan(Symbol('x'), Integer(10)))"
         },
         {
           "type": "Text",

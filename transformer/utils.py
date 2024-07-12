@@ -122,13 +122,13 @@ def parse_inequalities(compound_inequality):
         elif has_interval(part.strip()):
             parsed_inequalities.append(parse_interval(part.strip()))
         else: 
-            parsed_inequalities.append(srepr(parse_latex(part.strip())))
+            parsed_inequalities.append((parse_latex(part.strip())))
     inequalities = []
     
     index = 0
     for separator in re.findall('|'.join([re.escape(rel) for rel in extract_notations(INEQUALITY_NOTATIONS)]), compound_inequality):
         if separator == '<':
-            inequalities.append( parsed_inequalities[index] < parsed_inequalities[index + 1])
+            inequalities.append(parsed_inequalities[index] < parsed_inequalities[index + 1])
             
         elif separator == '>':
             inequalities.append(parsed_inequalities[index] > parsed_inequalities[index + 1])

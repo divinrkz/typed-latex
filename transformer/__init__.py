@@ -44,10 +44,11 @@ def json_like_nonprim_encode(obj):
                     formatted = remove_trailing_dollars(str(obj))
                     parsed = None;
                     
-                    if has_equality_relation(formatted):
+                    if has_equality_relation(formatted) and (has_inequality_relation(formatted) or has_set_relation(formatted)):
                         parsed = parse_equalities(formatted) 
                                      
                     else: 
+                        print('format', formatted)
                         if has_inequality_relation(formatted):
                             parsed = srepr(And(*parse_inequalities(formatted)))
                         elif has_set_relation(formatted):                            
@@ -139,3 +140,4 @@ if __name__ == "__main__":
         json_file.write(json_str)
     
     print(f'LaTeX parsed successfully to ... `{JSON_OUT_FILE}`')
+ 
