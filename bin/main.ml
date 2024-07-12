@@ -4,7 +4,7 @@ open Latex_deserializer
 open Util
 module Json = Yojson.Basic
 
-(* let main () =
+let main () =
   let filename = "tex/parsed-latex.json" in
   let json = Json.from_file filename in
   let raw_latex = RawLatex.deserialize_from_json json in
@@ -12,7 +12,7 @@ module Json = Yojson.Basic
     (Result.tell
        (RawLatex.tree_format
        |<<! (( ^ ) "PARSE ERROR: " << RawLatex.string_of_parse_error
-           |<<!! raw_latex))) *)
+           |<<!! raw_latex)))
 
 let main () =
    let filename = "tex/sample.tex" in

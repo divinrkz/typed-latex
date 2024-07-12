@@ -2,6 +2,7 @@
 (* menhir/ocamllex should be hidden by this abstraction *)
 open Core
 open Ast
+open Latex_deserializer
 include Util
 
 (* our own abstraction on top of Lexer.LexError, Parser.Error, and Type Error *)
@@ -145,8 +146,14 @@ let type_check ast =
 
 let unwrap_node ({ pos = _; value = element } : Latex.t) = element
 
-let rec unwrap_to_document (node : Latex.t) =
+let rec old_unwrap_to_document (node : Latex.t) =
   match unwrap_node node with
   | Latex.Environment ("\\begin{document}", _, _) -> Some node
-  | Latex.Latex children -> List.find_map ~f:unwrap_to_document children
+  | Latex.Latex children -> List.find_map ~f:old_unwrap_to_document children
+  | _ -> None
+
+let rec unwrap_to_document (node : RawLatex.t) =
+  match node with
+  | RawLatex.Environment ("document", _) -> Some node
+  | RawLatex.Latex children -> List.find_map ~f:unwrap_to_document children
   | _ -> None
