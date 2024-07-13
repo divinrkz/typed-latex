@@ -39,7 +39,7 @@
       "args": [
         {
           "type": "Text",
-          "value": "Simple Sample"
+          "value": "Sample 2"
         }
       ]
     },
@@ -84,8 +84,34 @@
       "name": "document",
       "children": [
         {
-          "type": "Comment",
-          "value": "% All begin commands must be paired with an end command somewhere"
+          "type": "Macro",
+          "name": "title",
+          "args": [
+            {
+              "type": "Text",
+              "value": "A Simple Proof in Number Theory"
+            }
+          ]
+        },
+        {
+          "type": "Macro",
+          "name": "author",
+          "args": [
+            {
+              "type": "Text",
+              "value": "Author Name"
+            }
+          ]
+        },
+        {
+          "type": "Macro",
+          "name": "date",
+          "args": [
+            {
+              "type": "Text",
+              "value": "\\today"
+            }
+          ]
         },
         {
           "type": "Macro",
@@ -93,38 +119,12 @@
           "args": []
         },
         {
-          "type": "Comment",
-          "value": "% creates title using information in preamble (title, author, date)"
-        },
-        {
           "type": "Macro",
           "name": "section",
           "args": [
             {
               "type": "Text",
-              "value": "Hello World!"
-            }
-          ]
-        },
-        {
-          "type": "Comment",
-          "value": "% creates a section"
-        },
-        {
-          "type": "Macro",
-          "name": "newcommand",
-          "args": [
-            {
-              "type": "Text",
-              "value": "reverseconcat"
-            },
-            {
-              "type": "Text",
-              "value": "3"
-            },
-            {
-              "type": "Text",
-              "value": "#3#2#1"
+              "value": "Proof"
             }
           ]
         },
@@ -134,71 +134,112 @@
           "args": [
             {
               "type": "Text",
-              "value": "Hello World!"
+              "value": "Theorem:"
             }
           ]
         },
         {
           "type": "Text",
-          "value": " Today I am learning "
-        },
-        {
-          "type": "Macro",
-          "name": "LaTeX",
-          "args": []
-        },
-        {
-          "type": "Text",
-          "value": ". "
-        },
-        {
-          "type": "Comment",
-          "value": "%notice how the command will end at the first non-alphabet charecter such as the . after \\LaTeX"
-        },
-        {
-          "type": "Macro",
-          "name": "LaTeX",
-          "args": [
-            {
-              "type": "Text",
-              "value": ""
-            }
-          ]
-        },
-        {
-          "type": "Text",
-          "value": " is a great program for writing math. I can write in line math such as "
+          "value": " For any integer "
         },
         {
           "type": "Math",
-          "value": "Derivative(Add(Pow(Symbol('x'), Integer(2)), Symbol('x')), Tuple(Symbol('x'), Integer(1)))"
-        },
-        {
-          "type": "Comment",
-          "value": "%$ tells LaTexX to compile as math"
+          "value": "Symbol('a')"
         },
         {
           "type": "Text",
-          "value": "\n     . I can also give equations their own space: \n    "
+          "value": ", if "
+        },
+        {
+          "type": "Math",
+          "value": "LessThan(Symbol('a'), Symbol('b'))"
+        },
+        {
+          "type": "Text",
+          "value": ", then "
+        },
+        {
+          "type": "Math",
+          "value": "LessThan(Add(Symbol('a'), Symbol('c')), Add(Symbol('b'), Symbol('c')))"
+        },
+        {
+          "type": "Text",
+          "value": " for any integer "
+        },
+        {
+          "type": "Math",
+          "value": "Symbol('c')"
+        },
+        {
+          "type": "Text",
+          "value": ".\n\n"
+        },
+        {
+          "type": "Macro",
+          "name": "textbf",
+          "args": [
+            {
+              "type": "Text",
+              "value": "Proof:"
+            }
+          ]
+        },
+        {
+          "type": "Text",
+          "value": "\nLet "
+        },
+        {
+          "type": "Math",
+          "value": "Symbol('a')"
+        },
+        {
+          "type": "Text",
+          "value": " and "
+        },
+        {
+          "type": "Math",
+          "value": "Symbol('c')"
+        },
+        {
+          "type": "Text",
+          "value": " be arbitrary integers such that "
+        },
+        {
+          "type": "Math",
+          "value": "LessThan(Symbol('a'), Symbol('b'))"
+        },
+        {
+          "type": "Text",
+          "value": ". We need to show that "
+        },
+        {
+          "type": "Math",
+          "value": "LessThan(Add(Symbol('a'), Symbol('c')), Add(Symbol('b'), Symbol('c')))"
+        },
+        {
+          "type": "Text",
+          "value": ".\n\nGiven "
+        },
+        {
+          "type": "Math",
+          "value": "LessThan(Symbol('a'), Symbol('b'))"
+        },
+        {
+          "type": "Text",
+          "value": ", we can add the integer "
+        },
+        {
+          "type": "Math",
+          "value": "Symbol('c')"
+        },
+        {
+          "type": "Text",
+          "value": " to both sides of the inequality:\n"
         },
         {
           "type": "Environment",
           "name": "equation",
           "children": [
-            {
-              "type": "Macro",
-              "name": "label",
-              "args": [
-                {
-                  "type": "Text",
-                  "value": "eq1"
-                }
-              ]
-            },
-            {
-              "type": "Comment",
-              "value": "% Creates an equation environment and is compiled as math"
-            },
             {
               "type": "Environment",
               "name": "split",
@@ -206,8 +247,7 @@
                 {
                   "type": "MultilineMath",
                   "value": [
-                    "Equality(Add(Pow(Symbol('gamma'), Integer(2)), Pow(Symbol('theta'), Integer(2))), Pow(Symbol('omega'), Integer(2)))",
-                    "Equality(Symbol('gamma'), Pow(Add(Pow(Symbol('omega'), Integer(2)), Mul(Integer(-1), Pow(Symbol('theta'), Integer(2)))), Rational(1, 2)))"
+                    "LessThan(Add(Symbol('a'), Symbol('c')), Add(Symbol('b'), Symbol('c')))"
                   ]
                 }
               ]
@@ -216,49 +256,86 @@
         },
         {
           "type": "Text",
-          "value": "\n    If I do not leave any blank lines "
-        },
-        {
-          "type": "Macro",
-          "name": "LaTeX",
-          "args": [
-            {
-              "type": "Text",
-              "value": ""
-            }
-          ]
-        },
-        {
-          "type": "Text",
-          "value": " will continue  this text without making it into a new paragraph.  Notice how there was no indentation in the text after equation (1).  \n    Also notice how even though I\n    "
+          "value": "\nThis follows from the basic properties of inequalities, where adding the same number to both sides of an inequality preserves the inequality.\n\nThus, we have shown that if "
         },
         {
           "type": "Math",
-          "value": "Equality(Add(Pow(Symbol('a'), Integer(2)), Pow(Symbol('b'), Integer(2))), Pow(Symbol('c'), Integer(2)))"
+          "value": "LessThan(Symbol('a'), Symbol('b'))"
         },
         {
           "type": "Text",
-          "value": " hit enter after that sentence and here \n     "
+          "value": ", then "
+        },
+        {
+          "type": "Math",
+          "value": "LessThan(Add(Symbol('a'), Symbol('c')), Add(Symbol('b'), Symbol('c')))"
+        },
+        {
+          "type": "Text",
+          "value": " for any integer "
+        },
+        {
+          "type": "Math",
+          "value": "Symbol('c')"
+        },
+        {
+          "type": "Text",
+          "value": ". "
         },
         {
           "type": "Macro",
-          "name": "LaTeX",
-          "args": [
-            {
-              "type": "Text",
-              "value": ""
-            }
-          ]
+          "name": "n",
+          "args": []
         },
         {
           "type": "Text",
-          "value": " formats the sentence without any break.  Also   look  how      it   doesn't     matter          how    many  spaces     I put     between       my    words.\n    \n    For a new paragraph I can leave a blank space in my code. \n\n"
+          "value": "\nThis just a line to add all the inequalities Let "
+        },
+        {
+          "type": "Math",
+          "value": "Equality(Symbol('x'), Integer(3))"
+        },
+        {
+          "type": "Text",
+          "value": " and "
+        },
+        {
+          "type": "Math",
+          "value": "Equality(Symbol('y'), Integer(4))"
+        },
+        {
+          "type": "Text",
+          "value": ". So, "
+        },
+        {
+          "type": "Math",
+          "value": "Unequality(Symbol('x'), Symbol('y'))"
+        },
+        {
+          "type": "Text",
+          "value": ". Also, we could say "
+        },
+        {
+          "type": "Math",
+          "value": "StrictGreaterThan(Symbol('y'), Symbol('x'))"
+        },
+        {
+          "type": "Text",
+          "value": " and "
+        },
+        {
+          "type": "Math",
+          "value": "GreaterThan(Symbol('y'), Symbol('x'))"
+        },
+        {
+          "type": "Text",
+          "value": " is also valid.\n\nAlso, "
+        },
+        {
+          "type": "Math",
+          "value": "Equality(Equality(Symbol('n'), Symbol('m')), Symbol('p'))"
         }
       ]
-    },
-    {
-      "type": "Comment",
-      "value": "% This is the end of the document"
     }
   ]
 }

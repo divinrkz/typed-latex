@@ -190,6 +190,7 @@ end
 
 (** Other **)
 
+let word_sep_chars = [ ' '; '\n' ]
 let word_split_chars = [ '.'; ','; ';'; '/'; '('; ')' ]
 let sentence_split_words = [ "."; ";" ]
 

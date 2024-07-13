@@ -1,6 +1,4 @@
 open Core
-open Ast
-open User
 open Fn
 open Util
 open Latex_deserializer
@@ -33,12 +31,17 @@ and text_tokenizer (working_tokenization : proof_token list list)
       let left, right =
         (String.non_stupid_slice word 0 i, String.drop_prefix word (i + 1))
       in
-      word_tokenizer
-        (word_tokenizer
+      multi_word_tokenizer
+        (multi_word_tokenizer
            (text_tokenizer working_tokenization right)
            (String.of_char char))
         left
-  | None -> word_tokenizer working_tokenization word
+  | None -> multi_word_tokenizer working_tokenization word
+
+and multi_word_tokenizer (working_tokenization : proof_token list list)
+    (text : string) =
+  List.fold_right ~f:(flip word_tokenizer) ~init:working_tokenization
+    (String.split_on_chars ~on:Util.word_sep_chars text)
 
 and word_tokenizer (working_tokenization : proof_token list list)
     (word : string) =
