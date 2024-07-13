@@ -15,7 +15,7 @@ let main () =
        |<<! (( ^ ) "PARSE ERROR: " << RawLatex.string_of_parse_error
            |<<!! parsed_latex)));
   let opt_latex = Result.ok parsed_latex in
-  let document_ast = User.unwrap_to_document =<<? opt_latex in
+  let document_ast = Latex_aux.unwrap_to_document =<<? opt_latex in
   print_endline << RawLatex.tree_format <-<? document_ast;
   let pattern = Pattern_defs.def in
   let tokenization = Proof_lex.tokenize |<<? document_ast in

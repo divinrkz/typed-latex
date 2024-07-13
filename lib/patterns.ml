@@ -1,9 +1,9 @@
 open Core
 open Proof_lex
-open User
 open Fn
 open String_tree
 open Latex_deserializer
+open Util
 
 module MatchID = struct
   module T = struct
