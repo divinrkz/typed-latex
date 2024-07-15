@@ -7,7 +7,6 @@ RELATIONS = [ '<', '>', r'\leq', r'\geq', r'\leqq', r'\leqslant', r'\lesssim',
 MATH_MODE_ENV = ['equation', 'split', 'gather', 'multiline']
 
 
-
 def indent(substr: str) -> str:
     return "\t" + substr.replace("\n", "\n\t")
 

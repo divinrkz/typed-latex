@@ -1,12 +1,10 @@
-import string
 from json import JSONEncoder, dumps
-from string import whitespace
-
 from TexSoup.data import TexNode, TexArgs, BraceGroup, BracketGroup
 from TexSoup.utils import Token
 from TexSoup import TexSoup
 from sympy import srepr, And
 from sympy.parsing.latex import parse_latex
+from utils import RELATIONS, MATH_MODE_ENV, indent, remove_trailing_dollars, split_to_words, is_sublist, merge_around_multiple_separators
 
 ASSETS_BASE_DIR = f"assets"
 TEX_BASE_DIR = f"{ASSETS_BASE_DIR}/tex"
@@ -138,7 +136,7 @@ if __name__ == "__main__":
         combined_inequality = And(*inequalities)
 
         print(srepr(combined_inequality))
-    else if count_occurrences(compound_inequality, ): 
+    else: 
         print (srepr(parse_latex(compound_inequality)))
 
     # print('latex', srepr(parse_latex(r'1 \leq e \leq d')))
