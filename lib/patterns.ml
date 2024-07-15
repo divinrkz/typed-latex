@@ -3,7 +3,7 @@ open Proof_lex
 open Ast
 open User
 open Fn
-open Tree_print
+open String_tree
 open Ast_print
 
 
@@ -92,11 +92,11 @@ type match_value =
 
 and t = match_value list MatchID.Map.t
 
-val empty : t
-val put : t -> MatchID.t -> match_value -> t
-val compare : t -> t -> int
-val to_string_tree : t -> tree_print_node
-val tree_format : t -> string
+  val empty : t
+  val put : t -> MatchID.t -> match_value -> t
+  val compare : t -> t -> int
+  val to_string_tree : t -> string_tree
+  val tree_format : t -> string
 end = struct
 type match_value =
   | DefContainerMatch of t
