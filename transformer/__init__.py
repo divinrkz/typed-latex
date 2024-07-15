@@ -48,7 +48,6 @@ def json_like_nonprim_encode(obj):
                         parsed = parse_equalities(formatted) 
                                      
                     else: 
-                        print('format', formatted)
                         if has_inequality_relation(formatted):
                             parsed = srepr(And(*parse_inequalities(formatted)))
                         elif has_set_relation(formatted):                            
@@ -133,7 +132,7 @@ def count_occurrences(main_string, substring):
     return main_string.count(substring)
 
 if __name__ == "__main__":
-    latex: TexSoup = read_latex("sample4.tex")
+    latex: TexSoup = read_latex("sample2.tex")
 
     json_str = dumps(latex, cls=TexJsonEncoder, indent=2)
     with open(JSON_OUT_FILE, 'w') as json_file:
