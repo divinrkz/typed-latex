@@ -28,7 +28,14 @@ let string_of_json_type (json_t : json_type) =
   | JsonString -> "String"
   | Comment -> "Comment"
 
-module RawMathLatex = struct
+module RawMathLatex : sig
+  type t = string_tree
+  type parse_error
+  type t_res = (t, parse_error) result
+
+  val string_of_parse_error : parse_error -> string
+  val parse : string -> t_res
+end = struct
   type t = string_tree
 
   type lex_token =
@@ -39,14 +46,12 @@ module RawMathLatex = struct
   [@@deriving eq, show, sexp, hash, ord]
 
   type parse_error =
-    | Impossible
     | UnexpectedSymbol of lex_token * lex_token list
     | UnbalancedParens
     | EmptyExpression
 
   let string_of_parse_error (err : parse_error) =
     match err with
-    | Impossible -> "Impossible - math latex deserializer logic error"
     | UnexpectedSymbol (token, _) -> "Unexpected token: " ^ show_lex_token token
     | UnbalancedParens -> "Unbalanced parens"
     | EmptyExpression -> "Empty math expression"
@@ -71,6 +76,19 @@ module RawMathLatex = struct
         :: lex_rec str (stop + 1) (stop + 1)
     | Some _ -> lex_rec str start (stop + 1)
     | None -> []
+
+  let clean_token (token : lex_token) : lex_token list =
+    match token with
+    | StrToken symbol ->
+        let clean_string =
+          String.strip
+            ~drop:(List.mem ~equal:Char.equal [ ' '; '\n'; '\t' ])
+            symbol
+        in
+        if String.is_empty clean_string then [] else [ StrToken clean_string ]
+    | _ -> [ token ]
+
+  let lex (str : string) : lex_token list = clean_token =<<: lex_rec str 0 0
 
   let consume_token (token : lex_token)
       (on_other : (lex_token list, parse_error) result option)
@@ -121,7 +139,7 @@ module RawMathLatex = struct
     | hd :: _ -> Error (UnexpectedSymbol (hd, tokens))
 
   let parse (math_str : string) : t_res =
-    let lexed = lex_rec math_str 0 0 in
+    let lexed = lex math_str in
     let parsed = parse_rec lexed in
     assert_empty_tokens =<<! parsed
 end
@@ -165,6 +183,8 @@ end = struct
     | Text of string
     | Comment of string
 
+  let escape_string (str : string) : string = String.escaped str
+
   let rec to_string_tree (latex : t) =
     match latex with
     | Latex children -> Branch (Some "Latex", to_string_tree |<<: children)
@@ -172,9 +192,10 @@ end = struct
         Branch (Some ("Environment: " ^ name), to_string_tree |<<: children)
     | Macro (name, args) ->
         Branch (Some ("Macro: " ^ name), to_string_tree |<<: args)
-    | Text text -> Leaf ("Text: " ^ text)
+    | Text text -> Leaf ("Text: \"" ^ escape_string text ^ "\"")
     | Comment comment -> Leaf ("Comment: " ^ comment)
-    | _ -> Leaf "???"
+    | Math math_tree -> Branch (Some "Math", [ math_tree ])
+    | MultilineMath math_trees -> Branch (Some "Multiline Math", math_trees)
 
   let tree_format = tree_format "| " << to_string_tree
 
