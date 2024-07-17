@@ -7,9 +7,10 @@
   patterns
   pattern_defs
   proof_lex
-  util
   latex_deserializer
-  latex_aux)
+  latex_aux
+  util
+  comparable_extension)
  (libraries core menhirLib re yojson)
  ;  (flags -rectypes)
  (preprocess
