@@ -35,7 +35,7 @@ let regex_first_split = "|?[a-zA-Z]+|?"
 let regex_optional = "\\(([^()]+)\\)\\?"
 let relation_regex = "[a-zA-Z]+"
 
-let list_relation_types_pattern (match_id : MatchID.t)
+(* let list_relation_types_pattern (match_id : MatchID.t)
     (allowed_relation_types : relation_type list) =
   Any
     ((fun rel_type -> Relation (rel_type, match_id)) |<<: allowed_relation_types)
@@ -44,7 +44,7 @@ let any_known_relation_pattern (match_id : MatchID.t) =
   list_relation_types_pattern match_id all_known_relation_types
 
 let any_relation_pattern (match_id : MatchID.t) =
-  list_relation_types_pattern match_id all_relation_types
+  list_relation_types_pattern match_id all_relation_types *)
 
 let parse_relation_type (relation_type: string) = 
    match relation_type with
@@ -166,7 +166,7 @@ let parse_patterns filename =
   )
 
 
-let def1 =
+(* let def1 =
   Sequence
     [
       Any [ Word "choose"; Word "let"; Word "consider"; Word "define" ];
@@ -178,7 +178,7 @@ let def1 =
                 Any [ Word "and"; Word "," ];
                 DefContainer (any_known_relation_pattern 1, 0);
               ]));
-    ]
+    ] *)
 
 let def =
   Sequence

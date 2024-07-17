@@ -1,9 +1,4 @@
 open Core
-<<<<<<< HEAD
-(* open Ast *)
-(* open User *)
-=======
->>>>>>> ecf6e464c114b0dc05c345935c08d1c43c64c6be
 open Fn
 open Util
 open Latex_deserializer

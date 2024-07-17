@@ -12,7 +12,7 @@ module MatchID = struct
 
   include T
   include Comparable.Make (T)
-  
+
   let from_int : int -> t = id
   let to_string (match_id : t) : string = "<" ^ string_of_int match_id ^ ">"
 end
@@ -34,18 +34,6 @@ type pattern =
   | MathPattern of math_pattern
   (* Auxiliary *)
   | OptRepeat of pattern
-[@@deriving eq, show, sexp, hash, ord]
-
-
-let rec extract_elementary_relations (bound : Math.t)
-  (tail : (Math.relation * Math.t) list) =
-  match tail with
-  | (ast_rel_t, right) :: (_, left) :: remaining ->
-      ERelation (ast_to_elementary_relation_type ast_rel_t, left, right)
-      :: extract_elementary_relations bound remaining
-  | (ast_rel_t, right) :: [] ->
-      [ ERelation (ast_to_elementary_relation_type ast_rel_t, bound, right) ]
-  | [] -> []
 
 module rec MatchContainer : sig
   type match_value =
@@ -55,7 +43,7 @@ module rec MatchContainer : sig
     | ExpressionMatch of RawMathLatex.t
     | FunctionMatch of string
 
-and t = match_value list MatchID.Map.t
+  and t = match_value list MatchID.Map.t
 
   val empty : t
   val put : t -> MatchID.t -> match_value -> t
@@ -70,34 +58,34 @@ end = struct
     | ExpressionMatch of RawMathLatex.t
     | FunctionMatch of string
 
-and t = match_value list MatchID.Map.t
+  and t = match_value list MatchID.Map.t
 
-let empty = MatchID.Map.empty
+  let empty = MatchID.Map.empty
 
-let put (map : t) (k : MatchID.t) (v : match_value) =
-  Core.Map.add_multi map ~key:k ~data:v
+  let put (map : t) (k : MatchID.t) (v : match_value) =
+    Core.Map.add_multi map ~key:k ~data:v
 
-let rec recursive_size (map : t) =
-  List.sum
-    (module Int)
-    ~f:recursive_multi_match_value_size (Core.Map.data map)
+  let rec recursive_size (map : t) =
+    List.sum
+      (module Int)
+      ~f:recursive_multi_match_value_size (Core.Map.data map)
 
-and recursive_multi_match_value_size (vs : match_value list) =
-  List.sum (module Int) ~f:recursive_match_value_size vs
+  and recursive_multi_match_value_size (vs : match_value list) =
+    List.sum (module Int) ~f:recursive_match_value_size vs
 
-and recursive_match_value_size (v : match_value) =
-  match v with DefContainerMatch sub_map -> recursive_size sub_map | _ -> 1
+  and recursive_match_value_size (v : match_value) =
+    match v with DefContainerMatch sub_map -> recursive_size sub_map | _ -> 1
 
-let compare (a : t) (b : t) =
-  Int.compare (recursive_size a) (recursive_size b)
+  let compare (a : t) (b : t) =
+    Int.compare (recursive_size a) (recursive_size b)
 
-let rec to_string_tree (map : t) =
-  Branch
-    ( Some "MatchContainer",
-      ascociation_to_string_tree |<<: Core.Map.to_alist map )
+  let rec to_string_tree (map : t) =
+    Branch
+      ( Some "MatchContainer",
+        ascociation_to_string_tree |<<: Core.Map.to_alist map )
 
-and ascociation_to_string_tree ((k, vs) : MatchID.t * match_value list) =
-  Branch (Some ("@" ^ MatchID.to_string k), match_value_to_string_tree |<<: vs)
+  and ascociation_to_string_tree ((k, vs) : MatchID.t * match_value list) =
+    Branch (Some ("@" ^ MatchID.to_string k), match_value_to_string_tree |<<: vs)
 
   and match_value_to_string_tree (v : match_value) =
     match v with
@@ -107,7 +95,7 @@ and ascociation_to_string_tree ((k, vs) : MatchID.t * match_value list) =
     | ExpressionMatch expression -> expression
     | FunctionMatch fun_name -> Leaf fun_name
 
-let tree_format = tree_format "| " << to_string_tree
+  let tree_format = tree_format "| " << to_string_tree
 end
 
 type context = proof_token list * MatchContainer.t
@@ -116,12 +104,12 @@ type math_context = RawMathLatex.t * MatchContainer.t
 type nd_math_context = math_context list
 
 let box_context (match_id : MatchID.t) (exterior_matches : MatchContainer.t)
-  (interior_context : context) =
-match interior_context with
-| tokens, interior_matches ->
-    ( tokens,
-      MatchContainer.put exterior_matches match_id
-        (DefContainerMatch interior_matches) )
+    (interior_context : context) =
+  match interior_context with
+  | tokens, interior_matches ->
+      ( tokens,
+        MatchContainer.put exterior_matches match_id
+          (DefContainerMatch interior_matches) )
 
 let rec extract_type_names (opt : bool) (tokens : proof_token list) =
   match tokens with
@@ -135,8 +123,8 @@ let rec extract_type_names (opt : bool) (tokens : proof_token list) =
   | _ -> if opt then [ ("", tokens) ] else []
 
 let box_type_name (match_id : MatchID.t) (exterior_matches : MatchContainer.t)
-  ((name, tokens) : string * proof_token list) =
-(tokens, MatchContainer.put exterior_matches match_id (TypeNameMatch name))
+    ((name, tokens) : string * proof_token list) =
+  (tokens, MatchContainer.put exterior_matches match_id (TypeNameMatch name))
 
 (* let rec find_elementary_relation (rel_type : relation_type)
      (e_relations : elementary_relation list) =
@@ -204,11 +192,11 @@ let rec match_rec (pat : pattern) (context : context) : context list =
   | _ -> []
 
 let compare_context ((a_tokens, a_matches) : context)
-  ((b_tokens, b_matches) : context) =
-let match_comparison = MatchContainer.compare a_matches b_matches in
-if match_comparison = 0 then
-  Int.compare (List.length b_tokens) (List.length a_tokens)
-else match_comparison
+    ((b_tokens, b_matches) : context) =
+  let match_comparison = MatchContainer.compare a_matches b_matches in
+  if match_comparison = 0 then
+    Int.compare (List.length b_tokens) (List.length a_tokens)
+  else match_comparison
 
 let match_pattern (pat : pattern) (tokenization : proof_token list) =
   let matched_contexts = match_rec pat (tokenization, MatchContainer.empty) in
