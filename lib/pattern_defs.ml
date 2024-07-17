@@ -1,6 +1,5 @@
 open Core
 open Patterns
-open Util
 
 
 type match_id_counters = {
@@ -184,16 +183,11 @@ let def1 =
 let def =
   Sequence
     [
-      Word "let";
+      Optional (Word "also");
+      Optional (Word ",");
+      Optional (Sequence [ Word "we"; Word "could" ]);
+      Any [ Word "suppose"; Word "say"; Word "imagine"; Word "let" ];
       DefContainer
-        ( Sequence
-            [
-              Expression 1;
-              Word "be";
-              Optional
-                (Any
-                   [ Sequence [ Word "of"; Word "type" ]; Word "a"; Word "an" ]);
-              TypeName 2;
-            ],
+        ( MathPattern (Function ("StrictGreaterThan", [ Expression 2; Expression 3 ], 1)),
           0 );
     ]
