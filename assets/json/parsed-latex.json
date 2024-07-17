@@ -2,10 +2,6 @@
   "type": "Latex",
   "children": [
     {
-      "type": "Comment",
-      "value": "% This is a simple sample document.  For more complicated documents take a look in the exercise tab. Note that everything that comes after a % symbol is treated as comment and ignored when the code is compiled."
-    },
-    {
       "type": "Macro",
       "name": "documentclass",
       "args": [
@@ -16,98 +12,62 @@
       ]
     },
     {
-      "type": "Comment",
-      "value": "% \\documentclass{} is the first command in any LaTeX code.  It is used to define what kind of document you are creating such as an article or a book, and begins the document preamble"
-    },
-    {
       "type": "Macro",
       "name": "usepackage",
       "args": [
         {
           "type": "Text",
-          "value": "{amsmath}"
+          "value": "{amsfonts}"
         }
       ]
-    },
-    {
-      "type": "Comment",
-      "value": "% \\usepackage is a command that allows you to add functionality to your LaTeX code"
-    },
-    {
-      "type": "Macro",
-      "name": "title",
-      "args": [
-        {
-          "type": "Text",
-          "value": "{Sample 2}"
-        }
-      ]
-    },
-    {
-      "type": "Comment",
-      "value": "% Sets article title"
-    },
-    {
-      "type": "Macro",
-      "name": "author",
-      "args": [
-        {
-          "type": "Text",
-          "value": "{My Name}"
-        }
-      ]
-    },
-    {
-      "type": "Comment",
-      "value": "% Sets authors name"
-    },
-    {
-      "type": "Macro",
-      "name": "date",
-      "args": [
-        {
-          "type": "Text",
-          "value": "{\\today}"
-        }
-      ]
-    },
-    {
-      "type": "Comment",
-      "value": "% Sets date for date compiled"
-    },
-    {
-      "type": "Comment",
-      "value": "% The preamble ends with the command \\begin{document}"
     },
     {
       "type": "Environment",
       "name": "document",
       "children": [
         {
-          "type": "Comment",
-          "value": "% All begin commands must be paired with an end command somewhere"
-        },
-        {
           "type": "Text",
-          "value": "\n    consider "
+          "value": "\nLet "
         },
         {
           "type": "Math",
-          "value": "Mul(Symbol('x'), Mul(Symbol('in'), Mul(Symbol('N'), Symbol('mathbb'))))"
+          "value": [
+            "In(Symbol('x'), Mathbb(Symbol('N')))"
+          ]
         },
         {
           "type": "Text",
-          "value": ". Let "
+          "value": " where "
         },
         {
           "type": "Math",
-          "value": "Equality(Symbol('y'), Add(Symbol('x'), Float('1.5', precision=53)))"
+          "value": "And(LessThan(Integer(5), Symbol('x')), StrictLessThan(Symbol('x'), Integer(10)))"
+        },
+        {
+          "type": "Text",
+          "value": ".\n\nLet "
+        },
+        {
+          "type": "Math",
+          "value": [
+            "ProperSubset(Symbol('S'), Mathbb(Symbol('Q')))"
+          ]
+        },
+        {
+          "type": "Text",
+          "value": " such that "
+        },
+        {
+          "type": "Math",
+          "value": [
+            "Equality(Difference(Mathbb(Symbol('Q')), Symbol('S')), Intersection(Interval(Integer(5), Symbol('x'), true, false), Mathbb(Symbol('N'))))"
+          ]
+        },
+        {
+          "type": "Text",
+          "value": ".\n\n"
         }
       ]
-    },
-    {
-      "type": "Comment",
-      "value": "% This is the end of the document"
     }
   ]
 }
