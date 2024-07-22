@@ -11,7 +11,7 @@
   latex_aux
   util
   comparable_extension)
- (libraries core menhirLib re yojson)
+ (libraries core menhirLib re yojson str)
  ;  (flags -rectypes)
  (preprocess
   (pps
