@@ -42,6 +42,17 @@ let ( >->? ) (x : 'a option) (f : 'a -> unit) = Option.iter ~f x
 
 (** List monad **)
 
+module List : sig
+  include module type of Core.List
+
+  val zip_shorter : 'a list -> 'b list -> ('a * 'b) list
+end = struct
+  include Core.List
+
+  let zip_shorter (x : 'a list) (y : 'b list) : ('a * 'b) list =
+    match zip_with_remainder x y with out, _ -> out
+end
+
 (* Monadic bind *)
 let ( >>=: ) (x : 'a list) (f : 'a -> 'b list) = List.bind x ~f
 let ( =<<: ) (f : 'a -> 'b list) (x : 'a list) = List.bind x ~f
@@ -72,13 +83,18 @@ let ( >->: ) (x : 'a list) (f : 'a -> unit) = List.iter ~f x
 
 (** Result monad **)
 
-module Result = struct
+module Result : sig
+  include module type of Core.Result
+
+  val tell_map : ('a, 'e) result -> ok:('a -> 'b) -> error:('e -> 'b) -> 'b
+  val tell : ('a, 'a) result -> 'a
+end = struct
   include Core.Result
 
-  let map_both (r : ('a, 'e) t) ~ok ~error =
+  let tell_map (r : ('a, 'e) t) ~(ok : 'a -> 'b) ~(error : 'e -> 'b) : 'b =
     match r with Ok x -> ok x | Error e -> error e
 
-  let tell (r : ('a, 'a) t) = map_both r ~ok:id ~error:id
+  let tell (r : ('a, 'a) t) : 'a = tell_map r ~ok:id ~error:id
 end
 
 (* Monadic bind *)
