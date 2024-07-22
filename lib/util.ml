@@ -153,7 +153,7 @@ let pp_hashtbl formatter ~pp_key ~pp_data t =
     *)    
 let str_split str sep = String.split str ~on:sep
 
-let str_ends_with str suffix = Stdlib.String.ends_with ~suffix:suffix str
+let str_ends_with str suffix = String.ends_with ~suffix:suffix str
 
 
 (** [read_file_as_str filename] reads the content of the file specified by [filename]

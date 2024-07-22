@@ -7,6 +7,7 @@ module Json = Yojson.Basic
 
 let main () =
   let filename = "tex/parsed-latex.json" in
+  Pattern_defs.parse_patterns "assets/patterns/formatted-patterns.txt";
   let json = Json.from_file filename in
   let parsed_latex = RawLatex.deserialize_from_json json in
   print_endline

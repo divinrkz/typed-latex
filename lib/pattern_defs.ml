@@ -1,5 +1,6 @@
 open Core
 open Patterns
+open Util
 
 
 type match_id_counters = {
@@ -15,6 +16,8 @@ let id_counters: match_id_counters = {
   relation = ref 0;
   expression = ref 0;
 }
+
+
 
 (** Generate a new ID for a given pattern variant *)
 let generate_match_id (pattern_case: string) = 
@@ -34,17 +37,6 @@ let generate_match_id (pattern_case: string) =
 let regex_first_split = "|?[a-zA-Z]+|?"
 let regex_optional = "\\(([^()]+)\\)\\?"
 let relation_regex = "[a-zA-Z]+"
-
-(* let list_relation_types_pattern (match_id : MatchID.t)
-    (allowed_relation_types : relation_type list) =
-  Any
-    ((fun rel_type -> Relation (rel_type, match_id)) |<<: allowed_relation_types)
-
-let any_known_relation_pattern (match_id : MatchID.t) =
-  list_relation_types_pattern match_id all_known_relation_types
-
-let any_relation_pattern (match_id : MatchID.t) =
-  list_relation_types_pattern match_id all_relation_types *)
 
 let parse_relation_type (relation_type: string) = 
    match relation_type with

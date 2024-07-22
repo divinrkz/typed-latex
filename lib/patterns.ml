@@ -5,6 +5,23 @@ open String_tree
 open Latex_deserializer
 open Util
 
+type relation_type =
+| Le
+| Leq
+| Ge
+| Geq
+| Eq
+| NotEq
+| In
+| NotIn
+| Subset
+| Superset
+| SubsetEq
+| SupersetEq
+| Other
+[@@deriving eq, show, sexp, hash, ord]
+
+
 module MatchID = struct
   module T = struct
     type t = int [@@deriving eq, show, sexp, hash, ord, compare]
@@ -21,6 +38,7 @@ type math_pattern =
   | TerminalSymbol of MatchID.t
   | Function of string * math_pattern list * MatchID.t
   | Expression of MatchID.t
+[@@deriving eq, show, sexp, hash, ord]
 
 type pattern =
   (* Primary *)
@@ -30,10 +48,15 @@ type pattern =
   | Optional of pattern
   | Repeat of pattern
   | TypeName of MatchID.t
+  | Relation of relation_type * MatchID.t
   | DefContainer of pattern * MatchID.t
   | MathPattern of math_pattern
+  | Expression of MatchID.t
   (* Auxiliary *)
   | OptRepeat of pattern
+[@@deriving eq, show, sexp, hash, ord]
+
+
 
 module rec MatchContainer : sig
   type match_value =

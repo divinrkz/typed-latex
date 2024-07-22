@@ -12,3 +12,41 @@
 *Assume no hoisting involved. 
 
 - Cova
+
+
+
+- FUnction reading in transformer. 
+
+
+
+module Type = struct
+	type variance =
+	| Invariant
+	| Covariant
+	| Contravariant
+	type tc =
+	| TypeConstructor of string * variance * tc Set.t  (* name, dependent type variances, super type(-constructor)s *)  (* not actual syntax for set *)
+	type ti =
+	| TypeT of tc * t list  (* type constructor, dependent type values *)
+	type t =
+	| Union of ti Set.t  (* union types *)
+	| Unknown
+	type value
+	| Value of t  (* type *)
+	type symbol
+	| NamedSymbol of string * t  (* name, type *)
+
+	let top_c = TypeConstructor "Top" [] {}  (* Not actually syntax for creating a set *)
+	let function_c = TypeConstructor "Function" [ Contravariant; Covariant ] { top_c }
+	let complex_c = TypeConstructor "Complex" [] { top_c }
+	let real_c = TypeConstructor "Real" [] { complex_c }  (* No need to also list top_c: should be inferred from complex_c *)
+	let rational_c = TypeConstructor "Rational" [] { real_c }
+	let int_c = TypeConstructor "Int" [] { rational_c }
+	let nat_c = TypeConstructor "Nat" [] { int_c }
+	let prime_c = TypeConstructor "Prime" [] { nat_c }
+	let pair_c = TypeConstructor "Pair" [ Covariant; Covariant ] { top_c }
+	let list_c = TypeConstructor "List" [ Covariant ] { top_c }
+	let set_c = TypeConstructor "Set" [ Covariant ] { top_c }
+	let bin_tree_c = TypeConstructor "BinaryTree" [ Covariant ] { top_c }
+	let graph_c = TypeConstructor "Graph" [ Covariant; Covariant ] { top_c }
+end
