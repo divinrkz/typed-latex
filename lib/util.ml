@@ -169,7 +169,14 @@ let pp_hashtbl formatter ~pp_key ~pp_data t =
     *)    
 let str_split str sep = String.split str ~on:sep
 
-let str_ends_with str suffix = String.ends_with ~suffix:suffix str
+
+(** [str_ends_with str suffix] checks if the provided string [str] ends with a provided 
+    suffix [suffix] and returns true if [suffix] is a suffix of [str]
+    @param str string
+    @param suffix suffix string 
+    @return boolean
+    *)    
+let str_ends_with str suffix = String.is_suffix str ~suffix
 
 
 (** [read_file_as_str filename] reads the content of the file specified by [filename]
