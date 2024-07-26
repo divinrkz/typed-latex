@@ -17,7 +17,17 @@
       "args": [
         {
           "type": "Text",
-          "value": "{amsfonts}"
+          "value": "{tikz}"
+        }
+      ]
+    },
+    {
+      "type": "Macro",
+      "name": "usepackage",
+      "args": [
+        {
+          "type": "Text",
+          "value": "{mathtools}"
         }
       ]
     },
@@ -31,41 +41,11 @@
         },
         {
           "type": "Math",
-          "value": [
-            "In(Symbol('x'), Mathbb(Symbol('N')))"
-          ]
+          "value": "Symbol('x')"
         },
         {
           "type": "Text",
-          "value": " where "
-        },
-        {
-          "type": "Math",
-          "value": "And(LessThan(Integer(5), Symbol('x')), StrictLessThan(Symbol('x'), Integer(10)))"
-        },
-        {
-          "type": "Text",
-          "value": ".\n\nLet "
-        },
-        {
-          "type": "Math",
-          "value": [
-            "ProperSubset(Symbol('S'), Mathbb(Symbol('Q')))"
-          ]
-        },
-        {
-          "type": "Text",
-          "value": " such that "
-        },
-        {
-          "type": "Math",
-          "value": [
-            "Equality(Difference(Mathbb(Symbol('Q')), Symbol('S')), Intersection(Interval(Integer(5), Symbol('x'), true, false), Mathbb(Symbol('N'))))"
-          ]
-        },
-        {
-          "type": "Text",
-          "value": ".\n\n"
+          "value": " be an integer.\n\n"
         }
       ]
     }

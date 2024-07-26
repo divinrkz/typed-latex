@@ -48,10 +48,12 @@ type pattern =
   | Optional of pattern
   | Repeat of pattern
   | TypeName of MatchID.t
-  | Relation of relation_type * MatchID.t
+  | Relation of relation_type * MatchID.t 
+  (* TODO:remove *)
   | DefContainer of pattern * MatchID.t
   | MathPattern of math_pattern
   | Expression of MatchID.t
+  (* TODO:remove *)
   (* Auxiliary *)
   | OptRepeat of pattern
 [@@deriving eq, show, sexp, hash, ord]

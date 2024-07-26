@@ -183,3 +183,13 @@ let def =
         ( MathPattern (Function ("StrictGreaterThan", [ Expression 2; Expression 3 ], 1)),
           0 );
     ]
+
+(* let def1 = Sequence [Word "let"; DefContainer (MathPattern (TerminalSymbol 1), 1); Word "be"; Word "an"; TypeName 1] *)
+
+let def1 = Sequence [
+  Any [ Word "suppose"; Word "say"; Word "imagine"; Word "let" ];
+  DefContainer ( MathPattern (Function ("Symbol", [TerminalSymbol 1], 2)), 3);
+  Word "be";
+  Optional (Word "an");
+  TypeName 4
+]

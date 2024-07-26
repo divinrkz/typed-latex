@@ -1,4 +1,4 @@
-(copy_files "../assets/tex/*.tex")
+; (copy_files "../assets/json/*.json")
 
 (executable
  (public_name typed_latex)

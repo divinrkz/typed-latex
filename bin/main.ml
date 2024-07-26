@@ -6,8 +6,8 @@ open String_tree
 module Json = Yojson.Basic
 
 let main () =
-  let filename = "tex/parsed-latex.json" in
-  Pattern_defs.parse_patterns "assets/patterns/formatted-patterns.txt";
+  let filename = "assets/json/parsed-latex.json" in
+  (* Pattern_defs.parse_patterns "assets/patterns/formatted-patterns.txt"; *)
   let json = Json.from_file filename in
   let parsed_latex = RawLatex.deserialize_from_json json in
   print_endline
@@ -18,7 +18,8 @@ let main () =
   let opt_latex = Result.ok parsed_latex in
   let document_ast = Latex_aux.unwrap_to_document =<<? opt_latex in
   print_endline << RawLatex.tree_format <-<? document_ast;
-  let pattern = Pattern_defs.def in
+
+  let pattern = Pattern_defs.def1 in
   let tokenization = Proof_lex.tokenize |<<? document_ast in
   (fun token_streams ->
     print_endline

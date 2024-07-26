@@ -132,7 +132,7 @@ def count_occurrences(main_string, substring):
     return main_string.count(substring)
 
 if __name__ == "__main__":
-    latex: TexSoup = read_latex("sample4.tex")
+    latex: TexSoup = read_latex("sample.tex")
 
     json_str = dumps(latex, cls=TexJsonEncoder, indent=2)
     with open(JSON_OUT_FILE, 'w') as json_file:
