@@ -108,6 +108,8 @@ module rec Type : sig
 
   val is_super : t -> t -> bool
   val is_sub : t -> t -> bool
+  val is_equiv : t -> t -> bool
+  val distribute_type : t -> t
 end = struct
   module FTypeIdentifier = Int
 
@@ -137,6 +139,25 @@ end = struct
 
   and is_sub sub super = is_super super sub
 
+  let is_equiv tx ty = is_super tx ty && is_sub tx ty
+
+  let rec distribute_type_rec (ty : t) : t list =
+    match ty with
+    | Concrete ct ->
+        let make_concrete (ct2 : ConcreteType.t) : t = Concrete ct2 in
+        make_concrete
+        |<<: (ConcreteType.constr (ConcreteType.get_type_constructor ct)
+             |<<: List.fold ~f:( >>*: ) ~init:[ [] ]
+                    (( |<<: ) List.cons
+                    |<<: (distribute_type_rec |<<: ConcreteType.get_type_vars ct)
+                    ))
+    | FType _ -> [ ty ]
+    | Union _ -> distribute_type_rec =<<: resolve_union ty
+
+  let distribute_type ty =
+    let make_union (x : t) (y : t) : t = Union (x, y) in
+    List.reduce_exn ~f:make_union (distribute_type_rec ty)
+
   module BuiltIn = struct end
 end
 
@@ -145,7 +166,8 @@ and ConcreteType : sig
 
   val constr : TypeConstructor.t -> Type.t list -> t
   val get_type_constructor : t -> TypeConstructor.t
-  val get_type_vars : t -> (Type.t * Variance.t) list
+  val get_type_vars : t -> Type.t list
+  val get_type_vars_and_variances : t -> (Type.t * Variance.t) list
   val is_super : t -> t -> bool
   val is_sub : t -> t -> bool
   val is_top : t -> bool
@@ -170,8 +192,9 @@ end = struct
            ^ string_of_int num_type_vars))
 
   let get_type_constructor ct = match ct with tc, _ -> tc
+  let get_type_vars ct = match ct with _, type_vars -> type_vars
 
-  let get_type_vars ct =
+  let get_type_vars_and_variances ct =
     match ct with
     | tc, type_vars -> List.zip_exn type_vars (TypeConstructor.get_variances tc)
 
@@ -180,7 +203,9 @@ end = struct
       (get_type_constructor super)
       (get_type_constructor sub)
     && List.for_all
-         (List.zip_shorter (get_type_vars super) (get_type_vars sub))
+         (List.zip_shorter
+            (get_type_vars_and_variances super)
+            (get_type_vars_and_variances sub))
          ~f:(fun ((super_type_arg, super_var), (sub_type_arg, sub_var)) ->
            Type.equal super_type_arg sub_type_arg
            || Variance.equal
@@ -207,7 +232,15 @@ end = struct
 end
 
 module Symbol : sig
-  type t = NamedSymbol of string * Type.t
+  type t = NamedSymbol of string * Type.t [@@deriving eq, sexp, ord, compare]
+
+  include Comparable.S with type t := t
 end = struct
-  type t = NamedSymbol of string * Type.t
+  module T = struct
+    type t = NamedSymbol of string * Type.t
+    [@@deriving eq, sexp, ord, compare]
+  end
+
+  include Comparable.Make (T)
+  include T
 end

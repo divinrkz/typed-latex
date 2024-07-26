@@ -10,7 +10,8 @@
   latex_deserializer
   latex_aux
   util
-  comparable_extension)
+  comparable_extension
+  construction)
  (libraries core menhirLib re yojson)
  ;  (flags -rectypes)
  (preprocess
