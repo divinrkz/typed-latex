@@ -7,6 +7,7 @@
 module NameMap = Map.make(String)
 type environment = primitiveType NameMap.t
 
+(* Unknown type,  resolved type. eg.[(T, TNum); (U, TBool)] *)
 type substitutions = (id * primitiveType) list
 
 let type_variable = ref (Char.code 'a')
@@ -16,7 +17,6 @@ let type_variable = ref (Char.code 'a')
 let gen_new_type () = 
   let c1 = !type_variable in 
   incr type_variable; T(Char.escaped (Char.chr c1))
-
 
 
 (*
@@ -57,6 +57,30 @@ let annotate_expr (e: expr ) (env: environment): aexpr =
     | AFun (_, _, t) -> t
     | AApp (_, _, t) -> t
 
+
+let rec collect_expr (ae: aexpr): (primitiveType * primitiveType) list = 
+  match ae with 
+  | ANumLit(_) | ABoolLit(_) -> [] 
+  (* No constraints for literals *)
+  | AVal(_) -> []
+  | ABinop(e1, op, e2, t) ->
+    let et1 = type_of ae1 and et2 = type_of ae2 in 
+
+      (* impose constraints based on binary operator *)
+    let opc = match op with 
+      | Add | Mul -> [(et1, TNum); (et2, TNum); (t, TNum)] 
+         (* we return et1, et2 since these are generic operators *)
+      | Gt | Lt -> [(et1, et2); (t, TBool)]
+      | And | Or -> [(et1, TBool); (et2, TBool); (t, TBool)]
+    
+  in 
+  (collect_expr ae1) @ (collect_expr ae2) @ opc
+  | AFun(id, ae, t) -> (match t with 
+    | TFun(idt, ret_type) -> (collect_expr ae) @ [(type_of ae, ret_type)] )  
+    | _ -> raise (failwith "not a function")
+
+  | AApp(fn, arg, t) -> (match (type_of fn with 
+    | TFun (argt, ret_type) -> (collect_expr fn) @ (collect_expr arg) @ [(t, rel_type): (argt, type_of arg)] ))
 
 
 
