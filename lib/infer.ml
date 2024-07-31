@@ -1,5 +1,21 @@
 
 
+(*
+   Environment is a map that holds type information of variables.
+   TODO: Implementing global environment and local environment *** 
+   *)
+module NameMap = Map.make(String)
+type environment = primitiveType NameMap.t
+
+type substitutions = (id * primitiveType) list
+
+let type_variable = ref (Char.code 'a')
+(*
+   Generate unknown type placeholder and returns T(string)
+   of the generated alphabet*)
+let gen_new_type () = 
+  let c1 = !type_variable in 
+  incr type_variable; T(Char.escaped (Char.chr c1))
 
 
 
