@@ -1,5 +1,3 @@
-
-
 (*
    Environment is a map that holds type information of variables.
    TODO: Implementing global environment and local environment *** 
@@ -23,7 +21,6 @@ let gen_new_type () =
   Annotate expressions.
   e: an expression that has to be annotated.
   env: An environment map that holds type information of user defined variables.
-
 
   returns: returns an annotated expression of type aexpr that hold type informnation given
   provided [e]
@@ -58,6 +55,12 @@ let annotate_expr (e: expr ) (env: environment): aexpr =
     | AApp (_, _, t) -> t
 
 
+
+(*
+A constraint is a tuple two primitivetypes, and a strict equality is being
+imposed on the two types,
+   returns a list of constraints 
+   *)
 let rec collect_expr (ae: aexpr): (primitiveType * primitiveType) list = 
   match ae with 
   | ANumLit(_) | ABoolLit(_) -> [] 
@@ -80,10 +83,22 @@ let rec collect_expr (ae: aexpr): (primitiveType * primitiveType) list =
     | _ -> raise (failwith "not a function")
 
   | AApp(fn, arg, t) -> (match (type_of fn with 
-    | TFun (argt, ret_type) -> (collect_expr fn) @ (collect_expr arg) @ [(t, rel_type): (argt, type_of arg)] ))
+    | TFun (argt, ret_type) -> (collect_expr fn) @ (collect_expr arg) @ [(t, rel_type): (argt, type_of arg)] )
+    | T(_) -> (collect_expr fn) @ (collect_expr arg) @ [(type_of fn, TFun(type_of arg, t))]
+    | _ -> raise (failwith "invalid application")
+    )
 
 
 
+ let rec substitute (u: primitiveType) (x: id) (t: primitiveType): primitiveType = 
+  match t with 
+  | TNum | TBool -> t 
+  | T(c) -> if c = x then u else t  
+  | TFun(t1, t2) -> TFun(substitute u x t1, substitute u x t2)
+ ;;
+
+ let apply (subs: substitutions) (t: primitiveType): primitiveType  = 
+ List.fold_right  (fun (x, u) t -> substitute u x t ) subs t
 
 (* Runs Hindler Milner Type System subsequently:
   1. Annotating expressions with placeholder_types
