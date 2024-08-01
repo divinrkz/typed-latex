@@ -1,4 +1,5 @@
 open Comparable_extension
+open String_tree
 
 module Variance : sig
   type t = Covariant | Invariant | Contravariant
@@ -8,6 +9,7 @@ module Variance : sig
 
   val most_covariant : t -> t -> t
   val most_contravariant : t -> t -> t
+  val to_string_tree : t -> string_tree
 end = struct
   module T = struct
     type t = Covariant | Invariant | Contravariant
@@ -19,6 +21,7 @@ end = struct
 
   let most_covariant = min
   let most_contravariant = max
+  let to_string_tree variance = Leaf (show variance)
 end
 
 module TypeConstructor = struct
@@ -71,9 +74,22 @@ module TypeConstructor = struct
     match (super, sub) with
     | Top, _ -> true
     | _, Bottom -> true
+    | ct1, ct2 when equal ct1 ct2 -> true
     | _ -> Core.Set.mem (get_supers sub) super
 
   let is_sub (sub : t) (super : t) : bool = is_super super sub
+
+  let rec to_string_tree (tc : t) : string_tree =
+    match tc with
+    | Top -> Leaf "Top"
+    | Bottom -> Leaf "Bottom"
+    | TC (name, variances, supers) ->
+        Branch
+          ( Some ("TC: " ^ name),
+            [
+              Branch (Some "Variances", Variance.to_string_tree |<<: variances);
+              Branch (Some "Supers", to_string_tree |<<: Core.Set.to_list supers);
+            ] )
 
   module BuiltIn = struct
     let function_c : t =
@@ -110,6 +126,7 @@ module rec Type : sig
   val is_sub : t -> t -> bool
   val is_equiv : t -> t -> bool
   val distribute_type : t -> t
+  val to_string_tree : t -> string_tree
 end = struct
   module FTypeIdentifier = Int
 
@@ -123,23 +140,6 @@ end = struct
     match ty with
     | Union (x, y) -> resolve_union x @ resolve_union y
     | _ -> [ ty ]
-
-  let rec is_super super sub =
-    match (super, sub) with
-    | Concrete super_c, Concrete sub_c -> ConcreteType.is_super super_c sub_c
-    | FType super_id, FType sub_id -> FTypeIdentifier.equal super_id sub_id
-    | FType _, Concrete ct when ConcreteType.is_bottom ct -> true
-    | Concrete ct, FType _ when ConcreteType.is_top ct -> true
-    | Union _, _ | _, Union _ ->
-        let super_resolve = resolve_union super in
-        let sub_resolve = resolve_union sub in
-        List.for_all sub_resolve ~f:(fun sub_t ->
-            List.exists super_resolve ~f:(is_sub sub_t))
-    | _ -> false
-
-  and is_sub sub super = is_super super sub
-
-  let is_equiv tx ty = is_super tx ty && is_sub tx ty
 
   let rec distribute_type_rec (ty : t) : t list =
     match ty with
@@ -158,6 +158,55 @@ end = struct
     let make_union (x : t) (y : t) : t = Union (x, y) in
     List.reduce_exn ~f:make_union (distribute_type_rec ty)
 
+  let rec is_super_rec super sub =
+    match (super, sub) with
+    | Concrete super_c, Concrete sub_c -> concrete_is_super super_c sub_c
+    | FType super_id, FType sub_id -> FTypeIdentifier.equal super_id sub_id
+    | FType _, Concrete ct when ConcreteType.is_bottom ct -> true
+    | Concrete ct, FType _ when ConcreteType.is_top ct -> true
+    | Union _, _ | _, Union _ ->
+        let super_resolve = resolve_union super in
+        let sub_resolve = resolve_union sub in
+        List.for_all sub_resolve ~f:(fun sub_t ->
+            List.exists super_resolve ~f:(is_sub_rec sub_t))
+    | _ -> false
+
+  and is_sub_rec sub super = is_super_rec super sub
+
+  and concrete_is_super super sub =
+    TypeConstructor.is_super
+      (ConcreteType.get_type_constructor super)
+      (ConcreteType.get_type_constructor sub)
+    && List.for_all
+         (List.zip_shorter
+            (ConcreteType.get_type_vars_and_variances super)
+            (ConcreteType.get_type_vars_and_variances sub))
+         ~f:(fun ((super_type_arg, super_var), (sub_type_arg, sub_var)) ->
+           equal super_type_arg sub_type_arg
+           || Variance.equal
+                (Variance.most_covariant super_var sub_var)
+                Variance.Covariant
+              && is_super_rec super_type_arg sub_type_arg
+           || Variance.equal
+                (Variance.most_contravariant super_var sub_var)
+                Variance.Contravariant
+              && is_sub_rec super_type_arg sub_type_arg)
+
+  let rec is_super super sub =
+    is_super_rec (distribute_type super) (distribute_type sub)
+
+  and is_sub sub super = is_super super sub
+
+  let is_equiv tx ty = is_super tx ty && is_sub tx ty
+
+  let rec to_string_tree ty =
+    match ty with
+    | Concrete ct ->
+        Branch (Some "Type.Concrete", [ ConcreteType.to_string_tree ct ])
+    | FType id -> Leaf ("Type.FType: " ^ FTypeIdentifier.to_string id)
+    | Union (tx, ty) ->
+        Branch (Some "Type.Union", [ to_string_tree tx; to_string_tree ty ])
+
   module BuiltIn = struct end
 end
 
@@ -168,10 +217,9 @@ and ConcreteType : sig
   val get_type_constructor : t -> TypeConstructor.t
   val get_type_vars : t -> Type.t list
   val get_type_vars_and_variances : t -> (Type.t * Variance.t) list
-  val is_super : t -> t -> bool
-  val is_sub : t -> t -> bool
   val is_top : t -> bool
   val is_bottom : t -> bool
+  val to_string_tree : t -> string_tree
 end = struct
   type t = TypeConstructor.t * Type.t list [@@deriving eq, sexp, ord, compare]
 
@@ -198,31 +246,20 @@ end = struct
     match ct with
     | tc, type_vars -> List.zip_exn type_vars (TypeConstructor.get_variances tc)
 
-  let rec is_super super sub =
-    TypeConstructor.is_super
-      (get_type_constructor super)
-      (get_type_constructor sub)
-    && List.for_all
-         (List.zip_shorter
-            (get_type_vars_and_variances super)
-            (get_type_vars_and_variances sub))
-         ~f:(fun ((super_type_arg, super_var), (sub_type_arg, sub_var)) ->
-           Type.equal super_type_arg sub_type_arg
-           || Variance.equal
-                (Variance.most_covariant super_var sub_var)
-                Variance.Covariant
-              && Type.is_super super_type_arg sub_type_arg
-           || Variance.equal
-                (Variance.most_contravariant super_var sub_var)
-                Variance.Covariant
-              && Type.is_sub super_type_arg sub_type_arg)
-
-  and is_sub sub super = is_super super sub
-
   let is_top ct = match ct with TypeConstructor.T.Top, _ -> true | _ -> false
 
   let is_bottom ct =
     match ct with TypeConstructor.T.Bottom, _ -> true | _ -> false
+
+  let to_string_tree ct =
+    Branch
+      ( Some "ConcreteType",
+        [
+          Branch
+            ( Some "Type Constructor",
+              [ TypeConstructor.to_string_tree (get_type_constructor ct) ] );
+          Branch (Some "Type Vars", Type.to_string_tree |<<: get_type_vars ct);
+        ] )
 end
 
 module Value : sig

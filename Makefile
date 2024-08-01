@@ -1,3 +1,6 @@
+repl:
+	dune utop .
+
 run:
 	dune exec typed_latex
 

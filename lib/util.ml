@@ -181,12 +181,18 @@ module Triple : sig
   val first : ('a, 'b, 'c) t -> 'a
   val second : ('a, 'b, 'c) t -> 'b
   val third : ('a, 'b, 'c) t -> 'c
+  val build : 'a -> 'b -> 'c -> ('a, 'b, 'c) t
+  val cons : 'a -> 'b * 'c -> ('a, 'b, 'c) t
+  val snoc : 'a * 'b -> 'c -> ('a, 'b, 'c) t
 end = struct
   type ('a, 'b, 'c) t = 'a * 'b * 'c
 
   let first (x, _, _) = x
   let second (_, x, _) = x
   let third (_, _, x) = x
+  let build x y z = (x, y, z)
+  let cons x (y, z) = (x, y, z)
+  let snoc (x, y) z = (x, y, z)
 end
 
 (** Strings **)

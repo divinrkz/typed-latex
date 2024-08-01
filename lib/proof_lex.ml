@@ -2,10 +2,22 @@ open Core
 open Fn
 open Util
 open Latex_deserializer
+open String_tree
 
-type proof_token = WordToken of string | MathToken of RawMathLatex.t
+module ProofToken : sig
+  type t = WordToken of string | MathToken of RawMathLatex.t
 
-let rec tokenize_rec (working_tokenization : proof_token list list)
+  val to_string_tree : t -> string_tree
+end = struct
+  type t = WordToken of string | MathToken of RawMathLatex.t
+
+  let to_string_tree token =
+    match token with
+    | WordToken word -> Leaf ("WordToken: " ^ word)
+    | MathToken math -> Branch (Some "MathToken", [ math ])
+end
+
+let rec tokenize_rec (working_tokenization : ProofToken.t list list)
     (latex : RawLatex.t) =
   match latex with
   | RawLatex.Comment _ -> working_tokenization
@@ -20,7 +32,7 @@ let rec tokenize_rec (working_tokenization : proof_token list list)
       multiline_math_tokenizer working_tokenization value
   | RawLatex.Text value -> text_tokenizer working_tokenization value
 
-and text_tokenizer (working_tokenization : proof_token list list)
+and text_tokenizer (working_tokenization : ProofToken.t list list)
     (word : string) =
   match
     String.findi
@@ -38,12 +50,12 @@ and text_tokenizer (working_tokenization : proof_token list list)
         left
   | None -> multi_word_tokenizer working_tokenization word
 
-and multi_word_tokenizer (working_tokenization : proof_token list list)
+and multi_word_tokenizer (working_tokenization : ProofToken.t list list)
     (text : string) =
   List.fold_right ~f:(flip word_tokenizer) ~init:working_tokenization
     (String.split_on_chars ~on:Util.word_sep_chars text)
 
-and word_tokenizer (working_tokenization : proof_token list list)
+and word_tokenizer (working_tokenization : ProofToken.t list list)
     (word : string) =
   if String.equal word "" then working_tokenization
   else if List.mem ~equal:String.equal Util.sentence_split_words word then
@@ -53,7 +65,7 @@ and word_tokenizer (working_tokenization : proof_token list list)
     | head :: tail -> (WordToken word :: head) :: tail
     | [] -> []
 
-and environment_tokenizer (working_tokenization : proof_token list list)
+and environment_tokenizer (working_tokenization : ProofToken.t list list)
     (name : string) (children : RawLatex.t list) =
   match (name, children) with
   | ("itemize" | "enumerate"), _ ->
@@ -64,21 +76,21 @@ and environment_tokenizer (working_tokenization : proof_token list list)
   | _, _ ->
       List.fold_right ~f:(flip tokenize_rec) ~init:working_tokenization children
 
-and macro_tokenizer (working_tokenization : proof_token list list)
+and macro_tokenizer (working_tokenization : ProofToken.t list list)
     (name : string) (args : RawLatex.t list) =
   match (name, args) with
   | _, arg :: [] -> tokenize_rec working_tokenization arg
   | _ -> working_tokenization
 
-and math_tokenizer (working_tokenization : proof_token list list)
+and math_tokenizer (working_tokenization : ProofToken.t list list)
     (value : RawMathLatex.t) =
   match working_tokenization with
   | head :: tail -> (MathToken value :: head) :: tail
   | [] -> []
 
-and multiline_math_tokenizer (working_tokenization : proof_token list list)
+and multiline_math_tokenizer (working_tokenization : ProofToken.t list list)
     (value : RawMathLatex.t list) =
-  let gen_math (math : RawMathLatex.t) = MathToken math in
+  let gen_math (math : RawMathLatex.t) = ProofToken.MathToken math in
   match working_tokenization with
   | [] :: tail -> (List.singleton |<<: (gen_math |<<: value)) @ tail
   | head :: tail -> ((gen_math |<<: value) @ head) :: tail
