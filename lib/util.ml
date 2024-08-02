@@ -274,7 +274,6 @@ module String = struct
     if Int.( >= ) i (length str) then None else Some (get str i)
 end
 
-
 (** Other **)
 
 let word_sep_chars = [ ' '; '\n' ]

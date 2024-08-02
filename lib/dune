@@ -12,7 +12,7 @@
   util
   comparable_extension
   construction)
- (libraries core menhirLib re yojson)
+ (libraries core menhirLib re yojson str)
  ;  (flags -rectypes)
  (preprocess
   (pps
