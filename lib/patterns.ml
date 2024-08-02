@@ -21,6 +21,7 @@ type math_pattern =
   | TerminalSymbol of MatchID.t
   | Function of string * math_pattern list * MatchID.t
   | Expression of MatchID.t
+[@@deriving eq, show, sexp, hash, ord]
 
 type pattern =
   (* Primary *)

@@ -10,19 +10,9 @@
   latex_deserializer
   latex_aux
   util
-<<<<<<< HEAD
-  latex_lexer
-  latex_parser
-  latex_parser_messages
-  math_lexer
-  math_parser
-  math_parser_messages)
- (libraries core menhirLib str re)
-=======
   comparable_extension
   construction)
  (libraries core menhirLib re yojson)
->>>>>>> 426ba902b455979b40a986042f0d4176347eb90b
  ;  (flags -rectypes)
  (preprocess
   (pps
