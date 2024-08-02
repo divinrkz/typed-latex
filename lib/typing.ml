@@ -1,350 +1,283 @@
-open Core
-open Util
-open Fn
+open Comparable_extension
+open String_tree
 
-(*
-Type rules:
-  - Literal: x must be of type T
-  - Same: x must be same type as y
-  - Contains: if y is has type T Set, then x must have type T (and vice versa) (for all elements in the set)
-  - Function: if f(x: U) has type V, then then f has type [U] -> V (and thrice versa? - x has type U and f(x) has type V)
+module Variance : sig
+  type t = Covariant | Invariant | Contravariant
+  [@@deriving eq, show, sexp, hash, ord, compare]
 
-  - look into hoisting? since math stuff might be out of order
-  - some type of subtyping would be useful - nat -> int -> rational -> real for example
-  - also some type of high-order types - set<T> for example
-  - would dependent types be useful? 
-  - should we allow let polymorphism? e.g. should we give f(x) = x type 'a -> 'a?
-    - probably not - in math, we would expect f to just be a map from one type to another, not a lambda expression
-  - what about functions returning functions? ehh, that's probably fine, as long as they're defined
-    - support currying? prob shouldn't, syntax doesn't really make sense
+  include Comparable.S with type t := t
 
-  - general algorithm: generate constraints from AST, then try to unify them
+  val most_covariant : t -> t -> t
+  val most_contravariant : t -> t -> t
+  val to_string_tree : t -> string_tree
+end = struct
+  module T = struct
+    type t = Covariant | Invariant | Contravariant
+    [@@deriving eq, show, sexp, hash, ord, compare]
+  end
 
-  for reference: https://cs3110.github.io/textbook/chapters/interp/inference.html#constraint-based-inference
-*)
+  include T
+  include Comparable.Make (T)
 
-exception TypeError of string
-
-(* a type variable *)
-module Var = struct
-  type t = { id : int } [@@deriving eq, show, sexp, hash, ord]
-
-  let pp formatter var = Format.fprintf formatter "'t%i" var.id
-
-  (* instantiates a new, unique type variable each call (by incrementing a counter) *)
-  let fresh =
-    let counter = ref 0 in
-    fun () ->
-      let t = { id = !counter } in
-      counter := !counter + 1;
-      t
+  let most_covariant = min
+  let most_contravariant = max
+  let to_string_tree variance = Leaf (show variance)
 end
 
-(* the type of an object *)
-module Type = struct
-  type number =
-    | Natural
-    (* includes 0 *)
-    | Integer
-    | Rational
-    | Real
-  [@@deriving eq, show, sexp, hash, ord]
+module TypeConstructor = struct
+  module rec T : sig
+    type t =
+      | TC of string * Variance.t list * Comparable.Set.t
+      (* name, dependent type variances, super type(-constructor)s *)
+      | Top
+      | Bottom
+    [@@deriving eq, sexp, ord, compare]
+  end = struct
+    type t =
+      | TC of string * Variance.t list * Comparable.Set.t
+        (* name, dependent type variances, super type(-constructor)s *)
+      | Top
+      | Bottom
+    [@@deriving eq, sexp, ord, compare]
+  end
 
-  let pp_number formatter n =
-    match n with
-    | Natural -> Format.fprintf formatter "NAT"
-    | Integer -> Format.fprintf formatter "INT"
-    | Rational -> Format.fprintf formatter "RAT"
-    | Real -> Format.fprintf formatter "REAL"
+  and Comparable : (Core.Comparable.S with type t := T.t) =
+    Core.Comparable.Make (T)
 
-  (* e.g. is t1 a subset of t2 *)
-  let is_bounded_by a b =
-    match (a, b) with
-    | Natural, _ -> true
-    | Integer, Natural -> false
-    | Integer, _ -> true
-    | Rational, Natural | Rational, Integer -> false
-    | Rational, _ -> true
-    | Real, Natural | Real, Integer | Real, Rational -> false
-    | Real, _ -> true
+  module TypedComparable = struct
+    type t = T.t
 
-  let widen a b =
-    match (a, b) with
-    | Real, _ | _, Real -> Real
-    | Rational, _ | _, Rational -> Rational
-    | Integer, _ | _, Integer -> Integer
-    | Natural, _ -> Natural
+    include Comparable
+  end
 
-  type op = Plus | Times | Minus | Frac | Pow
-  [@@deriving eq, show, sexp, hash, ord]
+  module ExtendedComparable = ComparableExtension (TypedComparable)
+  include T
+  include ExtendedComparable
+  include Set.Infix
 
-  let pp_op formatter op =
-    match op with
-    | Plus -> Format.fprintf formatter "PLUS"
-    | Times -> Format.fprintf formatter "TIMES"
-    | Minus -> Format.fprintf formatter "MINUS"
-    | Frac -> Format.fprintf formatter "FRAC"
-    | Pow -> Format.fprintf formatter "POW"
+  let get_name (tc : t) : string =
+    match tc with TC (name, _, _) -> name | Top -> "Top" | Bottom -> "Bottom"
+
+  let get_variances (tc : t) : Variance.t list =
+    match tc with TC (_, variances, _) -> variances | Top -> [] | Bottom -> []
+
+  let get_direct_supers (tc : t) : Set.t =
+    match tc with
+    | TC (_, _, direct_supers) -> direct_supers
+    | Top -> Set.empty
+    | Bottom -> Set.empty
+
+  let rec get_supers (tc : t) : Set.t =
+    Core.Set.union (get_direct_supers tc) (get_supers =<<% get_direct_supers tc)
+
+  let is_super (super : t) (sub : t) : bool =
+    match (super, sub) with
+    | Top, _ -> true
+    | _, Bottom -> true
+    | ct1, ct2 when equal ct1 ct2 -> true
+    | _ -> Core.Set.mem (get_supers sub) super
+
+  let is_sub (sub : t) (super : t) : bool = is_super super sub
+
+  let rec to_string_tree (tc : t) : string_tree =
+    match tc with
+    | Top -> Leaf "Top"
+    | Bottom -> Leaf "Bottom"
+    | TC (name, variances, supers) ->
+        Branch
+          ( Some ("TC: " ^ name),
+            [
+              Branch (Some "Variances", Variance.to_string_tree |<<: variances);
+              Branch (Some "Supers", to_string_tree |<<: Core.Set.to_list supers);
+            ] )
+
+  module BuiltIn = struct
+    let function_c : t =
+      TC ("Function", [ Contravariant; Covariant ], Set.of_list [])
+
+    let complex_c : t = TC ("Complex", [], Set.of_list [])
+    let real_c : t = TC ("Real", [], Set.of_list [])
+    let rational_c : t = TC ("Rational", [], Set.of_list [ real_c ])
+    let int_c : t = TC ("Int", [], Set.of_list [ rational_c ])
+    let nat_c : t = TC ("Nat", [], Set.of_list [ int_c ])
+    let prime_c : t = TC ("Prime", [], Set.of_list [ nat_c ])
+    let pair_c : t = TC ("Pair", [ Covariant; Covariant ], Set.of_list [])
+    let list_c : t = TC ("List", [ Covariant ], Set.of_list [])
+    let set_c : t = TC ("Set", [ Covariant ], Set.of_list [])
+    let bin_tree_c : t = TC ("BinaryTree", [ Covariant ], Set.of_list [])
+    let graph_c : t = TC ("Graph", [ Covariant; Covariant ], Set.of_list [])
+  end
+end
+
+module rec Type : sig
+  module FTypeIdentifier : sig
+    type t
+
+    val of_int : int -> t
+  end
 
   type t =
-    | Bool
-    | Number of number
-    | Tuple of t
-    | Set of t
-    | Sequence of t
-    | Any of Var.t
-    | Bound of t * op * t (* used internally to simplify for numeric types *)
-  [@@deriving eq, show, sexp, hash, ord]
+    | Concrete of ConcreteType.t
+    | FType of FTypeIdentifier.t
+    | Union of t * t
+  [@@deriving eq, sexp, ord, compare]
 
-  let rec pp formatter math =
-    match math with
-    | Bool -> Format.fprintf formatter "BOOL"
-    | Number t -> Format.fprintf formatter "%a" pp_number t
-    | Tuple t -> Format.fprintf formatter "TUPLE<%a>" pp t
-    | Set t -> Format.fprintf formatter "SET<%a>" pp t
-    | Sequence t -> Format.fprintf formatter "SEQ<%a>" pp t
-    | Any t -> Var.pp formatter t
-    | Bound (t1, op, t2) ->
-        Format.fprintf formatter "BOUND<%a %a %a>" pp t1 pp_op op pp t2
+  val is_super : t -> t -> bool
+  val is_sub : t -> t -> bool
+  val is_equiv : t -> t -> bool
+  val distribute_type : t -> t
+  val to_string_tree : t -> string_tree
+end = struct
+  module FTypeIdentifier = Int
+
+  type t =
+    | Concrete of ConcreteType.t
+    | FType of FTypeIdentifier.t
+    | Union of t * t
+  [@@deriving eq, sexp, ord, compare]
+
+  let rec resolve_union ty =
+    match ty with
+    | Union (x, y) -> resolve_union x @ resolve_union y
+    | _ -> [ ty ]
+
+  let rec distribute_type_rec (ty : t) : t list =
+    match ty with
+    | Concrete ct ->
+        let make_concrete (ct2 : ConcreteType.t) : t = Concrete ct2 in
+        make_concrete
+        |<<: (ConcreteType.constr (ConcreteType.get_type_constructor ct)
+             |<<: List.fold ~f:( >>*: ) ~init:[ [] ]
+                    (( |<<: ) List.cons
+                    |<<: (distribute_type_rec |<<: ConcreteType.get_type_vars ct)
+                    ))
+    | FType _ -> [ ty ]
+    | Union _ -> distribute_type_rec =<<: resolve_union ty
+
+  let distribute_type ty =
+    let make_union (x : t) (y : t) : t = Union (x, y) in
+    List.reduce_exn ~f:make_union (distribute_type_rec ty)
+
+  let rec is_super_rec super sub =
+    match (super, sub) with
+    | Concrete super_c, Concrete sub_c -> concrete_is_super super_c sub_c
+    | FType super_id, FType sub_id -> FTypeIdentifier.equal super_id sub_id
+    | FType _, Concrete ct when ConcreteType.is_bottom ct -> true
+    | Concrete ct, FType _ when ConcreteType.is_top ct -> true
+    | Union _, _ | _, Union _ ->
+        let super_resolve = resolve_union super in
+        let sub_resolve = resolve_union sub in
+        List.for_all sub_resolve ~f:(fun sub_t ->
+            List.exists super_resolve ~f:(is_sub_rec sub_t))
+    | _ -> false
+
+  and is_sub_rec sub super = is_super_rec super sub
+
+  and concrete_is_super super sub =
+    TypeConstructor.is_super
+      (ConcreteType.get_type_constructor super)
+      (ConcreteType.get_type_constructor sub)
+    && List.for_all
+         (List.zip_shorter
+            (ConcreteType.get_type_vars_and_variances super)
+            (ConcreteType.get_type_vars_and_variances sub))
+         ~f:(fun ((super_type_arg, super_var), (sub_type_arg, sub_var)) ->
+           equal super_type_arg sub_type_arg
+           || Variance.equal
+                (Variance.most_covariant super_var sub_var)
+                Variance.Covariant
+              && is_super_rec super_type_arg sub_type_arg
+           || Variance.equal
+                (Variance.most_contravariant super_var sub_var)
+                Variance.Contravariant
+              && is_sub_rec super_type_arg sub_type_arg)
+
+  let rec is_super super sub =
+    is_super_rec (distribute_type super) (distribute_type sub)
+
+  and is_sub sub super = is_super super sub
+
+  let is_equiv tx ty = is_super tx ty && is_sub tx ty
+
+  let rec to_string_tree ty =
+    match ty with
+    | Concrete ct ->
+        Branch (Some "Type.Concrete", [ ConcreteType.to_string_tree ct ])
+    | FType id -> Leaf ("Type.FType: " ^ FTypeIdentifier.to_string id)
+    | Union (tx, ty) ->
+        Branch (Some "Type.Union", [ to_string_tree tx; to_string_tree ty ])
+
+  module BuiltIn = struct end
 end
 
-module Constraint = struct
-  (* TODO: is this = or <: *)
-  (* a declaration that one type is bounded by another, e.g. t1 <: t2 *)
-  type t = Type.t * Type.t [@@deriving eq, show, sexp, hash, ord]
+and ConcreteType : sig
+  type t [@@deriving eq, sexp, ord, compare]
 
-  let pp formatter (a, b) =
-    Format.fprintf formatter "[ %a < %a ]" Type.pp a Type.pp b
-end
+  val constr : TypeConstructor.t -> Type.t list -> t
+  val get_type_constructor : t -> TypeConstructor.t
+  val get_type_vars : t -> Type.t list
+  val get_type_vars_and_variances : t -> (Type.t * Variance.t) list
+  val is_top : t -> bool
+  val is_bottom : t -> bool
+  val to_string_tree : t -> string_tree
+end = struct
+  type t = TypeConstructor.t * Type.t list [@@deriving eq, sexp, ord, compare]
 
-module ConstraintHashSet = Hash_set.Make (Constraint)
+  exception BadTypeInstantiation of string
 
-module Constraints = struct
-  include ConstraintHashSet
-
-  let create () = Hash_set.create (module Constraint)
-  let length = Hash_set.length
-
-  let pp formatter subs =
-    Format.fprintf formatter "%a"
-      (Format.pp_print_list ~pp_sep:(string_sep ", ") Constraint.pp)
-      (Hash_set.to_list subs)
-
-  let map ~f t =
-    let new_t = Hash_set.create (module Constraint) in
-    Hash_set.iter ~f:(fun a -> Hash_set.add new_t (f a)) t;
-    new_t
-
-  let first t = match Hash_set.to_list t with hd :: _ -> Some hd | [] -> None
-  let remove t e = Hash_set.strict_remove_exn t e
-  let find t = Hash_set.find t
-
-  let rec add constraints c =
-    (* Format.printf "adding %a\n" Constraint.pp c; *)
-    match c with
-    (* ignore trivial constraints *)
-    | x, y when Type.equal x y -> ()
-    | Type.Number n1, Type.Number n2 when Type.is_bounded_by n1 n2 -> ()
-    (* keep nontrivial constraints *)
-    | Set x, Set y -> add constraints (x, y)
-    | Sequence x, Sequence y -> add constraints (x, y)
-    | _ -> Hash_set.add constraints c
-  (* | _ -> raise (TypeError "Type error") *)
-end
-
-(* maps type variables to types *)
-(* the goal of type checking is to come up with substitutions to satisfy every constraint *)
-module Substitution = struct
-  (* {t / 'x}, e.g. substitute 'x with type t *)
-  (* sub (x, y) should replace all instances of y (usually a type variable) with x *)
-  type t = Type.t * Type.t [@@deriving eq, show, sexp, hash, ord]
-
-  let pp formatter sub =
-    Format.fprintf formatter "{ %a / %a }" Type.pp (fst sub) Type.pp (snd sub)
-end
-
-module Substitutions = struct
-  type t = Substitution.t list
-
-  let pp formatter subs =
-    Format.fprintf formatter "%a"
-      (Format.pp_print_list ~pp_sep:(string_sep ", ") Substitution.pp)
-      subs
-
-  let filter = List.filter
-end
-
-(* applies a type substitution to a type *)
-let rec apply1 (sub : Substitution.t) (t : Type.t) =
-  match t with
-  | _ when Type.equal (snd sub) t -> fst sub
-  | Number n -> Type.Number n
-  | Bool -> Type.Bool
-  | Set u -> Type.Set (apply1 sub u)
-  | Tuple u -> Type.Tuple (apply1 sub u)
-  | Sequence u -> Type.Sequence (apply1 sub u)
-  | Any u -> Type.Any u
-  | Bound (a, op, b) -> Type.Bound (apply1 sub a, op, apply1 sub b)
-
-(* t (S1; S2) = (t S1) S2 *)
-let rec apply (subs : Substitutions.t) (t : Type.t) =
-  match subs with [] -> t | hd :: tl -> apply tl (apply1 hd t)
-
-(* (t1 = t2) S => t1 S = t2 S *)
-let apply_c subs (a, b) = (apply subs a, apply subs b)
-
-(* apply substitution to multiple constraints at once *)
-let apply_cs subs cs = Constraints.map ~f:(apply_c subs) cs
-
-(* returns true if t occurs within u *)
-let rec occurs_in (t : Type.t) (u : Type.t) =
-  match u with
-  | _ when Type.equal t u -> true
-  | Number _ -> false
-  | Bool -> false
-  | Bound (a, _, b) -> occurs_in t a || occurs_in t b
-  | Set v -> occurs_in t v
-  | Tuple v -> occurs_in t v
-  | Sequence v -> occurs_in t v
-  | Any _ -> Type.equal t u
-
-(* apply arithmetic promotion when possible *)
-(* this is also where invalid operations are detected (such as adding a number and a set) *)
-let simplify ~final t =
-  (* Format.printf "Simplifing %a (%a)\n" Type.pp t Format.pp_print_bool final; *)
-  let rec recurse t =
-    match t with
-    | Type.Bound (a, Plus, b) -> (
-        match (recurse a, recurse b) with
-        | Type.Number a, Number b -> Number (Type.widen a b)
-        | _ when not final -> t
-        | _ ->
-            raise
-              (TypeError
-                 (Format.asprintf "Could not infer numeric type for %a + %a"
-                    Type.pp a Type.pp b)))
-    | Type.Bound (a, Times, b) -> (
-        match (recurse a, recurse b) with
-        | Type.Number a, Number b -> Number (Type.widen a b)
-        | _ when not final -> t
-        | _ ->
-            raise
-              (TypeError
-                 (Format.asprintf "Could not infer numeric type for %a * %a"
-                    Type.pp a Type.pp b)))
-    | Type.Bound (a, Minus, b) -> (
-        match (recurse a, recurse b) with
-        (* a - b could be negative unless we prove a > b *)
-        | Type.Number Natural, Number Natural -> Number Integer
-        | Type.Number a, Number b -> Number (Type.widen a b)
-        | _ when not final -> t
-        | _ ->
-            raise
-              (TypeError
-                 (Format.asprintf "Could not infer numeric type for %a - %a"
-                    Type.pp a Type.pp b)))
-    | Type.Bound (a, Frac, b) -> (
-        match (recurse a, recurse b) with
-        | Type.Number Natural, Number Natural
-        | Type.Number Natural, Number Integer
-        | Type.Number Integer, Number Natural
-        | Type.Number Integer, Number Integer ->
-            Number Rational
-        | Type.Number a, Number b -> Number (Type.widen a b)
-        | _ when not final -> t
-        | _ ->
-            raise
-              (TypeError
-                 (Format.asprintf "Could not infer numeric type for %a / %a"
-                    Type.pp a Type.pp b)))
-    | Type.Bound (a, Pow, b) -> (
-        match (recurse a, recurse b) with
-        | Type.Number Natural, Number Natural -> Number Natural
-        | Type.Number Integer, Number Natural -> Number Integer
-        | Type.Number Natural, Number Integer
-        | Type.Number Integer, Number Integer ->
-            Number Rational
-        | Type.Number Rational, Number Natural
-        | Type.Number Rational, Number Integer ->
-            Number Rational
-        | Type.Number a, Number b -> Number (Type.widen a b)
-        | _ when not final -> t
-        | _ ->
-            raise
-              (TypeError
-                 (Format.asprintf "Could not infer numeric type for %a ^ %a"
-                    Type.pp a Type.pp b)))
-    | Set u -> Set (recurse u)
-    | Sequence u -> Sequence (recurse u)
-    | Any _ ->
-        if
-          (* if performing final simplification, then assume variables without types to be reals *)
-          final
-        then Number Real
-        else t
-    | _ -> t
-  in
-  recurse t
-
-(* TODO: this algorithm is not always correct... fix later ;_; *)
-let unify constraints =
-  let rec recurse (cs : Constraints.t) (acc : Substitutions.t) =
-    if Constraints.length cs = 0 then acc
+  let constr tc type_vars =
+    let expected_type_vars = List.length (TypeConstructor.get_variances tc) in
+    let num_type_vars = List.length type_vars in
+    if expected_type_vars = num_type_vars then (tc, type_vars)
     else
-      (* let _ = Format.printf "Constraints: %a\n" Constraints.pp cs in *)
-      (* pick out any element from the set of constraints *)
-      let hd = Option.value_exn (Constraints.first cs) in
-      (* Format.printf "hd: %a\n" Constraint.pp hd; *)
-      Constraints.remove cs hd;
-      let () =
-        match Constraints.find cs ~f:(fun x -> Constraint.equal x hd) with
-        | Some _ -> Format.printf "wtf\n"
-        | None -> ()
-      in
-      match hd with
-      (* basic cases that don't require any logic *)
-      (* | Equal (Type.Number n1 , Type.Number n2) when Type.equal_number n1 n2 -> recurse cs acc *)
-      | x, y when Type.equal x y -> recurse cs acc
-      | Set x, Set y ->
-          Constraints.add cs (x, y);
-          recurse cs acc
-      | Tuple x, y ->
-          Constraints.add cs (x, y);
-          recurse cs acc
-      | x, Tuple y ->
-          Constraints.add cs (x, y);
-          recurse cs acc
-      | Sequence x, Sequence y ->
-          Constraints.add cs (x, y);
-          recurse cs acc
-      (* arithmetic and type promotion *)
-      | Type.Number n1, Type.Number n2 when Type.is_bounded_by n1 n2 ->
-          recurse cs acc
-      (* do we need to check upper/lower bounds? *)
-      | Any t, u ->
-          if not (occurs_in (Any t) u) then
-            let s = (simplify ~final:false u, Type.Any t) in
-            recurse (apply_cs [ s ] cs) (s :: acc)
-          else (* raise (TypeError "Could not unify types 1") *)
-            recurse cs acc
-      | u, Any t ->
-          if
-            (* Format.printf "Replacing %a with %a (<)\n" Var.pp t Type.pp u; *)
-            (* let hi = Constraints.get_bounds upper t in *)
-            (* Format.printf "Current upper bounds: [%a]\n" (Format.pp_print_list ~pp_sep:(string_sep ", ") Type.pp) hi; *)
-            (* let lo = Constraints.get_bounds lower t in *)
-            (* Format.printf "Current lower bounds: [%a]\n" (Format.pp_print_list ~pp_sep:(string_sep ", ") Type.pp) lo; *)
-            not (occurs_in (Any t) u)
-          then
-            let s = (simplify ~final:false u, Type.Any t) in
-            recurse (apply_cs [ s ] cs) (s :: acc)
-          else (* raise (TypeError "Could not unify types 2") *)
-            recurse cs acc
-      (* ignore all other cases *)
-      | _ -> recurse cs acc
-    (* | _ -> raise (TypeError (Format.asprintf "Could not unify types 5: %a with constraints %a" Constraint.pp hd Constraints.pp cs)) *)
-  in
-  let copy = Constraints.map ~f:id constraints in
-  (* prevent original set from being modified *)
-  (* need to reverse list since it was built up in reverse in the above recursion *)
-  List.rev (recurse copy [])
+      raise
+        (BadTypeInstantiation
+           ("Type constructor \""
+           ^ TypeConstructor.get_name tc
+           ^ "\" expected "
+           ^ string_of_int expected_type_vars
+           ^ " type-vars, but got "
+           ^ string_of_int num_type_vars))
+
+  let get_type_constructor ct = match ct with tc, _ -> tc
+  let get_type_vars ct = match ct with _, type_vars -> type_vars
+
+  let get_type_vars_and_variances ct =
+    match ct with
+    | tc, type_vars -> List.zip_exn type_vars (TypeConstructor.get_variances tc)
+
+  let is_top ct = match ct with TypeConstructor.T.Top, _ -> true | _ -> false
+
+  let is_bottom ct =
+    match ct with TypeConstructor.T.Bottom, _ -> true | _ -> false
+
+  let to_string_tree ct =
+    Branch
+      ( Some "ConcreteType",
+        [
+          Branch
+            ( Some "Type Constructor",
+              [ TypeConstructor.to_string_tree (get_type_constructor ct) ] );
+          Branch (Some "Type Vars", Type.to_string_tree |<<: get_type_vars ct);
+        ] )
+end
+
+module Value : sig
+  type t = Value of Type.t
+end = struct
+  type t = Value of Type.t
+end
+
+module Symbol : sig
+  type t = NamedSymbol of string * Type.t [@@deriving eq, sexp, ord, compare]
+
+  include Comparable.S with type t := t
+end = struct
+  module T = struct
+    type t = NamedSymbol of string * Type.t
+    [@@deriving eq, sexp, ord, compare]
+  end
+
+  include Comparable.Make (T)
+  include T
+end
