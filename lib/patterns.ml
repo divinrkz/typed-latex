@@ -21,7 +21,7 @@ type math_pattern =
   | TerminalSymbol of MatchID.t
   | Function of string * math_pattern list * MatchID.t
   | Expression of MatchID.t
-
+  [@@deriving eq, show, sexp, hash, ord]
 type pattern =
   (* Primary *)
   | Word of string
@@ -34,10 +34,11 @@ type pattern =
   | MathPattern of math_pattern
   (* Auxiliary *)
   | OptRepeat of pattern
+  [@@deriving eq, show, sexp, hash, ord] 
 
 module rec MatchContainer : sig
   type match_value =
-    | DefContainerMatch of t
+    | DefContainerMatch of t * ProofToken.t list * int
     | TypeNameMatch of string
     | TerminalSymbolMatch of string
     | ExpressionMatch of RawMathLatex.t
@@ -52,7 +53,7 @@ module rec MatchContainer : sig
   val tree_format : t -> string
 end = struct
   type match_value =
-    | DefContainerMatch of t
+    | DefContainerMatch of t * ProofToken.t list * int
     | TypeNameMatch of string
     | TerminalSymbolMatch of string
     | ExpressionMatch of RawMathLatex.t
@@ -74,7 +75,9 @@ end = struct
     List.sum (module Int) ~f:recursive_match_value_size vs
 
   and recursive_match_value_size (v : match_value) =
-    match v with DefContainerMatch sub_map -> recursive_size sub_map | _ -> 1
+    match v with
+    | DefContainerMatch (sub_map, _, _) -> recursive_size sub_map
+    | _ -> 1
 
   let compare (a : t) (b : t) =
     Int.compare (recursive_size a) (recursive_size b)
@@ -89,7 +92,16 @@ end = struct
 
   and match_value_to_string_tree (v : match_value) =
     match v with
-    | DefContainerMatch sub_map -> to_string_tree sub_map
+    | DefContainerMatch (sub_map, captured_tokens, start_index) ->
+        Branch
+          ( Some "DefContainer",
+            [
+              to_string_tree sub_map;
+              Leaf ("Start index: " ^ string_of_int start_index);
+              Branch
+                ( Some "Captured Tokens",
+                  ProofToken.to_string_tree |<<: captured_tokens );
+            ] )
     | TypeNameMatch type_name -> Leaf type_name
     | TerminalSymbolMatch symbol_name -> Leaf symbol_name
     | ExpressionMatch expression -> expression
@@ -98,7 +110,7 @@ end = struct
   let tree_format = tree_format "| " << to_string_tree
 end
 
-type context = proof_token list * MatchContainer.t
+type context = ProofToken.t list * MatchContainer.t * int
 type nd_context = context list
 type math_context = RawMathLatex.t * MatchContainer.t
 type nd_math_context = math_context list
@@ -106,39 +118,29 @@ type nd_math_context = math_context list
 let box_context (match_id : MatchID.t) (exterior_matches : MatchContainer.t)
     (interior_context : context) =
   match interior_context with
-  | tokens, interior_matches ->
+  | tokens, interior_matches, interior_start_index ->
       ( tokens,
         MatchContainer.put exterior_matches match_id
-          (DefContainerMatch interior_matches) )
+          (DefContainerMatch (interior_matches, tokens, interior_start_index)),
+        interior_start_index )
 
-let rec extract_type_names (opt : bool) (tokens : proof_token list) =
+let rec extract_type_names (opt : bool) (tokens : ProofToken.t list)
+    (start_index : int) =
   match tokens with
   | WordToken word :: remainder ->
       if List.mem ~equal:String.equal Util.non_type_words word then
-        if opt then [ ("", tokens) ] else []
+        if opt then [ ("", tokens, start_index) ] else []
       else
-        (word, remainder)
-        :: ((fun (s, r) -> (word ^ " " ^ s, r))
-           |<<: extract_type_names true remainder)
-  | _ -> if opt then [ ("", tokens) ] else []
+        (word, remainder, start_index + 1)
+        :: ((fun (s, r, i) -> (word ^ " " ^ s, r, i))
+           |<<: extract_type_names true remainder (start_index + 1))
+  | _ -> if opt then [ ("", tokens, start_index) ] else []
 
 let box_type_name (match_id : MatchID.t) (exterior_matches : MatchContainer.t)
-    ((name, tokens) : string * proof_token list) =
-  (tokens, MatchContainer.put exterior_matches match_id (TypeNameMatch name))
-
-(* let rec find_elementary_relation (rel_type : relation_type)
-     (e_relations : elementary_relation list) =
-   match e_relations with
-   | (ERelation (found_type, _, _) as out_rel) :: _
-     when equal_relation_type found_type rel_type ->
-       [ out_rel ]
-   | _ :: remainder -> find_elementary_relation rel_type remainder
-   | [] -> [] *)
-
-(* let box_relation (match_id : MatchID.t) (tokens : proof_token list)
-     (exterior_matches : MatchContainer.t) (e_relation : elementary_relation) =
-   ( tokens,
-     MatchContainer.put exterior_matches match_id (RelationMatch e_relation) ) *)
+    ((name, tokens, index) : string * ProofToken.t list * int) =
+  ( tokens,
+    MatchContainer.put exterior_matches match_id (TypeNameMatch name),
+    index )
 
 let rec match_math_rec (pat : math_pattern) (context : math_context) :
     MatchContainer.t list =
@@ -167,37 +169,47 @@ let rec match_math_rec (pat : math_pattern) (context : math_context) :
       in
       match_math_rec pat =<<: (Pair.build arg |<<: interior_matches)
   | _ -> []
-(* | Function (p_fun_name, arg_patterns, match_id) ->  *)
 
 let rec match_rec (pat : pattern) (context : context) : context list =
   match (pat, context) with
-  | Word p_word, (WordToken word :: remainder, matches)
+  | Word p_word, (WordToken word :: remainder, matches, exterior_start_index)
     when String.equal p_word (String.lowercase word) ->
-      [ (remainder, matches) ]
+      [ (remainder, matches, exterior_start_index + 1) ]
   | Any ps, _ -> flip match_rec context =<<: ps
   | Sequence [], _ -> [ context ]
   | Sequence (p :: ps), _ -> match_rec (Sequence ps) =<<: match_rec p context
   | Optional p, _ -> context :: match_rec p context
   | OptRepeat p, _ -> context :: (match_rec pat =<<: match_rec p context)
   | Repeat p, _ -> match_rec (Sequence [ p; OptRepeat p ]) context
-  | TypeName match_id, (tokens, exterior_matches) ->
-      let type_name_opts = extract_type_names false tokens in
+  | TypeName match_id, (tokens, exterior_matches, exterior_start_index) ->
+      let type_name_opts =
+        extract_type_names false tokens exterior_start_index
+      in
       box_type_name match_id exterior_matches |<<: type_name_opts
-  | DefContainer (p, match_id), (tokens, exterior_matches) ->
-      let interior_contexts = match_rec p (tokens, MatchContainer.empty) in
+  | DefContainer (p, match_id), (tokens, exterior_matches, exterior_start_index)
+    ->
+      let interior_contexts =
+        match_rec p (tokens, MatchContainer.empty, exterior_start_index)
+      in
       box_context match_id exterior_matches |<<: interior_contexts
-  | MathPattern mp, (MathToken math :: remainder, exterior_matches) ->
+  | MathPattern mp, (MathToken math :: remainder, exterior_matches, start_index)
+    ->
       let interior_context = match_math_rec mp (math, exterior_matches) in
-      Pair.build remainder |<<: interior_context
+      Triple.build remainder |<<: interior_context <<|: start_index + 1
   | _ -> []
 
-let compare_context ((a_tokens, a_matches) : context)
-    ((b_tokens, b_matches) : context) =
+let compare_context ((a_tokens, a_matches, a_index) : context)
+    ((b_tokens, b_matches, b_index) : context) =
   let match_comparison = MatchContainer.compare a_matches b_matches in
   if match_comparison = 0 then
-    Int.compare (List.length b_tokens) (List.length a_tokens)
+    let length_comparaison =
+      Int.compare (List.length b_tokens) (List.length a_tokens)
+    in
+    if length_comparaison = 0 then Int.compare b_index a_index else 0
   else match_comparison
 
-let match_pattern (pat : pattern) (tokenization : proof_token list) =
-  let matched_contexts = match_rec pat (tokenization, MatchContainer.empty) in
+let match_pattern (pat : pattern) (tokenization : ProofToken.t list) =
+  let matched_contexts =
+    match_rec pat (tokenization, MatchContainer.empty, 0)
+  in
   List.max_elt ~compare:compare_context matched_contexts

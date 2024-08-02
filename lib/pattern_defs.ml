@@ -1,5 +1,21 @@
 open Core
 open Patterns
+open Util
+
+type relation =
+| Le
+| Leq
+| Ge
+| Geq
+| Eq
+| NotEq
+| In
+| NotIn
+| Subset
+| Superset
+| SubsetEq
+| SupersetEq
+| Other
 
 
 type match_id_counters = {
@@ -65,7 +81,7 @@ let parse_relation_type (relation_type: string) =
 
   @param relations_str The string to be processed. 
 *)       
-let parse_relations relations_str =
+(* let parse_relations relations_str =
   let def_container = ref [] in
   let relation_splits = str_split relations_str ' ' in
   let rec parse_relation splits =
@@ -79,7 +95,7 @@ let parse_relations relations_str =
   let relations = parse_relation relation_splits in
     match relations with 
     | [_] ->  [DefContainer (Expression (generate_match_id "Expression"), generate_match_id "DefContainer")]
-    | _ ->  [DefContainer (Any relations, generate_match_id "DefContainer")]
+    | _ ->  [DefContainer (Any relations, generate_match_id "DefContainer")] *)
 
 (** 
   [parse_words relations_str seq] processes the [relations_str] by splitting it into words, 
@@ -154,9 +170,10 @@ let parse_patterns filename =
           | Some first_split -> process_first_split first_split seq;
         match List.nth segment_splits 1 with
           | None -> print_endline ("Line " ^ string_of_int !line_counter ^ ": No second split found.")
-          | Some second_split ->
-            let parsed = parse_relations second_split in
-              seq := !seq @ parsed;
+          | Some _ ->  print_endline "parse relations";
+            (* let parsed = parse_relations second_split in
+              seq := !seq @ parsed; *)
+  
         match List.nth segment_splits 2 with
         | None -> print_endline ("Line " ^ string_of_int !line_counter ^ ": No first split found.")
         | Some third_split -> process_first_split third_split seq;
