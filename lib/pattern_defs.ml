@@ -205,6 +205,7 @@ let relation_types =
       "StrictGreaterThan",
       "StrictLessThan" );
   ]
+*)
 
 (* let def1 =
    Sequence
@@ -218,7 +219,8 @@ let relation_types =
                  Any [ Word "and"; Word "," ];
                  DefContainer (any_known_relation_pattern 1, 0);
                ]));
-     ] *)
+     ]
+      *)
 
 let def =
   Sequence
