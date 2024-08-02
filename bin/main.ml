@@ -7,7 +7,7 @@ open Proof_lex
 module Json = Yojson.Basic
 
 let main () =
-  let filename = "assets/tex/parsed-latex.json" in
+  let filename = "assets/json/parsed-latex.json" in
   let json = Json.from_file filename in
   let parsed_latex = RawLatex.deserialize_from_json json in
   print_endline
