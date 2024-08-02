@@ -1,3 +1,96 @@
+type id = string
+
+type op = Add | Mul | Gt | Lt | And | Or
+
+module CharMap = Map.Make(String)
+
+type genericMap = int CharMap.t
+
+type primitiveType =
+  | TNum
+  | TBool
+  | T of string
+  | TFun of primitiveType * primitiveType
+;;
+
+type expr =
+  | NumLit of int
+  | BoolLit of bool
+  | Val of string
+  | Binop of expr * op * expr
+  | Fun of id * expr
+  | App of expr * expr
+;;
+
+type aexpr =
+  | ANumLit of int * primitiveType
+  | ABoolLit of bool * primitiveType
+  | AVal of string * primitiveType
+  | ABinop of aexpr * op * aexpr * primitiveType
+  | AFun of id * aexpr * primitiveType
+  | AApp of aexpr * aexpr * primitiveType
+;;
+
+let string_of_op (op: op) =
+  match op with
+  | Add -> "+" | Mul -> "*" | Lt -> "<" | Gt -> ">"
+  | Or -> "||" | And -> "&&"
+;;
+
+let string_of_type (t: primitiveType) =
+  let rec aux (t: primitiveType) (chr: int) (map: genericMap) =
+    match t with
+    | TNum -> "int", chr, map
+    | TBool -> "bool", chr, map
+    | T(x) ->
+      let gen_chr, new_chr, new_map = if CharMap.mem x map
+        then Char.escaped (Char.chr (CharMap.find x map)), chr, map
+        else
+          let c = Char.escaped (Char.chr chr) in
+          c, (chr + 1), CharMap.add x chr map
+      in
+      Printf.sprintf "'%s" gen_chr, new_chr, new_map
+    | TFun(t1, t2) -> let (st1, c1, m1) = aux t1 chr map in
+      let (st2, c2, m2) = aux t2 c1 m1 in
+      (Printf.sprintf "(%s -> %s)" st1 st2), c2, m2 in
+  let s, _, _ = aux t 97 CharMap.empty in s
+;;
+
+let rec string_of_aexpr (ae: aexpr): string =
+  match ae with
+  | ANumLit(x, t)  -> Printf.sprintf "(%s: %s)" (string_of_int x) (string_of_type t)
+  | ABoolLit(b, t) -> Printf.sprintf "(%s: %s)" (string_of_bool b) (string_of_type t)
+  | AVal(x, t) -> Printf.sprintf "(%s: %s)" x (string_of_type t)
+  | ABinop(e1, op, e2, t) ->
+    let s1 = string_of_aexpr e1 in let s2 = string_of_aexpr e2 in
+    let sop = string_of_op op in let st = string_of_type t in
+    Printf.sprintf "(%s %s %s: %s)" s1 sop s2 st
+  | AFun(id, ae, t) ->
+    let s1 = string_of_aexpr ae in
+    let st = string_of_type t in
+    Printf.sprintf "(fun %s -> %s): %s" id s1 st
+  | AApp(e1, e2, t) ->
+    let s1 = string_of_aexpr e1 and
+    s2 = string_of_aexpr e2 and st = string_of_type t in
+    Printf.sprintf "(%s %s): %s" s1 s2 st
+;;
+
+let rec string_of_expr (e: expr): string =
+  match e with
+  | NumLit(x) -> string_of_int x
+  | BoolLit(b) -> string_of_bool b
+  | Val(s) -> s
+  | Binop(e1, op, e2) ->
+    let s1 = string_of_expr e1 and s2 = string_of_expr e2 in
+    let sop = string_of_op op in
+    Printf.sprintf "(%s %s %s)" s1 sop s2
+  | Fun(id, e) ->
+    let s1 = string_of_expr e in Printf.sprintf "(fun %s -> %s)" id s1
+  | App(e1, e2) ->
+    let s1 = string_of_expr e1 and s2 = string_of_expr e2 in
+    Printf.sprintf "(%s %s)" s1 s2
+;;
+
 (*
    Environment is a map that holds type information of variables.
    TODO: Implementing global environment and local environment *** 
@@ -97,10 +190,39 @@ let rec collect_expr (ae: aexpr): (primitiveType * primitiveType) list =
   | TFun(t1, t2) -> TFun(substitute u x t1, substitute u x t2)
  ;;
 
+ 
  let apply (subs: substitutions) (t: primitiveType): primitiveType  = 
  List.fold_right  (fun (x, u) t -> substitute u x t ) subs t
 
-(* Runs Hindler Milner Type System subsequently:
+
+ let rec unify (constraints: (primitiveType * primitiveType) list) : substitutions = 
+  match constraints with 
+  | [] -> []
+  | (x, y) :: xs -> 
+    let t2 = unify xs in 
+    let t1 = unify_one (apply t2 x) (apply t2 y) in
+    t1 @ t2
+
+  and unify_one (t1: primitiveType) (t2: primitiveType): substitutions = 
+    match t1, t2 with 
+    | TNum, TNum | TBool, TBool -> []
+    | T(x), z | z, T(x) -> [(x, z)]
+    | TFun(a, b), TFun(x, y) -> unify [(a, x); (b, y)]
+    | _ raise (failwith "mismatched types")
+
+
+let apply_expr (subs: substitutions) (ae: aexpr): aexpr = 
+  match ae with 
+  | ABoolLit(b, t) -> ABoolLit(b, apply subs t)
+  | ANumLit (n, t) -> ANumLit (n, apply subs t)
+  | AVal(s, t) -> AVal(s, apply subs t)
+  | ABinop(e1, op, e2, t) -> ABinop(apply_expr subs e1, op, apply_expr subs e2, apply subs t)
+  | AFun(id, e, t) -> AFun(id, apply_expr subs e, apply subs t)
+  | AApp(fn, arg, t) -> AApp(apply_expr subs fn, apply_expr subs arg, apply subs t)
+;;
+
+
+(* Runs Hindler Milner Type System:
   1. Annotating expressions with placeholder_types
   2. Generating constraints
   3. Unifications
@@ -113,3 +235,28 @@ let infer (env: environment) (e: expr): aexpr =
   let substitutions = unify constraints in 
     type_variable := (Char.code 'a');
     apply_expr substitutions annotated_expr
+
+
+
+
+
+    let rec get_ids (e: expr): id list =
+      let rec dedup = function
+       | [] -> []
+       | x :: y :: xs when x = y -> y :: dedup xs
+       | x :: xs -> x :: dedup xs in
+      let ids = match e with
+       | NumLit(_) | BoolLit(_) -> []
+       | Val(x) -> [x]
+       | Fun(x, y) -> [x] @ (get_ids y)
+       | Binop(e1, _, e2) -> (get_ids e1) @ (get_ids e2)
+       | App(fn, arg) -> (get_ids fn) @ (get_ids arg) in
+     dedup ids
+    ;;
+    
+    let infer_types (e: Ast.expr): Ast.aexpr =
+      let vals = get_ids e in
+      let env = List.fold_left (fun m x -> NameMap.add x (Infer.gen_new_type ()) m) NameMap.empty vals in
+      Infer.infer env e
+    ;;
+       
