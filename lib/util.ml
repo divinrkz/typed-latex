@@ -45,11 +45,23 @@ module List : sig
   include module type of Core.List
 
   val zip_shorter : 'a list -> 'b list -> ('a * 'b) list
+  val insert : 'a list -> 'a list -> int -> 'a list
+  val replace_slice : 'a list -> 'a list -> int -> int -> 'a t
 end = struct
   include Core.List
 
   let zip_shorter (x : 'a list) (y : 'b list) : ('a * 'b) list =
     match zip_with_remainder x y with out, _ -> out
+
+  let insert (x : 'a list) (insert_list : 'a list) (i : int) =
+    let left, right = split_n x i in
+    left @ insert_list @ right
+
+  let replace_slice (x : 'a list) (insert_list : 'a list) (i : int)
+      (slice_len : int) =
+    let left, center_right = split_n x i in
+    let right = drop center_right slice_len in
+    left @ insert_list @ right
 end
 
 (* Monadic bind *)
@@ -143,9 +155,19 @@ let ( <-<!! ) (f : 'e -> unit) (x : ('a, 'e) result) = Result.iter_error ~f x
 let ( >->!! ) (x : ('a, 'e) result) (f : 'e -> unit) = Result.iter_error ~f x
 
 (** Functor casts **)
-let ( <!<! ) (res : 'a) (x : ('a, 'e0) result) = (fun _ -> res) |<<! x
 
+(* Result -> Result *)
+
+let ( <!<! ) (res : 'a) (x : ('a, 'e0) result) = (fun _ -> res) |<<! x
 let ( <!!<!! ) (err : 'e1) (x : ('a, 'e0) result) = (fun _ -> err) |<<!! x
+
+(* Option -> Result *)
+
+let ( <!<? ) (res : 'a) (x : 'e option) =
+  Option.value_map ~f:Result.Error.return ~default:(Ok res) x
+
+let ( <!!<? ) (err : 'e) (x : 'a option) =
+  Option.value_map ~f:Result.return ~default:(Error err) x
 
 (** Pretty-printing **)
 
