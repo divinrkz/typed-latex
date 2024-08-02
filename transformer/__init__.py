@@ -1,4 +1,5 @@
 from json import JSONEncoder, dumps
+import sys
 
 from TexSoup.data import TexNode, TexArgs, BraceGroup, BracketGroup
 from TexSoup.utils import Token
@@ -132,7 +133,7 @@ def count_occurrences(main_string, substring):
     return main_string.count(substring)
 
 if __name__ == "__main__":
-    latex: TexSoup = read_latex("sample3.tex")
+    latex: TexSoup = read_latex(sys.argv[1])
 
     json_str = dumps(latex, cls=TexJsonEncoder, indent=2)
     with open(JSON_OUT_FILE, 'w') as json_file:

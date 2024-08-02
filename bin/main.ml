@@ -7,7 +7,7 @@ open Proof_lex
 module Json = Yojson.Basic
 
 let main () =
-  let filename = "tex/parsed-latex.json" in
+  let filename = "assets/tex/parsed-latex.json" in
   let json = Json.from_file filename in
   let parsed_latex = RawLatex.deserialize_from_json json in
   print_endline
@@ -19,7 +19,7 @@ let main () =
   let document_ast = Latex_aux.unwrap_to_document =<<? opt_latex in
   print_endline << RawLatex.tree_format <-<? document_ast;
   let pattern = Pattern_defs.def in
-  let tokenization = tokenize |<<? document_ast in
+  let tokenization = Proof_lex.tokenize |<<? document_ast in
   (fun token_streams ->
     print_endline
       ("\nFound "
@@ -36,14 +36,15 @@ let main () =
                        ("Stream length: "
                        ^ string_of_int (List.length token_stream)),
                      token_stream >>|: function
-                     | ProofToken.WordToken word ->
+                     | Proof_lex.WordToken word ->
                          Leaf ("WordToken: " ^ String.escaped word)
-                     | MathToken math -> Branch (Some "MathToken", [ math ]) )));
+                     | Proof_lex.MathToken math ->
+                         Branch (Some "MathToken", [ math ]) )));
            let matched_context = Patterns.match_pattern pattern token_stream in
            print_endline
              (if is_some matched_context then "\nMatched the pattern"
               else "\nDid not match the pattern");
-           let matches = Triple.second |<<? matched_context in
+           let matches = Pair.second |<<? matched_context in
            print_endline << Patterns.MatchContainer.tree_format <-<? matches)
 
 let () = main ()
