@@ -193,21 +193,6 @@ let extract_first_split first_split =
             let parsed = extract_first_split split in
             seq := !seq @ parsed
           );
-
-        (* let segment_splits = Util.String.split line ':' in
-        (match List.nth segment_splits 0 with
-          | None -> print_endline ("Line " ^ string_of_int !line_counter ^ ": No first split found.")
-          | Some first_split -> let parsed = extract_first_split first_split in
-          seq := !seq @ parsed);
-        (match List.nth segment_splits 1 with
-          | None -> print_endline ("Line " ^ string_of_int !line_counter ^ ": No second split found.")
-          | Some second_split -> 
-            let parsed = parse_relations second_split in
-            seq := !seq @ parsed);
-        (match List.nth segment_splits 2 with
-          | None -> print_endline ("Line " ^ string_of_int !line_counter ^ ": No third split found.")
-          | Some third_split -> process_first_split third_split seq); *)
-        
         let extracted = PatternDef.constr (!line_counter, line, (Sequence !seq)) in
           add_pattern extractor extracted;
       );
