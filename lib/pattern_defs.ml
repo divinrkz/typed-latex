@@ -51,7 +51,6 @@ let parse_relations relations_str =
   in
   let relations = parse_relation relation_splits in
     match relations with 
-    | [_] ->  [DefContainer (Express (gen_id ()), (gen_id ()))]
     | _ ->  [Any relations]
 
 (** 

@@ -47,15 +47,11 @@ type pattern =
   | Sequence of pattern list
   | Optional of pattern
   | Repeat of pattern
-  
   | TypeName of MatchID.t
   | DefContainer of pattern * MatchID.t
   | MathPattern of math_pattern
   (* Auxiliary *)
   | OptRepeat of pattern
-
-  | Relation of relation * MatchID.t
-  | Express of MatchID.t
   [@@deriving eq, show, sexp, hash, ord] 
 
 module rec MatchContainer : sig
