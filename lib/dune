@@ -6,7 +6,7 @@
   typing
   math
   patterns
-  pattern_defs
+  pattern_extractor
   latex_deserializer
   latex_aux
   util

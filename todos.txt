@@ -31,3 +31,7 @@ Expression -> any expressions.
 
 
 suggestion to maybe think about restructing the patterns in a way that helps.
+
+
+
+Patterns: MSet is a \mathbb set.

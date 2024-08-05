@@ -23,21 +23,6 @@ type math_pattern =
   | Expression of MatchID.t
 [@@deriving eq, show, sexp, hash, ord]
 
-type relation =
-| Le
-| Leq
-| Ge
-| Geq
-| Eq
-| NotEq
-| In
-| NotIn
-| Subset
-| Superset
-| SubsetEq
-| SupersetEq
-| Other
-[@@deriving eq, show, sexp, hash, ord]
 
 
 type pattern =

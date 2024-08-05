@@ -4,6 +4,30 @@ open Util
 open Spectrum
 
 
+module PatternExtractorSig = struct
+  type t [@@deriving eq, sexp, ord, compare]
+  
+  val constr: (int * ) 
+  val get_id: t -> int
+  val get_line: t -> string
+  val pattern: t -> pattern
+end
+
+module PatternExtractor: PatternExtractorSig = struct 
+  type t = {
+    id: int;
+    line: string;
+    pattern: pattern;
+  }
+
+  let get_id t = t.id
+  let get_line t = t.line
+  let get_pattern t = t.pattern
+
+  let to_string t = Simple.printf "@{<red>%s@}\n" "pattern to string:"
+
+end  
+
 (*Current match id*)
 let curr_id = ref 0
 
@@ -112,6 +136,7 @@ let process_first_split first_split seq =
 
   @param filename The name of the file to read patterns from.
 *)
+
 let parse_patterns filename =
   In_channel.with_file filename ~f:(fun input_c ->
     let line_counter = ref 0 in
