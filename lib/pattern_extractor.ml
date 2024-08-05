@@ -3,14 +3,14 @@ open Patterns
 open Util
 open Spectrum
 
+module type PatternExtractorSig = sig
+  type t
 
-module PatternExtractorSig = struct
-  type t [@@deriving eq, sexp, ord, compare]
-  
-  val constr: (int * ) 
+  val constr: int * string * pattern -> t 
+
   val get_id: t -> int
   val get_line: t -> string
-  val pattern: t -> pattern
+  val get_pattern: t -> pattern
 end
 
 module PatternExtractor: PatternExtractorSig = struct 
@@ -20,21 +20,23 @@ module PatternExtractor: PatternExtractorSig = struct
     pattern: pattern;
   }
 
+  let constr (id, line, pattern) = { id; line; pattern }
+
   let get_id t = t.id
   let get_line t = t.line
   let get_pattern t = t.pattern
 
-  let to_string t = Simple.printf "@{<red>%s@}\n" "pattern to string:"
-
+  (* let to_string t = Simple.printf "@{<red>%s@}\n" "pattern to string:" *)
 end  
 
+
 (*Current match id*)
-let curr_id = ref 0
+let curr_match_id = ref 0
 
 (** Generate a new ID for a given pattern variant *)
 let gen_id () =
-   incr curr_id;
-   !curr_id
+   incr curr_match_id;
+   !curr_match_id
 
 
 (* Regex patterns *)
@@ -159,7 +161,9 @@ let parse_patterns filename =
         | None -> print_endline ("Line " ^ string_of_int !line_counter ^ ": No first split found.")
         | Some third_split -> process_first_split third_split seq;
       
-        Simple.printf "@{<green>%s@} %s\n" "Extracted pattern:" (show_pattern (Sequence !seq))
+        let p = PatternExtractor.constr (!line_counter, line, (Sequence !seq));
+        print_endline (PatternExtractor.get_line p); 
+        Simple.printf "@{<green>%s@} %s\n" "Extracted pattern:" (show_pattern (Sequence !seq));
     );
   )
 
