@@ -1,49 +1,16 @@
 open Core
 open Patterns
 open Util
-
-type relation =
-| Le
-| Leq
-| Ge
-| Geq
-| Eq
-| NotEq
-| In
-| NotIn
-| Subset
-| Superset
-| SubsetEq
-| SupersetEq
-| Other
+open Spectrum
 
 
-type match_id_counters = {
-  type_name: int ref;
-  def_container: int ref;
-  relation: int ref;
-  expression: int ref;
-}
-
-let id_counters: match_id_counters = {
-  type_name = ref 0;
-  def_container = ref 0;
-  relation = ref 0;
-  expression = ref 0;
-}
+(*Current match id*)
+let curr_id = ref 0
 
 (** Generate a new ID for a given pattern variant *)
-let generate_match_id (pattern_case: string) = 
-    match pattern_case with 
-    | "TypeName" -> incr id_counters.type_name;   
-                    !(id_counters.type_name) 
-    | "DefContainer" -> incr id_counters.def_container;
-                        !(id_counters.def_container) 
-    | "Relation" -> incr id_counters.relation;
-                    !(id_counters.relation) 
-    | "Expression" -> incr id_counters.expression;
-                      !(id_counters.expression) 
-    | _ -> failwith "Invalid pattern case"
+let gen_id () =
+   incr curr_id;
+   !curr_id
 
 
 (* Regex patterns *)
@@ -51,28 +18,18 @@ let regex_first_split = "|?[a-zA-Z]+|?"
 let regex_optional = "\\(([^()]+)\\)\\?"
 let relation_regex = "[a-zA-Z]+"
 
-(* let list_relation_types_pattern (match_id : MatchID.t)
-    (allowed_relation_types : relation_type list) =
-  Any
-    ((fun rel_type -> Relation (rel_type, match_id)) |<<: allowed_relation_types)
-
-let any_known_relation_pattern (match_id : MatchID.t) =
-  list_relation_types_pattern match_id all_known_relation_types
-
-let any_relation_pattern (match_id : MatchID.t) =
-  list_relation_types_pattern match_id all_relation_types *)
 
 let parse_relation_type (relation_type: string) = 
    match relation_type with
-   | "Mset" -> Subset 
-   | "Min" -> In
-   | "Mgreater_than" -> Ge
-   | "Mequal" -> Eq
-   | "Mnot_equal" -> NotEq
-   | "Mgreater_than_or_equal" -> Geq
-   | "Mless_than" -> Le
-   | "Mless_than_or_equal" -> Leq
-   | _ -> Other
+   | "Mset" -> "Subset" 
+   | "Min" -> "In"
+   | "Mgreater_than" -> "Ge"
+   | "Mequal" -> "Eq"
+   | "Mnot_equal" -> "NotEq"
+   | "Mgreater_than_or_equal" -> "Geq"
+   | "Mless_than" -> "Le"
+   | "Mless_than_or_equal" -> "Leq"
+   | _ -> "Other"
 
 
 (** 
@@ -81,21 +38,21 @@ let parse_relation_type (relation_type: string) =
 
   @param relations_str The string to be processed. 
 *)       
-(* let parse_relations relations_str =
+let parse_relations relations_str =
   let def_container = ref [] in
   let relation_splits = str_split relations_str ' ' in
   let rec parse_relation splits =
     match splits with
     | [] -> !def_container
     | relation :: rest ->
-      let parsed_relation = Relation (parse_relation_type relation, generate_match_id "Relation") in
+      let parsed_relation = DefContainer (MathPattern (Function (parse_relation_type relation, [Expression (gen_id ()); Expression (gen_id ())], (gen_id ()))), (gen_id ())) in
       def_container := !def_container @ [parsed_relation];
       parse_relation rest
   in
   let relations = parse_relation relation_splits in
     match relations with 
-    | [_] ->  [DefContainer (Expression (generate_match_id "Expression"), generate_match_id "DefContainer")]
-    | _ ->  [DefContainer (Any relations, generate_match_id "DefContainer")] *)
+    | [_] ->  [DefContainer (Express (gen_id ()), (gen_id ()))]
+    | _ ->  [Any relations]
 
 (** 
   [parse_words relations_str seq] processes the [relations_str] by splitting it into words, 
@@ -170,15 +127,15 @@ let parse_patterns filename =
           | Some first_split -> process_first_split first_split seq;
         match List.nth segment_splits 1 with
           | None -> print_endline ("Line " ^ string_of_int !line_counter ^ ": No second split found.")
-          | Some _ ->  print_endline "parse relations";
-            (* let parsed = parse_relations second_split in
-              seq := !seq @ parsed; *)
+          | Some second_split -> 
+            let parsed = parse_relations second_split in
+              seq := !seq @ parsed;
   
         match List.nth segment_splits 2 with
         | None -> print_endline ("Line " ^ string_of_int !line_counter ^ ": No first split found.")
         | Some third_split -> process_first_split third_split seq;
       
-        print_endline ("Extracted pattern: " ^ show_pattern (Sequence !seq))
+        Simple.printf "@{<green>%s@} %s\n" "Extracted pattern:" (show_pattern (Sequence !seq))
     );
   )
 
@@ -233,3 +190,5 @@ let def =
         ( MathPattern (Function ("StrictGreaterThan", [ Expression 2; Expression 3 ], 1)),
           0 );
     ]
+
+

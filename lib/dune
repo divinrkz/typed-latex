@@ -2,17 +2,17 @@
  (name typed_latex)
  (modules
   string_tree
+  proof_lex
   typing
   math
   patterns
   pattern_defs
-  proof_lex
   latex_deserializer
   latex_aux
   util
   comparable_extension
   construction)
- (libraries core menhirLib re yojson str)
+ (libraries core menhirLib re yojson str spectrum)
  ;  (flags -rectypes)
  (preprocess
   (pps

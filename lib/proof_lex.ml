@@ -6,7 +6,6 @@ open String_tree
 
 module ProofToken : sig
   type t = WordToken of string | MathToken of RawMathLatex.t
-
   val to_string_tree : t -> string_tree
 end = struct
   type t = WordToken of string | MathToken of RawMathLatex.t
@@ -16,6 +15,8 @@ end = struct
     | WordToken word -> Leaf ("WordToken: " ^ word)
     | MathToken math -> Branch (Some "MathToken", [ math ])
 end
+
+
 
 let rec tokenize_rec (working_tokenization : ProofToken.t list list)
     (latex : RawLatex.t) =
