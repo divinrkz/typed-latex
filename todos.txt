@@ -13,8 +13,6 @@
 
 - Cova
 
-
-
 Word -> any word of the pattern
 Any -> when I have splits of | ex: |some|all|none
 Sequence -> Any grouping > 1 elements
@@ -35,3 +33,8 @@ suggestion to maybe think about restructing the patterns in a way that helps.
 
 
 Patterns: MSet is a \mathbb set.
+
+
+
+
+
