@@ -172,14 +172,8 @@ let extract_first_split first_split =
   in
   (build_sequence words)
 
-  (** 
-    [process_first_split first_split seq] processes the [first_split] of a line by calling [parse_words].
 
-    @param first_split The first segment of the line to be processed.
-    @param seq A reference to the sequence being constructed.
-  *)
-  let process_first_split first_split seq =
-    parse_words first_split seq 
+
 
   let extract_patterns extractor filename =
     In_channel.with_file filename ~f:(fun input_c ->
