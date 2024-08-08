@@ -1,6 +1,5 @@
 open Core
-open Fn 
-
+open Fn
 
 (** Functions **)
 let ( << ) = compose
@@ -160,17 +159,15 @@ let pp_hashtbl formatter ~pp_key ~pp_data t =
     (Format.pp_print_list ~pp_sep:(string_sep ", ") pp_pair)
     (Hashtbl.to_alist t)
 
-
 (** [str_split str separator] splits the provided string [str] on a provided 
     separator [sep] and returns a list of split strings
     @param str string to split
     @param sep separator string 
     @return splitted list of string on separator
-    *)    
+    *)
 let str_split str sep = String.split str ~on:sep
 
-let str_ends_with str suffix = Stdlib.String.ends_with ~suffix:suffix str
-
+let str_ends_with str suffix = Stdlib.String.ends_with ~suffix str
 
 (** [read_file_as_str filename] reads the content of the file specified by [filename]
     line by line. The function writes the lines into a buffer and returns a string with 
@@ -178,26 +175,21 @@ let str_ends_with str suffix = Stdlib.String.ends_with ~suffix:suffix str
 
     @param filename The name of file to be read.
     @return String will all lines from file
-*)    
-let read_file_as_str (filename: string) = 
-   let buffer = Buffer.create 4096 in 
-    In_channel.with_file filename ~f:(fun input_c ->
-      In_channel.iter_lines input_c ~f:(fun line -> 
-          Buffer.add_string buffer line;
-        )
-  );
+*)
+let read_file_as_str (filename : string) =
+  let buffer = Buffer.create 4096 in
+  In_channel.with_file filename ~f:(fun input_c ->
+      In_channel.iter_lines input_c ~f:(fun line ->
+          Buffer.add_string buffer line));
   Buffer.contents buffer
 
-
-let regex_first_matcher (str: string) (regex: string) =
+let regex_first_matcher (str : string) (regex : string) =
   try
     let regexp = Str.regexp regex in
     let _ = Str.search_forward regexp str 0 in
     Str.matched_string str
-  with
-    _ -> ""
+  with _ -> ""
 
-  
 (** [regex_matcher str regex] returns a list of all substrings in [str] that match the given [regex].
     @param str The input string to search for matches.
     @param regex The regular expression pattern to match against the input string.
@@ -208,21 +200,17 @@ let regex_first_matcher (str: string) (regex: string) =
       (* matches will be ["these"; "are"; "four"; "words"] *)
     ]}
 *)
-let regex_matcher (str: string) (regex: string) =
+let regex_matcher (str : string) (regex : string) =
   let rec find_all_matches acc pos =
-      let regexp = Str.regexp regex in
+    let regexp = Str.regexp regex in
     try
-
       let start_pos = Str.search_forward regexp str pos in
       let matched_str = Str.matched_string str in
-      find_all_matches (matched_str :: acc) (start_pos + String.length matched_str)
-    with
-    | _ -> List.rev acc
+      find_all_matches (matched_str :: acc)
+        (start_pos + String.length matched_str)
+    with _ -> List.rev acc
   in
-  find_all_matches [] 0 
-
-
-
+  find_all_matches [] 0
 
 (** Tuples **)
 module Pair : sig

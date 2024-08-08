@@ -35,16 +35,12 @@ let main () =
                    ( Some
                        ("Stream length: "
                        ^ string_of_int (List.length token_stream)),
-                     token_stream >>|: function
-                     | Proof_lex.WordToken word ->
-                         Leaf ("WordToken: " ^ String.escaped word)
-                     | Proof_lex.MathToken math ->
-                         Branch (Some "MathToken", [ math ]) )));
+                     token_stream >>|: ProofToken.to_string_tree )));
            let matched_context = Patterns.match_pattern pattern token_stream in
            print_endline
              (if is_some matched_context then "\nMatched the pattern"
               else "\nDid not match the pattern");
-           let matches = Pair.second |<<? matched_context in
+           let matches = Triple.second |<<? matched_context in
            print_endline << Patterns.MatchContainer.tree_format <-<? matches)
 
 let () = main ()

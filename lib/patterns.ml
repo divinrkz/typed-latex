@@ -21,7 +21,8 @@ type math_pattern =
   | TerminalSymbol of MatchID.t
   | Function of string * math_pattern list * MatchID.t
   | Expression of MatchID.t
-  [@@deriving eq, show, sexp, hash, ord]
+[@@deriving eq, show, sexp, hash, ord]
+
 type pattern =
   (* Primary *)
   | Word of string
@@ -34,7 +35,7 @@ type pattern =
   | MathPattern of math_pattern
   (* Auxiliary *)
   | OptRepeat of pattern
-  [@@deriving eq, show, sexp, hash, ord] 
+[@@deriving eq, show, sexp, hash, ord]
 
 module rec MatchContainer : sig
   type match_value =
