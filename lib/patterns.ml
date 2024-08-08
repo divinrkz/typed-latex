@@ -7,14 +7,20 @@ open Util
 
 module MatchID = struct
   module T = struct
-    type t = int [@@deriving eq, show, sexp, hash, ord, compare]
+    type t = (int, string) Either.t [@@deriving eq, sexp, hash, ord, compare]
   end
 
   include T
   include Comparable.Make (T)
 
-  let from_int : int -> t = id
-  let to_string (match_id : t) : string = "<" ^ string_of_int match_id ^ ">"
+  let from_int : int -> t = Either.First.return
+
+  let to_string (match_id : t) : string =
+    match match_id with
+    | First int_val -> "<" ^ string_of_int int_val ^ ">"
+    | Second special_val -> "<\"" ^ special_val ^ "\">"
+
+  let reserved_for_replace : t = Second "replace_container"
 end
 
 type math_pattern =
@@ -214,3 +220,23 @@ let match_pattern (pat : pattern) (tokenization : ProofToken.t list) =
     match_rec pat (tokenization, MatchContainer.empty, 0)
   in
   List.max_elt ~compare:compare_context matched_contexts
+
+type 'e replace_error = PatternNotMatched | ReplaceRuleError of 'e
+
+let replace_pattern (pat : pattern)
+    (replace_rule : context -> (ProofToken.t list, 'e) result)
+    (tokenization : ProofToken.t list) =
+  match
+    match_pattern
+      (DefContainer (pat, MatchID.reserved_for_replace))
+      tokenization
+  with
+  | None -> Error PatternNotMatched
+  | Some matched_context ->
+      let replacement =
+        (fun err -> ReplaceRuleError err) |<<!! replace_rule matched_context
+      in
+      List.replace_slice tokenization
+      |<<! replacement
+      <<|! Triple.third matched_context
+      <<|! List.length (Triple.first matched_context)

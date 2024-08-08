@@ -2,3 +2,6 @@ _build/
 .git
 _opam/
 .vscode/
+
+.DS_Store
+.idea/
