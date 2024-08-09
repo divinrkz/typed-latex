@@ -1,8 +1,8 @@
 todos.txt
 _build/
-.git
+.git/
 _opam/
-.vscode/
-
 .DS_Store
 .idea/
+.vscode/
+todos.txt

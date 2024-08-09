@@ -6,8 +6,17 @@ open String_tree
 open Proof_lex
 module Json = Yojson.Basic
 
+
 let main () =
   let filename = "assets/json/parsed-latex.json" in
+  let extractor = PatternExtractor.constr in 
+    PatternExtractor.extract_patterns extractor "assets/patterns/patterns.txt";
+    let extracted_patterns = PatternExtractor.get_patterns extractor in 
+      extracted_patterns >->: (fun pattern -> 
+        print_string ("\nLine [" ^ (string_of_int (PatternDef.get_id pattern)) ^ "]: ");
+        print_endline ("\"" ^ PatternDef.get_line pattern ^ "\"");
+        print_endline (show_pattern (PatternDef.get_pattern pattern))
+    ); 
   let json = Json.from_file filename in
   let parsed_latex = RawLatex.deserialize_from_json json in
   print_endline
@@ -18,7 +27,7 @@ let main () =
   let opt_latex = Result.ok parsed_latex in
   let document_ast = Latex_aux.unwrap_to_document =<<? opt_latex in
   print_endline << RawLatex.tree_format <-<? document_ast;
-  let pattern = Patterns.Word "TEST" in
+  let pattern = def in
   let tokenization = Proof_lex.tokenize |<<? document_ast in
   (fun token_streams ->
     print_endline
@@ -44,5 +53,3 @@ let main () =
            print_endline << Patterns.MatchContainer.tree_format <-<? matches)
 
 let () = main ()
-
-

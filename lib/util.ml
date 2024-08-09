@@ -182,7 +182,8 @@ let pp_hashtbl formatter ~pp_key ~pp_data t =
     (Hashtbl.to_alist t)
 
 
-let str_ends_with str suffix = Stdlib.String.ends_with ~suffix str
+let str_ends_with str suffix = Stdlib.String.ends_with ~suffix:suffix str
+
 
 (** [read_file_as_str filename] reads the content of the file specified by [filename]
     line by line. The function writes the lines into a buffer and returns a string with 
@@ -306,6 +307,11 @@ module String = struct
       | _ -> acc
     in
     aux 0 []
+
+  let replace_char_at_index (s: string) (index: int) (new_char: char) : string =
+    let result = Bytes.of_string s in
+    Bytes.set result index new_char;
+    Bytes.to_string result
 
 end
 

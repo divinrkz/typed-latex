@@ -4,14 +4,13 @@
   string_tree
   proof_lex
   typing
-  math
   patterns
   pattern_extractor
   latex_deserializer
   latex_aux
   util
   comparable_extension
-  construction)
+  )
  (libraries core menhirLib re yojson str spectrum)
  ;  (flags -rectypes)
  (preprocess
