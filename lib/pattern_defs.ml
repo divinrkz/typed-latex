@@ -229,6 +229,12 @@ let def =
       Any [ Word "suppose"; Word "say"; Word "imagine"; Word "let" ];
       DefContainer
         ( MathPattern
-            (Function ("StrictGreaterThan", [ Expression 2; Expression 3 ], 1)),
-          0 );
+            (Function
+               ( "StrictGreaterThan",
+                 [
+                   Expression (MatchID.from_int 2);
+                   Expression (MatchID.from_int 3);
+                 ],
+                 MatchID.from_int 1 )),
+          MatchID.from_int 0 );
     ]

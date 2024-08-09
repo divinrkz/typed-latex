@@ -21,6 +21,11 @@ module MatchID = struct
     | Second special_val -> "<\"" ^ special_val ^ "\">"
 
   let reserved_for_replace : t = Second "replace_container"
+
+  let pp (formatter : Formatter.t) (match_id : t) =
+    match match_id with
+    | First int_val -> Int.pp formatter int_val
+    | Second special_val -> String.pp formatter special_val
 end
 
 type math_pattern =
