@@ -17,7 +17,11 @@
       "args": [
         {
           "type": "Text",
+<<<<<<< HEAD
           "value": "{tikz}"
+=======
+          "value": "{amsfonts}"
+>>>>>>> 7e581023c59f642aef5a9eabf5696813c72e0283
         }
       ]
     },
@@ -27,25 +31,90 @@
       "args": [
         {
           "type": "Text",
+<<<<<<< HEAD
           "value": "{mathtools}"
+=======
+          "value": "{graphicx}"
+>>>>>>> 7e581023c59f642aef5a9eabf5696813c72e0283
         }
       ]
     },
     {
+<<<<<<< HEAD
+=======
+      "type": "Comment",
+      "value": "% Required for inserting images"
+    },
+    {
+      "type": "Macro",
+      "name": "title",
+      "args": [
+        {
+          "type": "Text",
+          "value": "{SURF Example Proof}"
+        }
+      ]
+    },
+    {
+      "type": "Macro",
+      "name": "author",
+      "args": [
+        {
+          "type": "Text",
+          "value": "{Gosha}"
+        }
+      ]
+    },
+    {
+      "type": "Macro",
+      "name": "date",
+      "args": [
+        {
+          "type": "Text",
+          "value": "{Summer 2024}"
+        }
+      ]
+    },
+    {
+>>>>>>> 7e581023c59f642aef5a9eabf5696813c72e0283
       "type": "Environment",
       "name": "document",
       "children": [
+        {
+<<<<<<< HEAD
+=======
+          "type": "Macro",
+          "name": "maketitle",
+          "args": []
+        },
+        {
+>>>>>>> 7e581023c59f642aef5a9eabf5696813c72e0283
+          "type": "Text",
+          "value": "\nLet "
+        },
+        {
+          "type": "Math",
+<<<<<<< HEAD
+          "value": "Symbol('x')"
+        },
+        {
+          "type": "Text",
+          "value": " be an integer.\n\n"
+=======
+          "value": "Equality(Function('f')(Symbol('x')), Mul(Integer(2), Symbol('x')))"
+        },
         {
           "type": "Text",
           "value": "\nLet "
         },
         {
           "type": "Math",
-          "value": "Symbol('x')"
+          "value": "Equality(Symbol('y'), Integer(4))"
         },
         {
-          "type": "Text",
-          "value": " be an integer.\n\n"
+          "type": "Math",
+          "value": "Equality(Function('f')(Symbol('y')), Integer(8))"
+>>>>>>> 7e581023c59f642aef5a9eabf5696813c72e0283
         }
       ]
     }

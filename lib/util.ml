@@ -1,6 +1,5 @@
 open Core
-open Fn 
-
+open Fn
 
 (** Functions **)
 let ( << ) = compose
@@ -46,11 +45,23 @@ module List : sig
   include module type of Core.List
 
   val zip_shorter : 'a list -> 'b list -> ('a * 'b) list
+  val insert : 'a list -> 'a list -> int -> 'a list
+  val replace_slice : 'a list -> 'a list -> int -> int -> 'a t
 end = struct
   include Core.List
 
   let zip_shorter (x : 'a list) (y : 'b list) : ('a * 'b) list =
     match zip_with_remainder x y with out, _ -> out
+
+  let insert (x : 'a list) (insert_list : 'a list) (i : int) =
+    let left, right = split_n x i in
+    left @ insert_list @ right
+
+  let replace_slice (x : 'a list) (insert_list : 'a list) (i : int)
+      (slice_len : int) =
+    let left, center_right = split_n x i in
+    let right = drop center_right slice_len in
+    left @ insert_list @ right
 end
 
 (* Monadic bind *)
@@ -144,9 +155,19 @@ let ( <-<!! ) (f : 'e -> unit) (x : ('a, 'e) result) = Result.iter_error ~f x
 let ( >->!! ) (x : ('a, 'e) result) (f : 'e -> unit) = Result.iter_error ~f x
 
 (** Functor casts **)
-let ( <!<! ) (res : 'a) (x : ('a, 'e0) result) = (fun _ -> res) |<<! x
 
+(* Result -> Result *)
+
+let ( <!<! ) (res : 'a) (x : ('a, 'e0) result) = (fun _ -> res) |<<! x
 let ( <!!<!! ) (err : 'e1) (x : ('a, 'e0) result) = (fun _ -> err) |<<!! x
+
+(* Option -> Result *)
+
+let ( <!<? ) (res : 'a) (x : 'e option) =
+  Option.value_map ~f:Result.Error.return ~default:(Ok res) x
+
+let ( <!!<? ) (err : 'e) (x : 'a option) =
+  Option.value_map ~f:Result.return ~default:(Error err) x
 
 (** Pretty-printing **)
 
@@ -161,23 +182,7 @@ let pp_hashtbl formatter ~pp_key ~pp_data t =
     (Hashtbl.to_alist t)
 
 
-(** [str_split str separator] splits the provided string [str] on a provided 
-    separator [sep] and returns a list of split strings
-    @param str string to split
-    @param sep separator string 
-    @return splitted list of string on separator
-    *)    
-let str_split str sep = String.split str ~on:sep
-
-
-(** [str_ends_with str suffix] checks if the provided string [str] ends with a provided 
-    suffix [suffix] and returns true if [suffix] is a suffix of [str]
-    @param str string
-    @param suffix suffix string 
-    @return boolean
-    *)    
-let str_ends_with str suffix = String.is_suffix str ~suffix
-
+let str_ends_with str suffix = Stdlib.String.ends_with ~suffix str
 
 (** [read_file_as_str filename] reads the content of the file specified by [filename]
     line by line. The function writes the lines into a buffer and returns a string with 
@@ -185,26 +190,21 @@ let str_ends_with str suffix = String.is_suffix str ~suffix
 
     @param filename The name of file to be read.
     @return String will all lines from file
-*)    
-let read_file_as_str (filename: string) = 
-   let buffer = Buffer.create 4096 in 
-    In_channel.with_file filename ~f:(fun input_c ->
-      In_channel.iter_lines input_c ~f:(fun line -> 
-          Buffer.add_string buffer line;
-        )
-  );
+*)
+let read_file_as_str (filename : string) =
+  let buffer = Buffer.create 4096 in
+  In_channel.with_file filename ~f:(fun input_c ->
+      In_channel.iter_lines input_c ~f:(fun line ->
+          Buffer.add_string buffer line));
   Buffer.contents buffer
 
-
-let regex_first_matcher (str: string) (regex: string) =
+let regex_first_matcher (str : string) (regex : string) =
   try
     let regexp = Str.regexp regex in
     let _ = Str.search_forward regexp str 0 in
     Str.matched_string str
-  with
-    _ -> ""
+  with _ -> ""
 
-  
 (** [regex_matcher str regex] returns a list of all substrings in [str] that match the given [regex].
     @param str The input string to search for matches.
     @param regex The regular expression pattern to match against the input string.
@@ -215,21 +215,17 @@ let regex_first_matcher (str: string) (regex: string) =
       (* matches will be ["these"; "are"; "four"; "words"] *)
     ]}
 *)
-let regex_matcher (str: string) (regex: string) =
+let regex_matcher (str : string) (regex : string) =
   let rec find_all_matches acc pos =
-      let regexp = Str.regexp regex in
+    let regexp = Str.regexp regex in
     try
-
       let start_pos = Str.search_forward regexp str pos in
       let matched_str = Str.matched_string str in
-      find_all_matches (matched_str :: acc) (start_pos + String.length matched_str)
-    with
-    | _ -> List.rev acc
+      find_all_matches (matched_str :: acc)
+        (start_pos + String.length matched_str)
+    with _ -> List.rev acc
   in
-  find_all_matches [] 0 
-
-
-
+  find_all_matches [] 0
 
 (** Tuples **)
 module Pair : sig
@@ -252,12 +248,18 @@ module Triple : sig
   val first : ('a, 'b, 'c) t -> 'a
   val second : ('a, 'b, 'c) t -> 'b
   val third : ('a, 'b, 'c) t -> 'c
+  val build : 'a -> 'b -> 'c -> ('a, 'b, 'c) t
+  val cons : 'a -> 'b * 'c -> ('a, 'b, 'c) t
+  val snoc : 'a * 'b -> 'c -> ('a, 'b, 'c) t
 end = struct
   type ('a, 'b, 'c) t = 'a * 'b * 'c
 
   let first (x, _, _) = x
   let second (_, x, _) = x
   let third (_, _, x) = x
+  let build x y z = (x, y, z)
+  let cons x (y, z) = (x, y, z)
+  let snoc (x, y) z = (x, y, z)
 end
 
 (** Strings **)
@@ -273,6 +275,38 @@ module String = struct
 
   let opt_get (str : t) (i : int) : char option =
     if Int.( >= ) i (length str) then None else Some (get str i)
+
+  (* let str_split str sep = String.split str ~on:sep *)
+
+
+(* let str_ends_with str suffix = Stdlib.String.ends_with ~suffix:suffix str *)
+  let starts_with (str: t) (prefix: t) = Stdlib.String.starts_with ~prefix:prefix str
+
+  (** [str_split str separator] splits the provided string [str] on a provided 
+    separator [sep] and returns a list of split strings
+    @param str string to split
+    @param sep separator string 
+    @return splitted list of string on separator
+    *)    
+  let split str sep = String.split str ~on:sep
+
+  let get_at str idx = String.get str idx
+
+  let ends_with str suffix = Stdlib.String.ends_with ~suffix:suffix str
+
+
+  let split_outside_parentheses s =
+    let re = Str.regexp "\\(([^)]*)\\|[^ ]+\\)" in
+    let rec aux pos acc =
+      try
+        let _ = Str.search_forward re s pos in
+        let match_str = Str.matched_string s in
+        aux (Str.match_end ()) (acc @ [match_str])
+      with
+      | _ -> acc
+    in
+    aux 0 []
+
 end
 
 (** Other **)

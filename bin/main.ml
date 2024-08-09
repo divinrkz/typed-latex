@@ -3,11 +3,11 @@ open Typed_latex
 open Latex_deserializer
 open Util
 open String_tree
+open Proof_lex
 module Json = Yojson.Basic
 
 let main () =
   let filename = "assets/json/parsed-latex.json" in
-  (* Pattern_defs.parse_patterns "assets/patterns/formatted-patterns.txt"; *)
   let json = Json.from_file filename in
   let parsed_latex = RawLatex.deserialize_from_json json in
   print_endline
@@ -17,10 +17,8 @@ let main () =
            |<<!! parsed_latex)));
   let opt_latex = Result.ok parsed_latex in
   let document_ast = Latex_aux.unwrap_to_document =<<? opt_latex in
-
-  print_endline <<   RawLatex.tree_format <-<? document_ast;
-
-  let pattern = Pattern_defs.def1 in
+  print_endline << RawLatex.tree_format <-<? document_ast;
+  let pattern = Patterns.Word "TEST" in
   let tokenization = Proof_lex.tokenize |<<? document_ast in
   (fun token_streams ->
     print_endline
@@ -37,16 +35,12 @@ let main () =
                    ( Some
                        ("Stream length: "
                        ^ string_of_int (List.length token_stream)),
-                     token_stream >>|: function
-                     | Proof_lex.WordToken word ->
-                         Leaf ("WordToken: " ^ String.escaped word)
-                     | Proof_lex.MathToken math ->
-                         Branch (Some "MathToken", [ math ]) )));
+                     token_stream >>|: ProofToken.to_string_tree )));
            let matched_context = Patterns.match_pattern pattern token_stream in
            print_endline
              (if is_some matched_context then "\nMatched the pattern"
               else "\nDid not match the pattern");
-           let matches = Pair.second |<<? matched_context in
+           let matches = Triple.second |<<? matched_context in
            print_endline << Patterns.MatchContainer.tree_format <-<? matches)
 
 let () = main ()

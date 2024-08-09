@@ -1,3 +1,9 @@
+MATH_SET_CONTAINER = r'\mathbb'
+
+SUMMATION_REGEX = r'\\sum\s*_\s*\{[^}]+\}\s*\^\s*\{[^}]+\}'
+
+
+    
 SET_NOTATIONS = [
     {'name': 'In', 
      'notation': r'\in'
