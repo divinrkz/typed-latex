@@ -1,24 +1,16 @@
-# typed_latex
+# typed-latex
 
-`typed_latex` is a tool that analyzes LaTeX written math proofs and parses natural language to identify common proof errors such as, usage of undefined variables, incorrect variable quantification, variable type mismatch, misuse of implications and equivalences, unnecessary re-definitions, unjustified assumptions, lack of proper citations for definitions, and missing conclusions; as well as providing real time feedback for each of the errors. 
+`typed-latex` is a tool that analyzes LaTeX-written discrete math proofs, parses natural language to identify common proof errors, and most importantly builds a type system around a given student-written LaTeX which is able to validate the proof against mathematical type-errors. The type system performs type classification, type checking, type inference, and type-error detection on discrete mathematical objects expressions; similar to how in a programming language a compiler checks the types of variables, is able to infer the types of some expressions, and may throw type-errors in case of type mismatches. Other validations include, usage of undefined variables, incorrect variable quantification, variable type mismatch, misuse of implications and equivalences, unnecessary re-definitions, unjustified assumptions, lack of proper citations for definitions, and missing conclusions; as well as providing real time feedback for each of the errors. 
 
-## Features
-**1. Type Checking**: Ensures that mathematical proofs written in LaTeX are valid. <br>
-**2. Error Reporting**: Highlights errors and provides suggestions for corrections. <br>
-**3. Seamless Integration**: Easily integrates with your existing LaTeX workflow.
-
-
+ Given that the proofs must be written in LaTeX, the transformer module parses the LaTeX proof file into a JSON that is translated to an OCaml `RawLatex` type which is input to the pattern-matcher module that matches common proof patterns against the `RawLatex` to extract relevant textual and mathematical content into a `ProofLex` type. The type system is then employed on the `ProofLex` to ensure the proof is type-error free. Finally, the type system generates `TypedLatex` where errors are inserted at their respective line numbers as detailed feedback to help students learn and improve their proof-writing skills. 
 ## Installation
-To install `typed_latex`, follow these steps:
+To try out `typed_latex`, follow these steps:
 
 #### Prerequisites
-Ensure you have `opam`, `dune`, and `python` installed on your system.
+Ensure you have `opam`, `dune`, and `python3` installed on your system.
 
 #### Steps
-1. Clone the repository:
-```sh
-git clone https://gitlab.caltech.edu/blank-lab/typed_latex
-```
+1. Clone the repo
 
 2. Create and switch to a new Opam switch:
 ```sh
@@ -26,17 +18,26 @@ opam switch create typed_latex 5.1.1
 eval $(opam env)
 ```
 
+3. Setup python virtual env.
+```sh
+python3 -m venv venv
+source transformer/venv/bin/activate
+```
+
 3. Install dependencies: <br>
 Inside the project directory containing your dune-project file, run:
 ```sh
 opam install . --deps-only
 ```
+and
+```sh
+pip install -r transformer/requirements.txt
+```
 
-4. Run the Python side of the transformer:
+4. Run the transformer:
 ```sh
 python transformer tex_file_name.tex
 ```
-
 5. Build the Ocaml side of the project:
 ```sh
 make build 
@@ -45,9 +46,6 @@ make build
 ```sh
 make run
 ```
-
-## Project Structure
-__This project is currently unfinished__
 
 ### Overview
 The first step in the overall workflow is to parse the LaTeX file. A previous version of this project had an attempt at writing a LaTeX parser from scratch in Ocaml / Menhir. However, this parser was incomplete and would fail to parse some valid latex files. The complexity of the LaTeX language made fixing and extending this parser a difficult and largely pointless task, so instead we looked to replace it with an existing LaTeX parser. We found no existing complete LaTeX parsers written in Ocaml. Instead, we chose to use two Python LaTeX parsers: one main one and one for math expressions. The main Python LaTeX parser TexSoup allows convenient parsing. However, it does not parse LaTeX math expressions. To parse math, we use latex2sympy (specifically, ANTLR, which is a port of latex2sympy built into sympy). This conveniently translates a LaTeX math expression directly into a Sympy expression (Sympy is a Python symbolic math library). Sympy kindly provides a `srepr` function to export a Sympy object as a conveniently-formatted string (The string is almost purely just a tree of function calls, and therefore easier to parse). Then, our Python-side serializes this parsed LaTeX into a JSON file, which is then passed to the Ocaml side of the program. On the Ocaml-side, we start by deserializing from the JSON file (`latex_deserializer.ml`) into a tree-like AST (`RawLatex` / `RawMathLatex`). This AST is lexed (`proof_lex.ml`) into several semi-flat sequences of tokens (`ProofToken`). These token streams can now be passed to the pattern-matching system (`patterns.ml`).
@@ -121,3 +119,8 @@ Putting this together, we get a few a few key components. First, we have a `Type
     Project build and run configuration (calls dune build and run).
     - `typed_latex.opam`\
     Main dune project configuration.
+
+
+## Contributors
+- Divin Irakiza @divinrkz
+- Gosha Lubashev @bluecapacitor
