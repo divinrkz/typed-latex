@@ -245,3 +245,20 @@ let replace_pattern (pat : pattern)
       |<<! replacement
       <<|! Triple.third matched_context
       <<|! List.length (Triple.first matched_context)
+
+(** Exhaustively replace all of the patterns, always prioritizing a pattern later in the list over a pattern earlier in the list *)
+let rec exhaustively_replace_all
+    (replacements :
+      (pattern * (context -> (ProofToken.t list, 'e) result)) list)
+    (tokenization : ProofToken.t list) =
+  match replacements with
+  | [] -> Ok tokenization
+  | (pat, replacement_rule) :: tail -> (
+      match exhaustively_replace_all tail tokenization with
+      | Error replace_rule_err -> Error replace_rule_err
+      | Ok complete_replacement -> (
+          match replace_pattern pat replacement_rule complete_replacement with
+          | Error PatternNotMatched -> Ok complete_replacement
+          | Error (ReplaceRuleError replace_rule_err) -> Error replace_rule_err
+          | Ok next_replacement ->
+              exhaustively_replace_all replacements next_replacement))
