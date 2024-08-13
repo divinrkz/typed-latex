@@ -11,8 +11,10 @@ module Json = Yojson.Basic
 
 let main () =
   let filename = "assets/json/parsed-latex.json" in
+
+  
   let extractor = PatternExtractor.constr in 
-    PatternExtractor.extract_patterns extractor "assets/patterns/testpatterns.txt";
+    PatternExtractor.extract_patterns extractor "assets/patterns/patterns.txt";
   let extracted_patterns = PatternExtractor.get_patterns extractor in 
     extracted_patterns >->: (fun pattern -> 
       print_string ("\nLine [" ^ (string_of_int (PatternDef.get_id pattern)) ^ "]: ");
@@ -39,7 +41,7 @@ let main () =
   <-<? tokenization;
   tokenization
   >->? List.iter ~f:(fun token_stream ->
-           print_endline ("\n" ^ String.make 16 '=');
+           (* print_endline ("\n" ^ String.make 16 '='); *)
            (* print_endline
              (tree_format "| "
                 (Branch
@@ -52,9 +54,11 @@ let main () =
                      | ProofToken.MathToken math ->
                          Branch (Some "MathToken", [ math ]) ))); *)
            let matched_context = Patterns.match_pattern pattern token_stream in
-           print_endline
+           (* print_endline
              (if is_some matched_context then "\nMatched the pattern"
-              else "\nDid not match the pattern");
+              else "\nDid not match the pattern"); *)
+              print_endline "";
+              
            (* let matches = Pair.second |<<? matched_context in
            print_endline << Patterns.MatchContainer.tree_format <-<? matches *)
            )

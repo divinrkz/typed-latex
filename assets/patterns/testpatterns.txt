@@ -1,4 +1,157 @@
-let $:Mset Min Mgreater_than Mgreater_than_or_equal Mless_than Mless_than_or_equal:^be arbitrary
-(choose|consider|define)$:Mequal Mnot_equal:, 
-(suppose|assume|let) (that)?$:Mequal Mnot_equal:, 
-let$:Mset:, 
+let$:Mset Min Mgreater_than Mgreater_than_or_equal Mless_than Mless_than_or_equal:^be arbitrary
+(choose|consider|define)$:Mequal Mnot_equal
+(suppose|assume|let) (that)?$:Mequal Mnot_equal
+let$:Mset
+(let)$:Min:^(,|and)$:Min
+
+(let)$:Min:^,$:Min:^(,|and|, and)$:Min:, 
+
+let$:Mvar:^(be|represent) (an|a|any|some)? arbitrary (,)?:D 
+and (let)?$:Mvar:^(be|represent) (an|a|any|some)? arbitrary (,)?:D
+and (let)?:Mset Min Mgreater_than Mgreater_than_or_equal Mless_than Mless_than_or_equal:^be arbitrary
+let$:Mvar:^(be) (an|a|the):D:(and)? (let)?
+let$:Mvar:^(be) (an|a|any|some)? arbitrary (,)?:D 
+let$:M:^be:Mvar:for (all|every|any):Mvar:^in the$:D
+
+let$:Mvar:^(be)? arbitrary (so|such that):M
+let$:M:^(such that|where|with)$:M
+
+(suppose|assume|let) (that)?$:Mequal Mnot_equal Mgreater_than Mless_than Mgreater_than_or_equal Mless_than_or_equal
+(suppose|assume) (that)?$:Mvar:^is (an|a|any|some) (specific|arbitrary):D 
+(suppose|assume) (that)?$:M:^is arbitrary$ 
+(suppose|assume) (that)?$:Mvar:^is arbitrary$
+(suppose|assume) (that)?:Mvar:(are|is):D 
+(suppose|assume) (that)?$:Mvar:^is (an|a|the):D
+(suppose|assume) (that)?$:Min
+(suppose|assume) (that)?$:Mequal Mnot_equal Mgreater_than Mless_than Mgreater_than_or_equal Mless_than_or_equal:^and:Mvar:^is (an|a|the):D
+define$:Mvar:^as ((an|any|some) (arbitrary)?)?:D
+define$:Mvar:^to be ((an|any|some) (arbitrary)?)?:D
+(choose|consider|define)$:Min:^(such that|where|with)$:M
+(choose|consider|define)$:Min:^(,|and)$:Min
+
+(choose|consider|define)$:Min:^,$:Min:^(,|and|, and)$:Min
+
+(choose|consider|define)$:Mvar:^(such that|where|with)$:M
+(choose|consider|define)$:Mvar:^such that$:Mequal Mnot_equal
+
+(choose|consider|define) ((an|a) arbitrary)?$:Min 
+
+(choose|consider|define) (an|a|some)?:D:Mvar
+(choose|consider|define) ((an|a|some) (arbitrary)?)?$:D:Mvar
+(choose|consider|define) ((an|a|some) (arbitrary)?)?:D:Mvar:^(such that|where|with)$:M 
+
+(such that|where|with):Mvar:(is|are) ((an|a|some)? (arbitrary)?)?:D 
+
+there (exists (an|a|some))|is (an|a)|exist|exists):D:Mvar
+
+there (exists (an|a|some)|is (an|a)|exist|exists):D:Mvar:^(so|such) that$:M
+
+there (exists) (an|a|some)?$:Mvar:^(such that|where|with)$:M:^in (the)?:D
+there (exists) (an|a|some)?$:Min:^(such that|where|with)$:M
+
+there (exists) (an|a|some)?$:D:Mvar:^(such that|where|with)$:M
+there (exists) (an|a|some)?$:Mvar:^(such that|where|with)$:M 
+
+there (is|exists|exist) (an|a|some)?$:Mvar:^((,)? such that|where|with)$:M:^in (the)?:D 
+there (is|exists|exist) (an|a|some)?$:Min:^((,)? such that|where|with)$:M
+
+there (is|exists|exist) (an|a|some)?$:Mvar:^((,)? such that|where|with)$:M
+
+there (is|exists|exist) (an|a|some)?:D:Mvar:^((,)? such that|where|with)$:M
+there exists (an|a|some)?:D:Mvar:and,
+there (are|exists|exist) (a|an|some)?:Mvar Mequal Mnot_equal
+there (are|exists|exist):D:Mvar Mequal Mnot_equal
+
+there (exists (an|a|some)|is (an|a)|exist|exists):D:Mvar  #####################
+
+(by|go by|do) (structural|strong)? (induction|induct) (over|on)$:Min Mvar
+
+for some (arbitrary)?$:Min Mequal Mnot_equal Mgreater_than Mgreater_than_or_equal Mless_than Mless_than_or_equal:(where|with|such that) (,)?:M 
+for some (arbitrary)?$:Min Mequal Mnot_equal Mgreater_than Mgreater_than_or_equal Mless_than Mless_than_or_equal
+for some$:Mvar
+for some:Mequal
+some:D:Mvar Mnot_equal
+for (all|every|any):D:Mvar Mset Min Mgreater_than Mgreater_than_or_equal Mless_than Mless_than_or_equal
+for (all|every|any)$:Mset Min Mgreater_than Mgreater_than_or_equal Mless_than Mless_than_or_equal
+for (all|every|any)$:Mvar:^in (the)?:D 
+for (all|every|any)$:Mvar
+for (all|every|any)$:Mset Min:^,$:Mset Min:^(,|and|, and)$:Mset Min
+and all:D:Mvar
+
+(such that|where|with)$:Min Mgreater_than Mgreater_than_or_equal Mless_than Mless_than_or_equal
+
+:Mfunction:, #################
+
+for some$:Min
+
+^there (exists (an|a|some))|is (an|a)|(exist|exists)):D:Mvar #######
+^there (exists (an|a|some))|is (an|a)|(exist|exists)):D:Mvar:^(so|such) that$:M  #######
+
+
+^there (exists) (an|a|some)?$:Mvar:^(such that|where|with)$:M:^in (the)?:D 
+^there (exists) (an|a|some)?$:Min:^(such that|where)$:M, 
+^there (exists) (an|a|some)?$:D:Mvar:^(such that|where|with)$:M
+^there (exists) (an|a|some)?$:Mvar:^(such that|where)$:M
+
+there (is|exists|exist) (an|a|some)?$:Mvar:^((,)? such that|where|with)$:M:^in (the)?:D
+there (is|exists|exist) (an|a|some)?$:Min:^((,)? such that|where|with)$:M
+there (is|exists|exist) (an|a|some)?$:Mvar:^((,)? such that|where|with)$:M
+there (is|exists|exist) (an|a|some)?:D::Mvar:^((,)? such that|where|with)$:M
+there exists (an|a|some)?:D:Mvar:and,
+there (are|exists|exist) (a|an|some)?:Mvar Mequal Mnot_equal
+there (are|exists|exist):D:Mvar Mequal Mnot_equal
+
+there (exists (an|a|some)|is (an|a)|exist|exists):D:Mvar:, ###########
+
+(choose|consider|define)$:Mequal Mnot_equal
+(choose|consider|define)$:Min:^(such that|where|with)$:M
+(choose|consider|define)$:Mvar:^(such that|where|with)$:M
+(choose|consider|define) (an|a)?$:D:Mvar
+
+(choose|consider|define) (an arbitrary)?$:Min 
+
+(choose|consider|define) (an|a|some)?:D:Mvar:^(such that|where|with)$:M
+(choose|consider|define) (an|a|some)?:D:Mvar
+define$:Mvar:^as ((an|any|some) (arbitrary)?)?:D 
+define$:Mvar:^to be ((an|any|some) (arbitrary)?)?:D
+(choose|consider|define)$:Min:^(such that|where|with)$:M
+(choose|consider|define)$:Min:^(,|and)$:Min
+(choose|consider|define)$:Min:^,$:Min:^(,|and|, and)$:Min
+(choose|consider|define)$:Mvar:^(such that|where|with)$:M
+(choose|consider|define)$:Mvar:^such that$:Mequal Mnot_equal
+(choose|consider|define) (an|a|some)?:D:Mvar
+for some (arbitrary)?$:Min Mequal Mnot_equal Mgreater_than Mgreater_than_or_equal Mless_than Mless_than_or_equal:(where|with|such that) (,)?:M
+for some (arbitrary)?$:Min Mequal Mnot_equal Mgreater_than Mgreater_than_or_equal Mless_than Mless_than_or_equal
+for some$:Mvar
+for some:Mequal
+some:D:Mvar Mnot_equal
+for (all|every|any)$:Min:^(,|and)$:Min
+for (all|every|any)$:Min:^,$:Min:^(,|and|, and)$:Min
+for (all|every|any)$:Mvar:^in (the)?:D
+for (all|every|any):Min
+for (all|every|any):D::Mvar
+for (all|every|any):Mvar
+there (exists|is) (an|a)?$:Mvar:^(such that|where)$:M:^in (the)?:D
+
+^there (exists (an|a|some)|is (a|an)|exist):D:Mvar  ###########
+^there (exists (an|a|some)|is (a|an)|exist):D:Mvar:^(so|such) that$:M  ###########
+^there (exists)( (an|a|some))?$:Mvar:^(such that|where)$:M:^in( the)?:D  ###########
+^there (exists)( (an|a|some))?$:Min:^(such that|where)$:M:,  ###########
+^there (exists)( (an|a|some))?$:Mvar:^(such that|where)$:M:,  ###########
+^there (exists|exist)( (an|a|some))?$:D: :Mvar:^(such that|where)$:M:,  ###########
+
+and all:D:$:Mvar
+for (all|every|any):D:Mvar Mset Min Mgreater_than Mgreater_than_or_equal Mless_than Mless_than_or_equal
+for (all|every|any)$:Mset Min Mgreater_than Mgreater_than_or_equal Mless_than Mless_than_or_equal
+for (all|every|any):D:Mset Min Mgreater_than Mgreater_than_or_equal Mless_than Mless_than_or_equal
+for (all|every|any)$:Mset Min Mgreater_than Mgreater_than_or_equal Mless_than Mless_than_or_equal:M
+for (all|every|any)$:Mset Min:^(,|and)$:Mset Min 
+for (all|every|any)$:Mset Min:^,$:Mset Min:^(,|and|, and)$:Mset Min
+for (all|every|any)$:Mvar:^in (the)?:D
+for (all|every|any):D:$:Mvar:(,)?:M
+for (all|every|any):D:$:Mvar
+for (all|every|any)$:Mvar
+for (all|every|any):Mvar:in the:D
+for (all|every|any):Min
+for (all|every|any):D:Mvar Mgreater_than Min
+for (all|every|any)$:Mset Min
