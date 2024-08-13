@@ -1,7 +1,6 @@
 open Core
 open Patterns
 open Util
-(* open Spectrum *)
 
 
 module PatternDef: sig  
@@ -26,20 +25,6 @@ end = struct
   let get_id t = t.id
   let get_line t = t.line
   let get_pattern t = t.pattern
-
-  (* let rec to_string_tree (pattern : t) =
-    match latex with
-    | Latex children -> Branch (Some "Latex", to_string_tree |<<: children)
-    | Environment (name, children) ->
-        Branch (Some ("Environment: " ^ name), to_string_tree |<<: children)
-    | Macro (name, args) ->
-        Branch (Some ("Macro: " ^ name), to_string_tree |<<: args)
-    | Text text -> Leaf ("Text: \"" ^ escape_string text ^ "\"")
-    | Comment comment -> Leaf ("Comment: " ^ comment)
-    | Math math_tree -> Branch (Some "Math", [ math_tree ])
-    | MultilineMath math_trees -> Branch (Some "Multiline Math", math_trees) *)
-
-  (* let tree_format = tree_format "| " << to_string_tree *)
 end
 
 
@@ -55,9 +40,6 @@ module PatternExtractor = struct
 
   let get_patterns extractor = extractor.patterns
 
-  (* let find_by_id extractor id = 
-    List.find_opt (fun pattern -> PatternDef.get_id pattern = id) extractor.patterns *)
-
   let curr_match_id = ref 0
 
   let gen_id () = 
@@ -67,49 +49,6 @@ module PatternExtractor = struct
   let regex_first_split = "|?[a-zA-Z]+|?"
   let regex_optional = "\\(([^()]+)\\)\\?"
   let relation_regex = "[a-zA-Z]+"
-
-
-  (* Helper functions *)
-  let parse_word s = Word s
-
-  let parse_any patterns = Any patterns
-
-  let parse_optional pattern = Optional pattern
-
-  let parse_sequence patterns = Sequence patterns
-
-  let parse_def_container pattern match_id = DefContainer (pattern, match_id)
-
-let parse_math_pattern s =
-  if Util.String.starts_with s "M" then
-    (* Extract the function name and arguments *)
-    (* MathPattern (Function (func_name, [Expression 1, Expression 2], 1)) *)
-    MathPattern (Expression 1)
-  else
-    failwith "Invalid math pattern"
-
-(* Core parsing function *)
-let rec parsing_pattern s =
-  (* This is where we break down the string and handle each case *)
-
-  (* Case: MathPattern, starting with 'M' *)
-  if String.length s > 1 && Util.String.starts_with s "M" then
-    parse_def_container (parse_math_pattern s) 1
-  (* Case: 'Any' pattern with alternatives separated by | *)
-  else if String.contains s '|' then
-    let alternatives = Util.String.split s '|' in
-    parse_any (List.map ~f:parsing_pattern alternatives)
-  (* Case: Optional pattern ending with ? *)
-  else if String.length s > 1 && Util.String.ends_with s "?" then
-    let base_pattern = String.sub s ~pos:0 ~len:((String.length s) - 1) in
-    parse_optional (parsing_pattern base_pattern)
-  (* Case: Sequence patterns separated by spaces or special symbols like ",", ":$" etc. *)
-  else if String.contains s ' ' || String.contains s ':' then
-    let parts = Util.String.split s ' ' in
-    parse_sequence (List.map ~f:parsing_pattern parts)
-  (* Case: Simple word *)
-  else
-    parse_word s
 
 (* Example usage *)
 
@@ -226,30 +165,6 @@ let extract_first_split first_split =
   in
   (build_sequence words)
 
- (* let extract_first_split first_split = 
-   let word_splits = Util.String.split first_split ' ' in
-   let rec parse_str word = 
-      if str_ends_with word "|" then 
-        Optional (parse_str (String.sub ~pos:0 ~len:(String.length word - 1) word))
-    else if String.contains word '(' && String.contains word ')' then 
-        let start_pos = String.index_exn word '(' + 1 in
-        let end_pos = String.index_exn word ')' in
-        let stripped = String.sub ~pos:start_pos ~len:(end_pos - start_pos) word in 
-        Word stripped
-    else if String.contains word '|' then 
-        let parts = Util.String.split word '|' in
-        let rec any_of_list lst = match lst with 
-        | [] -> []
-        | h :: t -> parse_str h :: any_of_list t
-    in Any (any_of_list parts)
-  else Word word
-in 
-let rec build_seq lst = match lst with 
-  | [] ->  []
-  | h::t -> parse_str h :: build_seq t
-in 
-Sequence (build_seq word_splits) *)
-
   (** 
     [process_first_split first_split seq] processes the [first_split] of a line by calling [parse_words].
 
@@ -259,50 +174,11 @@ Sequence (build_seq word_splits) *)
   let process_first_split first_split seq =
     parse_words first_split seq 
 
-  (* Parse each part into the corresponding pattern *)
-(* let rec parse_part part =
-  let len = String.length part in
-  if len = 0 then None
-  else if Util.String.get_at part 0 = '(' && String.get part (len - 1) = ')' then
-    Some (Optional (Word (String.sub part 1 (len - 2))))
-  else if part.[len - 1] = '?' then
-    Some (Optional (Word (String.sub part 0 (len - 1))))
-  else if String.contains part ' ' then
-    let sub_parts = split_outside_parentheses part in
-    let patterns = List.filter_map parse_part sub_parts in
-    Some (Sequence patterns)
-  else
-    Some (Word part) *)
-
-(* let parse_parts line =
-  let segments = String.split_on_char ':' line in
-  List.iter (fun segment ->
-    print_endline ("Segment: " ^ segment);
-    let parts = split_outside_parentheses segment in
-    List.iter (fun part ->
-      print_endline ("Part: " ^ part);
-      match parse_part part with
-      | Some pattern -> (* Handle the pattern as needed *)
-        (* For now, just printing the pattern type for debugging *)
-        begin match pattern with
-        | Word s -> print_endline ("Parsed as Word: " ^ s)
-        | Optional (Word s) -> print_endline ("Parsed as Optional Word: " ^ s)
-        | Sequence _ -> print_endline "Parsed as Sequence"
-        | _ -> ()
-        end
-      | None -> print_endline "No pattern found"
-    ) parts
-  ) segments *)
-
-
-
   let extract_patterns extractor filename =
     In_channel.with_file filename ~f:(fun input_c ->
       let line_counter = ref 0 in
       In_channel.iter_lines input_c ~f:(fun line ->
-        (* let extracted = PatternDef.constr (!line_counter, line, (Sequence [])) in
-        add_pattern extractor extracted;
-        parse_parts line *)
+
         let seq = ref [] in
         incr line_counter;
 
@@ -327,51 +203,6 @@ Sequence (build_seq word_splits) *)
 end
 
 
-
-
-
-
-
-(* let def1 =
-  Sequence
-    [
-      Any [ Word "choose"; Word "let"; Word "consider"; Word "define" ];
-      DefContainer (any_known_relation_pattern 1, 0);
-      Optional
-        (Repeat
-           (Sequence
-              [
-                Any [ Word "and"; Word "," ];
-                DefContainer (any_known_relation_pattern 1, 0);
-              ]));
-    ]
-let relation_types =
-  [
-    (
-      "Equality",
-      "Unequality",
-      "GreaterThan",
-      "LessThan",
-      "StrictGreaterThan",
-      "StrictLessThan" 
-    );
-  ]
-*)
-
-(* let def1 =
-   Sequence
-     [
-       Any [Word "choose"; Word "let"; Word "consider"; Word "define"];
-       DefContainer (any_known_relation_pattern 1, 0);
-       Optional
-         (Repeat
-            (Sequence
-               [
-                 Any [ Word "and"; Word "," ];
-                 DefContainer (any_known_relation_pattern 1, 0);
-               ]));
-     ]
-      *)
 
 let def =
   Sequence
