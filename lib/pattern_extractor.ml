@@ -172,14 +172,8 @@ let extract_first_split first_split =
   in
   (build_sequence words)
 
-  (** 
-    [process_first_split first_split seq] processes the [first_split] of a line by calling [parse_words].
 
-    @param first_split The first segment of the line to be processed.
-    @param seq A reference to the sequence being constructed.
-  *)
-  let process_first_split first_split seq =
-    parse_words first_split seq 
+
 
   let extract_patterns extractor filename =
     In_channel.with_file filename ~f:(fun input_c ->
@@ -193,21 +187,6 @@ let extract_first_split first_split =
             let parsed = extract_first_split split in
             seq := !seq @ parsed
           );
-
-        (* let segment_splits = Util.String.split line ':' in
-        (match List.nth segment_splits 0 with
-          | None -> print_endline ("Line " ^ string_of_int !line_counter ^ ": No first split found.")
-          | Some first_split -> let parsed = extract_first_split first_split in
-          seq := !seq @ parsed);
-        (match List.nth segment_splits 1 with
-          | None -> print_endline ("Line " ^ string_of_int !line_counter ^ ": No second split found.")
-          | Some second_split -> 
-            let parsed = parse_relations second_split in
-            seq := !seq @ parsed);
-        (match List.nth segment_splits 2 with
-          | None -> print_endline ("Line " ^ string_of_int !line_counter ^ ": No third split found.")
-          | Some third_split -> process_first_split third_split seq); *)
-        
         let extracted = PatternDef.constr (!line_counter, line, (Sequence !seq)) in
           add_pattern extractor extracted;
       );
