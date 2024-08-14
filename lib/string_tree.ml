@@ -1,8 +1,6 @@
 open Core
 
-type string_tree =
-  | Leaf of string
-  | Branch of string option * string_tree list
+type string_tree = Leaf of string | Branch of string option * string_tree list
 
 let indent (indenter : string) (lines : string list) =
   List.map ~f:(( ^ ) indenter) lines

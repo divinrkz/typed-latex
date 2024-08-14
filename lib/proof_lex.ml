@@ -3,17 +3,59 @@ open Fn
 open Util
 open Latex_deserializer
 open String_tree
+open Typing
+
+module IntermediateRepresentation = struct
+  type t =
+    | CapturedDefinition of
+        RawMathLatex.t (* Identifier *)
+        * string (* Operator (operator representation may be changed) *)
+        * RawMathLatex.t option (* Value, if known *)
+        * Type.t (* Type *)
+
+  let to_string_tree (representation : t) : string_tree =
+    match representation with
+    | CapturedDefinition (identifier, operator, Some value, ty) ->
+        Branch
+          ( Some "CapturedDefinition",
+            [
+              Branch (Some "Identifier", [ identifier ]);
+              Leaf ("Operator: " ^ operator);
+              Branch (Some "Value", [ value ]);
+              Branch (Some "Type", [ Type.to_string_tree ty ]);
+            ] )
+    | CapturedDefinition (identifier, operator, None, ty) ->
+        Branch
+          ( Some "CapturedDefinition",
+            [
+              Branch (Some "Identifier", [ identifier ]);
+              Leaf ("Operator: " ^ operator);
+              Leaf "Value: Unspecified";
+              Branch (Some "Type", [ Type.to_string_tree ty ]);
+            ] )
+end
 
 module ProofToken : sig
-  type t = WordToken of string | MathToken of RawMathLatex.t
+  type t =
+    | WordToken of string
+    | MathToken of RawMathLatex.t
+    | IntermediateToken of IntermediateRepresentation.t
+
   val to_string_tree : t -> string_tree
 end = struct
-  type t = WordToken of string | MathToken of RawMathLatex.t
+  type t =
+    | WordToken of string
+    | MathToken of RawMathLatex.t
+    | IntermediateToken of IntermediateRepresentation.t
 
   let to_string_tree token =
     match token with
-    | WordToken word -> Leaf ("WordToken: " ^ word)
+    | WordToken word -> Leaf ("WordToken: " ^ String.escaped word)
     | MathToken math -> Branch (Some "MathToken", [ math ])
+    | IntermediateToken representation ->
+        Branch
+          ( Some "IntermediateToken",
+            [ IntermediateRepresentation.to_string_tree representation ] )
 end
 
 

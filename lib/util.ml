@@ -1,6 +1,5 @@
 open Core
-open Fn 
-
+open Fn
 
 (** Functions **)
 let ( << ) = compose
@@ -193,26 +192,21 @@ let str_ends_with str suffix = Stdlib.String.ends_with ~suffix:suffix str
 
     @param filename The name of file to be read.
     @return String will all lines from file
-*)    
-let read_file_as_str (filename: string) = 
-   let buffer = Buffer.create 4096 in 
-    In_channel.with_file filename ~f:(fun input_c ->
-      In_channel.iter_lines input_c ~f:(fun line -> 
-          Buffer.add_string buffer line;
-        )
-  );
+*)
+let read_file_as_str (filename : string) =
+  let buffer = Buffer.create 4096 in
+  In_channel.with_file filename ~f:(fun input_c ->
+      In_channel.iter_lines input_c ~f:(fun line ->
+          Buffer.add_string buffer line));
   Buffer.contents buffer
 
-
-let regex_first_matcher (str: string) (regex: string) =
+let regex_first_matcher (str : string) (regex : string) =
   try
     let regexp = Str.regexp regex in
     let _ = Str.search_forward regexp str 0 in
     Str.matched_string str
-  with
-    _ -> ""
+  with _ -> ""
 
-  
 (** [regex_matcher str regex] returns a list of all substrings in [str] that match the given [regex].
     @param str The input string to search for matches.
     @param regex The regular expression pattern to match against the input string.
@@ -223,21 +217,17 @@ let regex_first_matcher (str: string) (regex: string) =
       (* matches will be ["these"; "are"; "four"; "words"] *)
     ]}
 *)
-let regex_matcher (str: string) (regex: string) =
+let regex_matcher (str : string) (regex : string) =
   let rec find_all_matches acc pos =
-      let regexp = Str.regexp regex in
+    let regexp = Str.regexp regex in
     try
-
       let start_pos = Str.search_forward regexp str pos in
       let matched_str = Str.matched_string str in
-      find_all_matches (matched_str :: acc) (start_pos + String.length matched_str)
-    with
-    | _ -> List.rev acc
+      find_all_matches (matched_str :: acc)
+        (start_pos + String.length matched_str)
+    with _ -> List.rev acc
   in
-  find_all_matches [] 0 
-
-
-
+  find_all_matches [] 0
 
 (** Tuples **)
 module Pair : sig
