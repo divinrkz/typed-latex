@@ -1,0 +1,11 @@
+Metadata-Version: 2.1
+Name: antlr4-tools
+Version: 0.2.1
+Summary: Tools to run ANTLR4 tool and grammar interpreter/profiler
+Home-page: http://www.antlr.org
+Author: Terence Parr
+Author-email: parrt@antlr.org
+License: BSD
+License-File: LICENSE
+Requires-Dist: install-jdk
+

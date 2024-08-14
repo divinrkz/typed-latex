@@ -1,0 +1,31 @@
+{
+  "type": "Latex",
+  "children": [
+    {
+      "type": "Environment",
+      "name": "document",
+      "children": [
+        {
+          "type": "Text",
+          "value": "Let"
+        },
+        {
+          "type": "Math",
+          "value": "Symbol('a')"
+        },
+        {
+          "type": "Text",
+          "value": "be an Integer."
+        },
+        {
+          "type": "Math",
+          "value": "Let"
+        },
+        {
+          "type": "Math",
+          "value": "GreaterThan(Symbol('y'), Symbol('x'))"
+        }
+      ]
+    }
+  ]
+}

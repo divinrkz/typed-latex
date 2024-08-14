@@ -1,4 +1,6 @@
 _build/
-.git
+.git/
 _opam/
+.DS_Store
+.idea/
 .vscode/

@@ -1,4 +1,5 @@
 from json import JSONEncoder, dumps
+import sys
 
 from TexSoup.data import TexNode, TexArgs, BraceGroup, BracketGroup
 from TexSoup.utils import Token
@@ -8,7 +9,7 @@ from sympy.parsing.latex import parse_latex
 from utils import MATH_MODE_ENV, remove_trailing_dollars, split_to_words, is_sublist, merge_around_multiple_separators, parse_equalities
 from utils import has_inequality_relation, parse_inequalities, split_and_filter_non_empty, has_set_relation, parse_sets, has_equality_relation
 
-ASSETS_BASE_DIR = f"assets"
+ASSETS_BASE_DIR = "assets"
 TEX_BASE_DIR = f"{ASSETS_BASE_DIR}/tex"
 JSON_OUT_FILE = f"{ASSETS_BASE_DIR}/json/parsed-latex.json"
 
@@ -48,11 +49,10 @@ def json_like_nonprim_encode(obj):
                         parsed = parse_equalities(formatted) 
                                      
                     else: 
-                        print('format', formatted)
                         if has_inequality_relation(formatted):
                             parsed = srepr(And(*parse_inequalities(formatted)))
                         elif has_set_relation(formatted):                            
-                            parsed = parse_sets(formatted)
+                            parsed = parse_sets(formatted)[0]
                         else: 
                             parsed = srepr(parse_latex(formatted))
                         
@@ -133,7 +133,7 @@ def count_occurrences(main_string, substring):
     return main_string.count(substring)
 
 if __name__ == "__main__":
-    latex: TexSoup = read_latex("sample4.tex")
+    latex: TexSoup = read_latex(sys.argv[1])
 
     json_str = dumps(latex, cls=TexJsonEncoder, indent=2)
     with open(JSON_OUT_FILE, 'w') as json_file:
