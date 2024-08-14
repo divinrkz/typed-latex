@@ -6,6 +6,7 @@ open Util
 module PatternDef: sig  
   type t
 
+
   val constr: (int * string * pattern) -> t
   val get_id: t -> int
   val get_line: t -> string
@@ -46,6 +47,9 @@ module PatternExtractor = struct
     incr curr_match_id;
     !curr_match_id
 
+  let get_match_id () = 
+    MatchID.from_int (gen_id ())
+
   let regex_first_split = "|?[a-zA-Z]+|?"
   let regex_optional = "\\(([^()]+)\\)\\?"
   let relation_regex = "[a-zA-Z]+"
@@ -71,7 +75,7 @@ module PatternExtractor = struct
       match splits with
       | [] -> !def_container
       | relation :: rest ->
-        let parsed_relation = DefContainer (MathPattern (Function (parse_relation_type relation, [Expression (gen_id ()); Expression (gen_id ())], (gen_id ()))), (gen_id ())) in
+        let parsed_relation = DefContainer (MathPattern (Function (parse_relation_type relation, [Expression (get_match_id ()); Expression (get_match_id ())], (get_match_id ()))), (get_match_id ())) in
         def_container := !def_container @ [parsed_relation];
         parse_relation rest
     in
@@ -133,7 +137,10 @@ let extract_first_split first_split =
       if String.contains word '(' && String.contains word ')' then
         let start_pos = String.index_exn word '(' + 1 in
         let end_pos = String.index_exn word ')' in
-        String.sub ~pos:start_pos ~len:(end_pos - start_pos) word
+        if start_pos < end_pos then
+          String.sub ~pos:start_pos ~len:(end_pos - start_pos) word
+        else
+          word  (* Return original word if positions are not valid *)
       else
         word
     in
@@ -180,9 +187,14 @@ let extract_first_split first_split =
       In_channel.iter_lines input_c ~f:(fun line ->
 
         let seq = ref [] in
-        incr line_counter;
 
-        let segment_splits = Util.String.split line ':' in
+        let segment_splits = Util.String.split line ':' in 
+          segment_splits >->: (fun split -> 
+            let parsed = extract_first_split split in
+            seq := !seq @ parsed
+          );
+
+        (* let segment_splits = Util.String.split line ':' in
         (match List.nth segment_splits 0 with
           | None -> print_endline ("Line " ^ string_of_int !line_counter ^ ": No first split found.")
           | Some first_split -> let parsed = extract_first_split first_split in
@@ -194,7 +206,7 @@ let extract_first_split first_split =
             seq := !seq @ parsed);
         (match List.nth segment_splits 2 with
           | None -> print_endline ("Line " ^ string_of_int !line_counter ^ ": No third split found.")
-          | Some third_split -> process_first_split third_split seq);
+          | Some third_split -> process_first_split third_split seq); *)
         
         let extracted = PatternDef.constr (!line_counter, line, (Sequence !seq)) in
           add_pattern extractor extracted;
@@ -212,8 +224,8 @@ let def =
       Optional (Sequence [ Word "we"; Word "could" ]);
       Any [ Word "suppose"; Word "say"; Word "imagine"; Word "let" ];
       DefContainer
-        ( MathPattern (Function ("StrictGreaterThan", [ Expression 2; Expression 3 ], 1)),
-          0 );
+        ( MathPattern (Function ("StrictGreaterThan", [ Expression (PatternExtractor.get_match_id ()); Expression (PatternExtractor.get_match_id ()) ], (PatternExtractor.get_match_id ()))),
+          (PatternExtractor.get_match_id ()));
     ]
 
 

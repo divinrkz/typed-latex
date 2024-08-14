@@ -7,7 +7,7 @@ open Util
 
 module MatchID = struct
   module T = struct
-    type t = (int, string) Either.t [@@deriving eq, show, sexp, hash, ord, compare]
+    type t = (int, string) Either.t [@@deriving eq, sexp, hash, ord, compare]
   end
 
   include T
@@ -15,15 +15,16 @@ module MatchID = struct
 
   let from_int : int -> t = Either.First.return
 
-  let pp formatter match_id =
-    Format.fprintf formatter "%s" (to_string match_id)
-    
   let to_string (match_id : t) : string =
     match match_id with
     | First int_val -> "<" ^ string_of_int int_val ^ ">"
     | Second special_val -> "<\"" ^ special_val ^ "\">"
 
   let reserved_for_replace : t = Second "replace_container"
+  let pp (formatter : Formatter.t) (match_id : t) =
+    match match_id with
+    | First int_val -> Int.pp formatter int_val
+    | Second special_val -> String.pp formatter special_val
 end
 
 type math_pattern =

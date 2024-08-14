@@ -38,3 +38,10 @@ Patterns: MSet is a \mathbb set.
 
 
 
+Pattern rewriting
+1. If D that's a definition
+2. If M that a relation also to be relation
+3. Don't ignore semicolons.
+4. don't skip, 
+5. 
+
