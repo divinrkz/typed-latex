@@ -51,7 +51,6 @@ def json_like_nonprim_encode(obj):
                         parsed = parse_equalities(formatted) 
                                      
                     else: 
-          
                         if has_inequality_relation(formatted):
                             parsed = srepr(And(*parse_inequalities(formatted)))
                         elif has_set_relation(formatted):                            
