@@ -5,20 +5,22 @@ import re
 from TexSoup.data import TexNode, TexArgs, BraceGroup, BracketGroup
 from TexSoup.utils import Token
 from TexSoup import TexSoup
-from sympy import srepr, And, Sum, sympify, symbols
+from sympy import srepr, And
 from sympy.parsing.latex import parse_latex
 from utils import MATH_MODE_ENV, remove_trailing_dollars, split_to_words, is_sublist
 from utils import merge_around_multiple_separators, parse_equalities
-from utils import has_inequality_relation, parse_inequalities, split_and_filter_non_empty
-from utils import has_set_relation, parse_sets, has_equality_relation, parse_math_set
+from utils import has_inequality_relation, parse_inequalities, split_and_filter_non_empty, has_summation_pattern
+from utils import has_set_relation, parse_sets, has_equality_relation, parse_math_set, parse_summations
 import types
 from sympy.parsing.sympy_parser import parse_expr
+from sympy.parsing.latex.errors import LaTeXParsingError
 
 
 ASSETS_BASE_DIR = "assets"
 TEX_BASE_DIR = f"{ASSETS_BASE_DIR}/tex"
 JSON_OUT_FILE = f"{ASSETS_BASE_DIR}/json/parsed-latex.json"
 
+line_counter = 0
 
 def read_latex(file_name: str) -> TexNode:
     """
@@ -27,38 +29,11 @@ def read_latex(file_name: str) -> TexNode:
     :param str file_name: File name
     :return: TexNode
     """
-    # parse_latex(r'\sum _ {k} ^ {n} k')
-    print(latex_to_sympy_sum(r'\sum _ {k = 1} ^ {n} k'))
-    # with open(f"{TEX_BASE_DIR}/{file_name}", 'r') as latex_file:
-    #     return TexSoup(latex_file.read())
+    
+    with open(f"{TEX_BASE_DIR}/{file_name}", 'r') as latex_file:
+        return TexSoup(latex_file.read())
 
-def latex_to_sympy_sum(latex_str):
-    # Regex to match summation pattern \sum_{<index>}^{<upper>}
-    match = re.search(r'\\sum\s*_\s*\{([^=]+)\s*=\s*([^}]*)\}\s*\^\s*\{([^}]*)\}', latex_str)
-    
-    if not match:
-        raise ValueError("The LaTeX string does not represent a summation.")
-    
-    # Extracting the index, lower limit, and upper limit from the LaTeX string
-    index_str = match.group(1).strip()
-    lower_str = match.group(2).strip()
-    upper_str = match.group(3).strip()
-    
-    # Convert index, lower, and upper to sympy symbols
-    index = symbols(index_str)
-    lower = sympify(lower_str)
-    upper = sympify(upper_str)
-    
-    # Extract the function part (e.g., f(k) or k^2)
-    function_part = latex_str.split('}')[-1].strip()
-    if not function_part:
-        function = 1  # Default function part (e.g., \sum_{k=1}^n 1)
-    else:
-        function = sympify(function_part)
-    
-    # Constructing the sympy summation
-    summation = Sum(function, (index, lower, upper))
-    return summation
+
 
 def json_like_nonprim_encode(obj):
     if isinstance(obj, TexNode):        
@@ -85,7 +60,8 @@ def json_like_nonprim_encode(obj):
                     else: 
                         if has_inequality_relation(formatted):
                             parsed = srepr(And(*parse_inequalities(formatted)))
-                        elif has_equality_relation(formatted):
+                        elif has_equality_relation(formatted) and not has_summation_pattern(formatted):
+                               
                             parsed = (parse_equalities(formatted))
                             parsed_format = 'And('
                             for (idx, el) in enumerate(parsed):
@@ -96,7 +72,10 @@ def json_like_nonprim_encode(obj):
                         
                         elif has_set_relation(formatted): 
                             parsed = parse_sets(formatted)
+                        elif has_summation_pattern(formatted):                            
+                            parsed = parse_summations(formatted)
                         else: 
+                            
                             if r'\mathbb' in formatted:
                                 parsed = parse_math_set(formatted)
                             else:                                  
@@ -162,18 +141,22 @@ def json_like_nonprim_encode(obj):
 
 
 def json_like_encode(obj):
-    if isinstance(obj, (str, int, float)):
-        return json_like_nonprim_encode(obj)
-    elif isinstance(obj, list):
-        return [json_like_encode(e) for e in obj]
-    elif isinstance(obj, dict):
-        return {key: json_like_encode(val) for key, val in obj.items()}
-    elif isinstance(obj, TexNode):
-        return json_like_nonprim_encode(obj)
-    elif isinstance(obj, TexArgs):
-        return json_like_nonprim_encode(obj)
-    else:
-        return json_like_nonprim_encode(obj)
+    try:
+        if isinstance(obj, (str, int, float)):
+            return json_like_nonprim_encode(obj)
+        elif isinstance(obj, list):
+            return [json_like_encode(e) for e in obj]
+        elif isinstance(obj, dict):
+            return {key: json_like_encode(val) for key, val in obj.items()}
+        elif isinstance(obj, TexNode):
+            return json_like_nonprim_encode(obj)
+        elif isinstance(obj, TexArgs):
+            return json_like_nonprim_encode(obj)
+        else:
+            return json_like_nonprim_encode(obj)
+    except LaTeXParsingError as err:
+        print(f"Error:", str(err))
+
 
 class TexJsonEncoder(JSONEncoder):
     def default(self, obj):

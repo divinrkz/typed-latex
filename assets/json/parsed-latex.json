@@ -1,1 +1,71 @@
-null
+{
+  "type": "Latex",
+  "children": [
+    {
+      "type": "Macro",
+      "name": "documentclass",
+      "args": [
+        {
+          "type": "Text",
+          "value": "{article}"
+        }
+      ]
+    },
+    {
+      "type": "Macro",
+      "name": "usepackage",
+      "args": [
+        {
+          "type": "Text",
+          "value": "{tikz}"
+        }
+      ]
+    },
+    {
+      "type": "Macro",
+      "name": "usepackage",
+      "args": [
+        {
+          "type": "Text",
+          "value": "{mathtools}"
+        }
+      ]
+    },
+    {
+      "type": "Environment",
+      "name": "document",
+      "children": [
+        {
+          "type": "Macro",
+          "name": "DeclarePairedDelimiter",
+          "args": []
+        },
+        {
+          "type": "Macro",
+          "name": "set",
+          "args": []
+        },
+        {
+          "type": "Text",
+          "value": "\\{"
+        },
+        {
+          "type": "Text",
+          "value": "\\}"
+        },
+        {
+          "type": "Math",
+          "value": "In(Mul(Symbol('x'), Mul(Symbol('vert'), Symbol('x'))), Symbol('L'))"
+        },
+        {
+          "type": "Math",
+          "value": "Sum(Symbol('k'), Tuple(Symbol('k'), Integer(1), Symbol('n')))"
+        },
+        {
+          "type": "Math",
+          "value": "Sum(Function('f')(Symbol('x')), Tuple(Symbol('n'), Symbol('n'), Symbol('n')))"
+        }
+      ]
+    }
+  ]
+}

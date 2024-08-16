@@ -2,8 +2,9 @@ import string
 from string import whitespace 
 import re
 from sympy.parsing.latex import parse_latex
+from sympy import srepr, Sum, sympify, symbols
 from sympy import Interval, Contains, srepr, Symbol, And, sympify, Interval
-from notations import SET_NOTATIONS, INEQUALITY_NOTATIONS, EQUALITY_NOTATIONS, MATH_SET_CONTAINER
+from notations import SET_NOTATIONS, INEQUALITY_NOTATIONS, EQUALITY_NOTATIONS, MATH_SET_CONTAINER, SUMMATION_REGEX
 
 MATH_MODE_ENV = ['equation', 'split', 'gather', 'multiline']
 
@@ -71,7 +72,6 @@ def merge_around_multiple_separators(input_list, separator):
     
     
     
-    
 def extract_notations(notation_list):
     return [item['notation'] for item in notation_list]
 
@@ -90,6 +90,9 @@ def split_by_separators(string, notation_list):
     pattern = '|'.join([re.escape(rel) for rel in notation_list])
     return re.split(pattern, string)
     
+def has_summation_pattern(string):
+    return re.search(SUMMATION_REGEX, string) is not None
+
 def has_inequality_relation(string):
     escaped_relations = [re.escape(rel) for rel in extract_notations(INEQUALITY_NOTATIONS)]
     
@@ -288,3 +291,100 @@ def parse_math_set(str: str):
         formatted = extract_string_between_braces(stripped)
         
     return f'Mathbb({srepr(Symbol(formatted))})'
+
+
+def parse_summations(str: str):
+    i = 0
+    n = len(str)
+
+    underscore_part = ''
+    caret_part = ''
+    function_part = ''
+
+    state = 'start'
+
+    while i < n:
+        char = str[i]
+        
+        if state == 'start':
+            if str[i:i+4] == r'\sum':
+                state = 'after_sum'
+                i += 3  # Move the index to just after \sum
+            else:
+                raise ValueError("Expected \\sum at the start of the string.")
+        
+        elif state == 'after_sum':
+            if char == '_':
+                state = 'after_underscore'
+            elif char == '^':
+                state = 'after_caret'
+            elif char.isspace():
+                # Ignore spaces
+                pass
+            else:
+                raise ValueError("Expected _ or ^ after \\sum.")
+        
+        elif state == 'after_underscore':
+            if char == '{':
+                state = 'in_underscore_part'
+            elif char.isspace():
+                # Ignore spaces
+                pass
+            else:
+                state = 'in_underscore_part'
+                underscore_part += char
+        
+        elif state == 'in_underscore_part':
+            if char == '}':
+                state = 'looking_for_caret'
+            else:
+                underscore_part += char
+        
+        elif state == 'after_caret':
+            if char == '{':
+                state = 'in_caret_part'
+            elif char.isspace():
+                # Ignore spaces
+                pass
+            else:
+                state = 'in_caret_part'
+                caret_part += char
+        
+        elif state == 'in_caret_part':
+            if char == '}':
+                state = 'looking_for_underscore'
+            else:
+                caret_part += char
+        
+        elif state == 'looking_for_caret':
+            if char == '^':
+                state = 'after_caret'
+            else:
+                function_part += char
+        
+        elif state == 'looking_for_underscore':
+            if char == '_':
+                state = 'after_underscore'
+            else:
+                function_part += char
+
+        i += 1
+
+    # Trim any leading/trailing spaces from the parts
+    underscore_part = underscore_part.strip()
+    caret_part = caret_part.strip()
+    function_part = function_part.strip()
+
+    index = underscore_part
+    lower_bound = underscore_part
+    upper_bound = caret_part
+    
+    if '=' in underscore_part:
+        index = underscore_part.split('=')[0]
+        lower_bound = underscore_part.split('=')[1]
+        
+    return srepr(Sum(function_part, (index, lower_bound, upper_bound)))
+    
+    
+    
+
