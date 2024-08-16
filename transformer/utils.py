@@ -251,29 +251,30 @@ def parse_equalities(string):
     parsed = None
     for part in parts:
         if r'\mathbb' in part:
-            print('yes')
-            parsed.append(f'Mathbb({srepr(Symbol(extract_string_between_braces(part.strip())))})')
+            parsed = parse_math_set(part)
         if has_inequality_relation(part.strip()):
             parsed = parse_inequalities(part.strip())
         elif has_set_relation(part.strip()):
             parsed = parse_sets(part.strip())  
         else: 
+            print(f'parsed partt {part}')
             parsed = srepr(parse_latex(part))
-        equalities.append(parsed[0])   
-    
+            print(f'parsed partted {parsed}')
+            
+        if (isinstance(parsed, list)):
+            parsed = parsed[0]
+            
+        equalities.append(parsed)   
             
     equality_relations = []
-    
     index = 0
     
     for separator in re.findall('|'.join([re.escape(rel) for rel in extract_notations(EQUALITY_NOTATIONS)]), string):
         if separator == get_notation('Equality', EQUALITY_NOTATIONS):          
             equality_relations.append(f'Equality({equalities[index]}, {equalities[index+1]})')
-            
-        index += 1        
+        index += 1 
 
-
-    return equality_relations if len(equality_relations) > 0 else equalities[0]
+    return equality_relations 
 
 def split_and_filter_non_empty(string):
     return [line.strip() for line in string.split('\n') if line.strip()]

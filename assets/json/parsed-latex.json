@@ -132,7 +132,7 @@
         },
         {
           "type": "Math",
-          "value": "false"
+          "value": "And(Equality(Abs(Symbol('x')), Pow(Mul(Symbol('x'), Symbol('x')), Rational(1, 2))), Equality(Pow(Mul(Symbol('x'), Symbol('x')), Rational(1, 2)), Pow(Mul(Symbol('x_{1}'), Symbol('x_{1}')), Rational(1, 2))), Equality(Pow(Mul(Symbol('x_{1}'), Symbol('x_{1}')), Rational(1, 2)), Abs(Symbol('x_{1}')))"
         },
         {
           "type": "Macro",
@@ -158,9 +158,7 @@
         },
         {
           "type": "Math",
-          "value": [
-            "In(Symbol('n'), Mathbb(Symbol('N')))"
-          ]
+          "value": "In(Symbol('n'), Mathbb(Symbol('N')))"
         },
         {
           "type": "Macro",

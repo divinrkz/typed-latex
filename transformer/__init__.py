@@ -10,6 +10,8 @@ from utils import MATH_MODE_ENV, remove_trailing_dollars, split_to_words, is_sub
 from utils import merge_around_multiple_separators, parse_equalities
 from utils import has_inequality_relation, parse_inequalities, split_and_filter_non_empty
 from utils import has_set_relation, parse_sets, has_equality_relation, parse_math_set
+import types
+
 
 ASSETS_BASE_DIR = "assets"
 TEX_BASE_DIR = f"{ASSETS_BASE_DIR}/tex"
@@ -45,22 +47,33 @@ def json_like_nonprim_encode(obj):
                     (type, sympy_exprs) = ("MultilineMath", [srepr(parse_latex(math_element)) for math_element in multiline_math])
                 else: 
                     formatted = remove_trailing_dollars(str(obj))
-                    parsed = None;
+                    parsed = None
                     
                     if has_equality_relation(formatted) and (has_inequality_relation(formatted) or has_set_relation(formatted)):
-                        parsed = parse_equalities(formatted) 
-                                     
+                        parsed = parse_equalities(formatted)                           
                     else: 
                         if has_inequality_relation(formatted):
                             parsed = srepr(And(*parse_inequalities(formatted)))
-                        elif has_set_relation(formatted):                            
+                        elif has_equality_relation(formatted):
+                            parsed = (parse_equalities(formatted))
+                            parsed_format = 'And('
+                            for (idx, el) in enumerate(parsed):
+                                parsed_format += el
+                                if idx <= (len(parsed) - 2):
+                                    parsed_format += ", "
+                            parsed = parsed_format
+                        
+                        elif has_set_relation(formatted): 
                             parsed = parse_sets(formatted)
                         else: 
                             if r'\mathbb' in formatted:
                                 parsed = parse_math_set(formatted)
-                            else: 
+                            else:                                  
                                 parsed = srepr(parse_latex(formatted))
-                        print(f'{formatted}: {parsed}');
+                
+                    if (isinstance(parsed, list)):
+                        parsed = parsed[0]   
+                
                     (type, sympy_exprs) = ("Math", parsed)
                     
                 return {"type": type, "value": sympy_exprs}
