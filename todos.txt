@@ -12,3 +12,9 @@
 *Assume no hoisting involved. 
 
 - Cova
+
+
+
+- Py Parsing 
+    - Text inside maths parsing.
+    - mathbb outisde Maths.

@@ -3,10 +3,9 @@ from string import whitespace
 import re
 from sympy.parsing.latex import parse_latex
 from sympy import Interval, Contains, srepr, Symbol, And, sympify, Interval
-from notations import SET_NOTATIONS, INEQUALITY_NOTATIONS, EQUALITY_NOTATIONS
+from notations import SET_NOTATIONS, INEQUALITY_NOTATIONS, EQUALITY_NOTATIONS, MATH_SET_CONTAINER
 
 MATH_MODE_ENV = ['equation', 'split', 'gather', 'multiline']
-
 
 
 def indent(substr: str) -> str:
@@ -251,6 +250,9 @@ def parse_equalities(string):
     equalities = []
     parsed = None
     for part in parts:
+        if r'\mathbb' in part:
+            print('yes')
+            parsed.append(f'Mathbb({srepr(Symbol(extract_string_between_braces(part.strip())))})')
         if has_inequality_relation(part.strip()):
             parsed = parse_inequalities(part.strip())
         elif has_set_relation(part.strip()):
@@ -275,3 +277,15 @@ def parse_equalities(string):
 
 def split_and_filter_non_empty(string):
     return [line.strip() for line in string.split('\n') if line.strip()]
+
+
+def parse_math_set(str: str):
+    idx = str.find(MATH_SET_CONTAINER) + len(MATH_SET_CONTAINER)
+
+    stripped = str[idx:].strip()
+    formatted = stripped
+    if stripped.startswith("{") and stripped.endswith("}"):
+        
+        formatted = extract_string_between_braces(stripped)
+        
+    return f'Mathbb({srepr(Symbol(formatted))})'

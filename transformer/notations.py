@@ -1,3 +1,5 @@
+MATH_SET_CONTAINER = r'\mathbb'
+
 SET_NOTATIONS = [
     {'name': 'In', 
      'notation': r'\in'

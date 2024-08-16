@@ -2,10 +2,6 @@
   "type": "Latex",
   "children": [
     {
-      "type": "Comment",
-      "value": "% This is a simple sample document.  For more complicated documents take a look in the exercise tab. Note that everything that comes after a % symbol is treated as comment and ignored when the code is compiled."
-    },
-    {
       "type": "Macro",
       "name": "documentclass",
       "args": [
@@ -16,8 +12,14 @@
       ]
     },
     {
-      "type": "Comment",
-      "value": "% \\documentclass{} is the first command in any LaTeX code.  It is used to define what kind of document you are creating such as an article or a book, and begins the document preamble"
+      "type": "Macro",
+      "name": "usepackage",
+      "args": [
+        {
+          "type": "Text",
+          "value": "{amsfonts}"
+        }
+      ]
     },
     {
       "type": "Macro",
@@ -25,13 +27,13 @@
       "args": [
         {
           "type": "Text",
-          "value": "{amsmath}"
+          "value": "{graphicx}"
         }
       ]
     },
     {
       "type": "Comment",
-      "value": "% \\usepackage is a command that allows you to add functionality to your LaTeX code"
+      "value": "% Required for inserting images"
     },
     {
       "type": "Macro",
@@ -39,13 +41,9 @@
       "args": [
         {
           "type": "Text",
-          "value": "{Sample 2}"
+          "value": "{SURF Example Proof}"
         }
       ]
-    },
-    {
-      "type": "Comment",
-      "value": "% Sets article title"
     },
     {
       "type": "Macro",
@@ -53,13 +51,9 @@
       "args": [
         {
           "type": "Text",
-          "value": "{My Name}"
+          "value": "{Gosha}"
         }
       ]
-    },
-    {
-      "type": "Comment",
-      "value": "% Sets authors name"
     },
     {
       "type": "Macro",
@@ -67,49 +61,130 @@
       "args": [
         {
           "type": "Text",
-          "value": "{\\today}"
+          "value": "{Summer 2024}"
         }
       ]
-    },
-    {
-      "type": "Comment",
-      "value": "% Sets date for date compiled"
-    },
-    {
-      "type": "Comment",
-      "value": "% The preamble ends with the command \\begin{document}"
     },
     {
       "type": "Environment",
       "name": "document",
       "children": [
         {
-          "type": "Comment",
-          "value": "% All begin commands must be paired with an end command somewhere"
+          "type": "Macro",
+          "name": "maketitle",
+          "args": []
         },
         {
-          "type": "Text",
-          "value": "\n    consider "
+          "type": "Macro",
+          "name": "textbf",
+          "args": [
+            {
+              "type": "Text",
+              "value": "{Proof by induction on}"
+            }
+          ]
         },
         {
           "type": "Math",
-          "value": [
-            "In(Symbol('x'), Mathbb(Symbol('N')))"
+          "value": "Mathbb(Symbol('N'))"
+        },
+        {
+          "type": "Text",
+          "value": "\\\n"
+        },
+        {
+          "type": "Text",
+          "value": "\nLet "
+        },
+        {
+          "type": "Math",
+          "value": "Function('P')(Symbol('n'))"
+        },
+        {
+          "type": "Text",
+          "value": " be ``"
+        },
+        {
+          "type": "Math",
+          "value": "LessThan(Abs(Symbol('x')), Function('f')(Symbol('x')))"
+        },
+        {
+          "type": "Text",
+          "value": "''\n\n"
+        },
+        {
+          "type": "Text",
+          "value": "\\\n"
+        },
+        {
+          "type": "Macro",
+          "name": "textbf",
+          "args": [
+            {
+              "type": "Text",
+              "value": "{Base case:}"
+            }
+          ]
+        },
+        {
+          "type": "Math",
+          "value": "Function('P')(Integer(1))"
+        },
+        {
+          "type": "Math",
+          "value": "false"
+        },
+        {
+          "type": "Macro",
+          "name": "textbf",
+          "args": [
+            {
+              "type": "Text",
+              "value": "{Induction hypothesis:}"
+            }
           ]
         },
         {
           "type": "Text",
-          "value": ". Let "
+          "value": " suppose "
         },
         {
           "type": "Math",
-          "value": "Equality(Symbol('y'), Add(Symbol('x'), Float('1.5', precision=53)))"
+          "value": "Function('P')(Symbol('n'))"
+        },
+        {
+          "type": "Text",
+          "value": " is true for some "
+        },
+        {
+          "type": "Math",
+          "value": [
+            "In(Symbol('n'), Mathbb(Symbol('N')))"
+          ]
+        },
+        {
+          "type": "Macro",
+          "name": "textbf",
+          "args": [
+            {
+              "type": "Text",
+              "value": "{Inductive case:}"
+            }
+          ]
+        },
+        {
+          "type": "Text",
+          "value": "\nFoo.\n\n"
+        },
+        {
+          "type": "Math",
+          "value": "Mul(Symbol('B'), Mul(Symbol('a'), Symbol('r')))"
+        },
+        {
+          "type": "Math",
+          "value": "Mul(Symbol('B'), Mul(Symbol('a'), Symbol('z')))"
         }
       ]
-    },
-    {
-      "type": "Comment",
-      "value": "% This is the end of the document"
     }
   ]
 }
