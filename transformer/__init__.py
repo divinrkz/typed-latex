@@ -1,16 +1,18 @@
 from json import JSONEncoder, dumps
 import sys
 
+import re
 from TexSoup.data import TexNode, TexArgs, BraceGroup, BracketGroup
 from TexSoup.utils import Token
 from TexSoup import TexSoup
-from sympy import srepr, And
+from sympy import srepr, And, Sum, sympify, symbols
 from sympy.parsing.latex import parse_latex
 from utils import MATH_MODE_ENV, remove_trailing_dollars, split_to_words, is_sublist
 from utils import merge_around_multiple_separators, parse_equalities
 from utils import has_inequality_relation, parse_inequalities, split_and_filter_non_empty
 from utils import has_set_relation, parse_sets, has_equality_relation, parse_math_set
 import types
+from sympy.parsing.sympy_parser import parse_expr
 
 
 ASSETS_BASE_DIR = "assets"
@@ -25,9 +27,38 @@ def read_latex(file_name: str) -> TexNode:
     :param str file_name: File name
     :return: TexNode
     """
-    with open(f"{TEX_BASE_DIR}/{file_name}", 'r') as latex_file:
-        return TexSoup(latex_file.read())
+    # parse_latex(r'\sum _ {k} ^ {n} k')
+    print(latex_to_sympy_sum(r'\sum _ {k = 1} ^ {n} k'))
+    # with open(f"{TEX_BASE_DIR}/{file_name}", 'r') as latex_file:
+    #     return TexSoup(latex_file.read())
 
+def latex_to_sympy_sum(latex_str):
+    # Regex to match summation pattern \sum_{<index>}^{<upper>}
+    match = re.search(r'\\sum\s*_\s*\{([^=]+)\s*=\s*([^}]*)\}\s*\^\s*\{([^}]*)\}', latex_str)
+    
+    if not match:
+        raise ValueError("The LaTeX string does not represent a summation.")
+    
+    # Extracting the index, lower limit, and upper limit from the LaTeX string
+    index_str = match.group(1).strip()
+    lower_str = match.group(2).strip()
+    upper_str = match.group(3).strip()
+    
+    # Convert index, lower, and upper to sympy symbols
+    index = symbols(index_str)
+    lower = sympify(lower_str)
+    upper = sympify(upper_str)
+    
+    # Extract the function part (e.g., f(k) or k^2)
+    function_part = latex_str.split('}')[-1].strip()
+    if not function_part:
+        function = 1  # Default function part (e.g., \sum_{k=1}^n 1)
+    else:
+        function = sympify(function_part)
+    
+    # Constructing the sympy summation
+    summation = Sum(function, (index, lower, upper))
+    return summation
 
 def json_like_nonprim_encode(obj):
     if isinstance(obj, TexNode):        

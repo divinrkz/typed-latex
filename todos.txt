@@ -16,5 +16,6 @@
 
 
 - Py Parsing 
-    - Text inside maths parsing.
-    - mathbb outisde Maths.
+    - square root maths
+    - product maths
+    maybe check other possible maths in the given classes.

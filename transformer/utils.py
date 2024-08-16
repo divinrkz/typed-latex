@@ -257,9 +257,7 @@ def parse_equalities(string):
         elif has_set_relation(part.strip()):
             parsed = parse_sets(part.strip())  
         else: 
-            print(f'parsed partt {part}')
             parsed = srepr(parse_latex(part))
-            print(f'parsed partted {parsed}')
             
         if (isinstance(parsed, list)):
             parsed = parsed[0]
