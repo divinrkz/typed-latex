@@ -308,6 +308,11 @@ module String = struct
     in
     aux 0 []
 
+  let replace_char_at_index (s: string) (index: int) (new_char: char) : string =
+    let result = Bytes.of_string s in
+    Bytes.set result index new_char;
+    Bytes.to_string result
+
 end
 
 (** Other **)

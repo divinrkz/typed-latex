@@ -1,9 +1,9 @@
 let$:Mset|Min|Mgreater_than|Mgreater_than_or_equal|Mless_than|Mless_than_or_equal:^be arbitrary
-(choose|consider|define)$:Mequal Mnot_equal:, 
-(suppose|assume|let) (that)?$:Mequal Mnot_equal:, 
+(choose|consider|define)$:Mequal|Mnot_equal:, 
+(suppose|assume|let) (that)?$:Mequal|Mnot_equal:, 
 let$:Mset:, 
 (let)$:Min:^(,|and)$:Min:, 
-(let)$:Min:^,$:Min:^(,|and|, and)$:Min:, 
+(let)$:Min:^,$:Min:^(,|and|,_and)$:Min:, 
 let$:Mvar:^(be|represent)( )?(an|a|any|some)?( )?arbitrary(,)?:D:, 
 and (let)?$:Mvar:^(be|represent)( )?( (an|a|any|some))? arbitrary(,)?( ):D:, 
 and (let)?:Mset Min Mgreater_than Mgreater_than_or_equal Mless_than Mless_than_or_equal:^be arbitrary, 

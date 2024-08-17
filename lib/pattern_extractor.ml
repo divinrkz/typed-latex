@@ -122,10 +122,16 @@ module PatternExtractor = struct
 let extract_first_split first_split = 
   let words = Util.String.split first_split ' ' in
   let rec parse_word word =
-    let has_dollar = str_ends_with word "$" in 
-      let word = if has_dollar then 
+    let word = 
+      if Util.String.starts_with word "^" then 
+        String.sub ~pos:1 ~len:(String.length word - 1) word
+      else word 
+    in
+    let word = 
+      if str_ends_with word "$" then 
         String.sub ~pos:0 ~len:(String.length word - 1) word
-      else word in
+      else word 
+    in
     let is_optional = str_ends_with word "?" in
     let word =
       if is_optional then
@@ -150,15 +156,26 @@ let extract_first_split first_split =
         | [] -> []
         | h :: t -> parse_word h :: any_of_list t
       in
-      let any_list = List.filter ~f:(function Word _ -> true | _ -> false) (any_of_list parts) in 
+      let any_list = List.filter ~f:(function Word _ -> true | DefContainer _ -> true | Optional _ -> true | _ -> false) (any_of_list parts) in 
       if is_optional then Optional (Any any_list)
       else Any any_list
     else
-      let is_valid_char c = (Char.is_alphanum c) in
+      let is_valid_char c = Char.is_alphanum c || Char.equal c '_' || Char.equal c ',' in
       let is_valid_word w = String.for_all w ~f:is_valid_char in
-      if is_valid_word word then
-        if is_optional then Optional (Word word)
-        else Word word
+      if is_valid_word word &&  String.length word > 0 then
+        if is_optional then
+          if Char.equal (String.get word 0) 'M' then
+            let relation_type = DefContainer (MathPattern (Function (parse_relation_type word, [Expression (get_match_id ()); Expression (get_match_id ())], (get_match_id ()))), (get_match_id ())) in
+            Optional relation_type
+          else Optional (Word word)
+        else 
+          if Char.equal (String.get word 0) 'M' then
+            DefContainer (MathPattern (Function (parse_relation_type word, [Expression (get_match_id ()); Expression (get_match_id ())], (get_match_id ()))), (get_match_id ()))
+          else 
+            if String.contains word '_' then 
+              Word (Util.String.replace_char_at_index word (String.index_exn word '_') ' ')
+            else
+              Word word 
       else 
         Sequence []
   in
