@@ -56,7 +56,24 @@ module PatternExtractor = struct
     | "Mless_than" -> "StrictLessThan"
     | "Mless_than_or_equal" -> "LessThan"
     | "Mvar" -> "Variable"
+    | "M" -> "All"
     | _ -> "Other"
+  
+  let all_relation_types = 
+    let relation_type relation = 
+      DefContainer ( 
+        MathPattern (
+          Function (relation, [Expression (get_id ()); Expression (get_id ())], 
+            (get_id ())
+          )
+        ),
+        (get_id ())
+      )  
+    in 
+      let relation_types = ["Set"; "In"; "StrictGreaterThan"; "Equality"; "NotEqual";
+                            "GreaterThan"; "StrictLessThan"; "LessThan"] 
+      in
+      List.map ~f:relation_type relation_types
   
 let extract_first_split first_split = 
   let words = Util.String.split first_split ' ' in
@@ -106,12 +123,11 @@ let extract_first_split first_split =
           if Char.equal (String.get word 0) 'M' then
             let parsed_relation = parse_relation_type word in 
             let relation_type = 
-              (match parsed_relation  with 
+              (match parsed_relation with 
                 | "Variable" -> DefContainer (MathPattern (Expression (get_id ())), (get_id ()))
                 | _ -> DefContainer (MathPattern (Function (parsed_relation, 
                 [Expression (get_id ()); Expression (get_id ())], (get_id ()))), (get_id ()))
             ) in 
-
             Optional relation_type
           else if String.equal word "D" then
             let df = DefContainer (MathPattern (Expression (get_id ())), (get_id ())) in 
@@ -119,7 +135,15 @@ let extract_first_split first_split =
           else Optional (Word word)
         else 
           if Char.equal (String.get word 0) 'M' then
-            DefContainer (MathPattern (Function (parse_relation_type word, [Expression (get_id ()); Expression (get_id ())], (get_id ()))), (get_id ()))
+            let parsed_relation = parse_relation_type word in 
+            let relation_type = 
+              (match parsed_relation with 
+                | "Variable" -> DefContainer (MathPattern (Expression (get_id ())), (get_id ()))
+                | "All" -> Any all_relation_types
+                | _ -> DefContainer (MathPattern (Function (parsed_relation, 
+                [Expression (get_id ()); Expression (get_id ())], (get_id ()))), (get_id ()))
+            ) in 
+            relation_type
           else if String.equal word "D" then 
             DefContainer (MathPattern (Expression (get_id ())), (get_id ()))
           else 
@@ -152,7 +176,7 @@ let extract_first_split first_split =
             let parsed = extract_first_split split in
             seq := !seq @ parsed
           );
-        
+
         line_counter := !line_counter + 1;
         let extracted = PatternDef.constr (!line_counter, line, (Sequence !seq)) in
           add_pattern extractor extracted;

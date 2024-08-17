@@ -45,3 +45,20 @@ Pattern rewriting
 4. don't skip, 
 5. 
 
+
+PATTERNS WITH PROBLEMS.
+Line 23
+Line 24
+Line 30
+Line 32
+Line 33
+Line 34
+Line 49
+Line 52
+Line 87
+Line 93
+Line 98
+Line 99
+Line 119
+Line 120
+
