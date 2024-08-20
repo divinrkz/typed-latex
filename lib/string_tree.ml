@@ -16,6 +16,6 @@ and format_tree_branch (indenter : string) (branches : string_tree list) =
   indent indenter @@ List.concat
   @@ List.map ~f:(tree_format_rec indenter) branches
 
-let tree_format (indenter : string) (node : string_tree) =
+let tree_format (indenter : string) (node : string_tree) = 
   List.fold ~f:(fun x y -> x ^ "\n" ^ y) ~init:""
   @@ tree_format_rec indenter node

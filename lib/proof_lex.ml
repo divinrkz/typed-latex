@@ -58,6 +58,8 @@ end = struct
             [ IntermediateRepresentation.to_string_tree representation ] )
 end
 
+
+
 let rec tokenize_rec (working_tokenization : ProofToken.t list list)
     (latex : RawLatex.t) =
   match latex with

@@ -3,7 +3,7 @@
 (executable
  (public_name typed_latex)
  (name main)
- (libraries typed_latex core stdio re))
+ (libraries typed_latex core stdio re spectrum))
 
 ; Avoid program hault on warnings
 (env (dev (flags (:standard -warn-error -A))))

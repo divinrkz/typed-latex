@@ -181,13 +181,6 @@ let pp_hashtbl formatter ~pp_key ~pp_data t =
     (Format.pp_print_list ~pp_sep:(string_sep ", ") pp_pair)
     (Hashtbl.to_alist t)
 
-(** [str_split str separator] splits the provided string [str] on a provided 
-    separator [sep] and returns a list of split strings
-    @param str string to split
-    @param sep separator string 
-    @return splitted list of string on separator
-    *)
-let str_split str sep = String.split str ~on:sep
 
 let str_ends_with str suffix = Stdlib.String.ends_with ~suffix str
 
@@ -282,6 +275,38 @@ module String = struct
 
   let opt_get (str : t) (i : int) : char option =
     if Int.( >= ) i (length str) then None else Some (get str i)
+
+  (* let str_split str sep = String.split str ~on:sep *)
+
+
+(* let str_ends_with str suffix = Stdlib.String.ends_with ~suffix:suffix str *)
+  let starts_with (str: t) (prefix: t) = Stdlib.String.starts_with ~prefix:prefix str
+
+  (** [str_split str separator] splits the provided string [str] on a provided 
+    separator [sep] and returns a list of split strings
+    @param str string to split
+    @param sep separator string 
+    @return splitted list of string on separator
+    *)    
+  let split str sep = String.split str ~on:sep
+
+  let get_at str idx = String.get str idx
+
+  let ends_with str suffix = Stdlib.String.ends_with ~suffix:suffix str
+
+
+  let split_outside_parentheses s =
+    let re = Str.regexp "\\(([^)]*)\\|[^ ]+\\)" in
+    let rec aux pos acc =
+      try
+        let _ = Str.search_forward re s pos in
+        let match_str = Str.matched_string s in
+        aux (Str.match_end ()) (acc @ [match_str])
+      with
+      | _ -> acc
+    in
+    aux 0 []
+
 end
 
 (** Other **)
