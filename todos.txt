@@ -13,28 +13,11 @@
 
 - Cova
 
-Word -> any word of the pattern
-Any -> when I have splits of | ex: |some|all|none
-Sequence -> Any grouping > 1 elements
-Optional -> when using ?
-Repeat -> !!!!!!!
-TypeName -> gotta check pre word and nth split
-DefContainer -> how to identify is trick
-MathPattern -> how to identify is all tricky
-OptRepeat -> !!
-
-MathPattern -> TerminalSymbol -> just a symbol
-Function -> any operation of expressions
-Expression -> any expressions.
 
 
-suggestion to maybe think about restructing the patterns in a way that helps.
-
-
-
-Patterns: MSet is a \mathbb set.
-
-
-
-
-
+- Py Parsing 
+    - square root maths
+    - product maths
+    maybe check other possible maths in the given classes.
+    - split by equalities iin summations
+    
