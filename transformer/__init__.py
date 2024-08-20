@@ -91,7 +91,6 @@ def json_like_nonprim_encode(obj):
             elif splits[0] == "\\":
                 if splits[1] == 'begin': 
                     if splits[3] in MATH_MODE_ENV and not is_sublist(splits[3:], ['\\', 'begin', '{']):               
-
                         merged_multiline_math = [element for element in merge_around_multiple_separators(obj.contents, r"\\") if element]
                         multiline_math = split_and_filter_non_empty(merged_multiline_math[0])
                         

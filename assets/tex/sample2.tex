@@ -1,47 +1,34 @@
+\documentclass{article}
+\usepackage{amsfonts}
+\usepackage{graphicx} % Required for inserting images
 
-% This is a simple sample document.  For more complicated documents take a look in the exercise tab. Note that everything that comes after a % symbol is treated as comment and ignored when the code is compiled.
+\title{SURF Example Proof}
+\author{Gosha}
+\date{Summer 2024}
 
-\documentclass{article} % \documentclass{} is the first command in any LaTeX code.  It is used to define what kind of document you are creating such as an article or a book, and begins the document preamble
-
-\usepackage{amsmath} % \usepackage is a command that allows you to add functionality to your LaTeX code
-
-\title{Sample 2} % Sets article title
-\author{My Name} % Sets authors name
-\date{\today} % Sets date for date compiled
-% The preamble ends with the command \begin{document}
 \begin{document}
 
-\title{A Simple Proof in Number Theory}
-\author{Author Name}
-\date{\today}
 \maketitle
 
-\section*{Proof}
+\textbf {Proof by induction on} $\mathbb N$
 
-\textbf{Theorem:} For any integer $a$, if $a \leq b$, then $a + c \leq b + c$ for any integer $c$.
+\
 
-\textbf{Proof:}
+Let $P(n)$ be ``$norm(x) \leq f(x)$''
 
-Let $a, b,$ and $c$ be arbitrary integers such that $a \leq b$. We need to show that $a + c \leq b + c$.
+\
 
-Given $a \leq b$, we can add the integer $c$ to both sides of the inequality:
-\begin{equation}
-    \begin{split}
-        a + c \leq b + c
-        a \leq b \geq c < d
-    \end{split}
-\end{equation}
+\textbf {Base case:} $P(1)$
+$$norm(x) = \sqrt {x * x} = \sqrt {x_1 * x_1} = norm(x_1)$$
 
-This follows from the basic properties of inequalities, where adding the same number to both sides of an inequality preserves the inequality.
+\textbf {Induction hypothesis:} suppose $P(n)$ is true for some $n \in \mathbb N$
 
-Thus, we have shown that if $a \leq b$, then $a + c \leq b + c$ for any integer $c$. \n
+\textbf {Inductive case:}
 
-This just a line to add all the inequalities Let $x = 3$ and $y = 4$. So, $x \neq y$. Also, we could say $y > x$ and $y \geq x$ is also valid.
+Foo.
 
-Also, $n = m = p$ and $0 < x < 16$ and for $ y \in \mathbb{N}$
+$Bar$
 
-$a \leq b \geq c < d$
-
-$$a + b$$
+$$Baz$$
 
 \end{document}
