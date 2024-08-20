@@ -18,7 +18,7 @@ let main () =
   let opt_latex = Result.ok parsed_latex in
   let document_ast = Latex_aux.unwrap_to_document =<<? opt_latex in
   print_endline << RawLatex.tree_format <-<? document_ast;
-  let pattern = Pattern_defs.def in
+  let pattern = Patterns.Word "TEST" in
   let tokenization = Proof_lex.tokenize |<<? document_ast in
   (fun token_streams ->
     print_endline

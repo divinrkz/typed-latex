@@ -206,35 +206,28 @@ let parse_patterns filename =
                       print_endline
                         ("Extracted pattern: " ^ show_pattern (Sequence !seq))))))
 
-(* let def1 =
-   Sequence
-     [
-       Any [ Word "choose"; Word "let"; Word "consider"; Word "define" ];
-       DefContainer (any_known_relation_pattern 1, 0);
-       Optional
-         (Repeat
-            (Sequence
-               [
-                 Any [ Word "and"; Word "," ];
-                 DefContainer (any_known_relation_pattern 1, 0);
-               ]));
-     ] *)
-
-let def =
+let induction_start_tag : pattern =
   Sequence
     [
-      Optional (Word "also");
-      Optional (Word ",");
-      Optional (Sequence [ Word "we"; Word "could" ]);
-      Any [ Word "suppose"; Word "say"; Word "imagine"; Word "let" ];
-      DefContainer
-        ( MathPattern
-            (Function
-               ( "StrictGreaterThan",
-                 [
-                   Expression (MatchID.from_int 2);
-                   Expression (MatchID.from_int 3);
-                 ],
-                 MatchID.from_int 1 )),
-          MatchID.from_int 0 );
+      Any
+        [
+          Sequence [ Word "proof"; Word "by"; Word "induction" ];
+          Sequence [ Word "induction"; Optional (Word "proof") ];
+        ];
+      Optional
+        (Sequence
+           [
+             Any [ Word "over"; Word "on"; Word "for" ];
+             Any
+               [
+                 MathPattern
+                   (Function
+                      ( "symbol",
+                        [ TerminalSymbol (MatchID.from_string "type") ],
+                        MatchID.ignore ));
+                 TypeName (MatchID.from_string "type");
+               ];
+           ]);
     ]
+
+let base_case_start_tag : pattern = Sequence []
