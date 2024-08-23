@@ -75,22 +75,12 @@
           "args": []
         },
         {
-          "type": "Macro",
-          "name": "textbf",
-          "args": [
-            {
-              "type": "Text",
-              "value": "{Proof by induction on}"
-            }
-          ]
+          "type": "Text",
+          "value": "\nLet "
         },
         {
           "type": "Math",
-          "value": "Mathbb(Symbol('N'))"
-        },
-        {
-          "type": "Text",
-          "value": "\\\n"
+          "value": "Equality(Function('f')(Symbol('x')), Mul(Integer(2), Symbol('x')))"
         },
         {
           "type": "Text",
@@ -98,89 +88,11 @@
         },
         {
           "type": "Math",
-          "value": "Function('P')(Symbol('n'))"
-        },
-        {
-          "type": "Text",
-          "value": " be ``"
+          "value": "Equality(Symbol('y'), Integer(4))"
         },
         {
           "type": "Math",
-          "value": "LessThan(Mul(Symbol('n'), Mul(Symbol('o'), Mul(Symbol('r'), Function('m')(Symbol('x'))))), Function('f')(Symbol('x')))"
-        },
-        {
-          "type": "Text",
-          "value": "''\n\n"
-        },
-        {
-          "type": "Text",
-          "value": "\\\n"
-        },
-        {
-          "type": "Macro",
-          "name": "textbf",
-          "args": [
-            {
-              "type": "Text",
-              "value": "{Base case:}"
-            }
-          ]
-        },
-        {
-          "type": "Math",
-          "value": "Function('P')(Integer(1))"
-        },
-        {
-          "type": "Math",
-          "value": "And(Equality(Mul(Symbol('n'), Mul(Symbol('o'), Mul(Symbol('r'), Function('m')(Symbol('x'))))), Pow(Mul(Symbol('x'), Symbol('x')), Rational(1, 2))), Equality(Pow(Mul(Symbol('x'), Symbol('x')), Rational(1, 2)), Pow(Mul(Symbol('x_{1}'), Symbol('x_{1}')), Rational(1, 2))), Equality(Pow(Mul(Symbol('x_{1}'), Symbol('x_{1}')), Rational(1, 2)), Mul(Symbol('n'), Mul(Symbol('o'), Mul(Symbol('r'), Function('m')(Symbol('x_{1}'))))))"
-        },
-        {
-          "type": "Macro",
-          "name": "textbf",
-          "args": [
-            {
-              "type": "Text",
-              "value": "{Induction hypothesis:}"
-            }
-          ]
-        },
-        {
-          "type": "Text",
-          "value": " suppose "
-        },
-        {
-          "type": "Math",
-          "value": "Function('P')(Symbol('n'))"
-        },
-        {
-          "type": "Text",
-          "value": " is true for some "
-        },
-        {
-          "type": "Math",
-          "value": "In(Symbol('n'), Mathbb(Symbol('N')))"
-        },
-        {
-          "type": "Macro",
-          "name": "textbf",
-          "args": [
-            {
-              "type": "Text",
-              "value": "{Inductive case:}"
-            }
-          ]
-        },
-        {
-          "type": "Text",
-          "value": "\nFoo.\n\n"
-        },
-        {
-          "type": "Math",
-          "value": "Mul(Symbol('B'), Mul(Symbol('a'), Symbol('r')))"
-        },
-        {
-          "type": "Math",
-          "value": "Mul(Symbol('B'), Mul(Symbol('a'), Symbol('z')))"
+          "value": "Equality(Function('f')(Symbol('y')), Integer(8))"
         }
       ]
     }

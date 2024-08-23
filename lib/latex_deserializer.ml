@@ -114,11 +114,13 @@ end = struct
   and parse_args_rec (tokens : lex_token list) :
       (t list * lex_token list, parse_error) result =
     match tokens with
+    | RightParToken :: LeftParToken :: tail -> parse_args_rec tail
     | RightParToken :: tail -> Ok ([], tail)
     | LeftParToken :: _ -> Error (UnexpectedSymbol (LeftParToken, tokens))
     | CommaToken :: _ -> Error (UnexpectedSymbol (CommaToken, tokens))
     | StrToken _ :: _ ->
         let head_parse = parse_rec tokens in
+        (* (fun tail_val -> print_endline ("TEST\n" ^ String.concat ~sep:"\n" (show_lex_token |<<: tail_val))) <-<! (Pair.second |<<! call_args); *)
         let head_comma_parse =
           consume_token CommaToken None (Some (Error UnbalancedParens))
           =<<! head_parse
@@ -127,7 +129,7 @@ end = struct
           parse_args_rec =<<! (Pair.second |<<! head_comma_parse)
         in
         let arg_parse =
-          (List.cons |<<! (Pair.first |<<! head_comma_parse))
+          (List.cons |<<! (Pair.first |<<! head_parse))
           *<<! (Pair.first |<<! tail_parse)
         in
         (Pair.build |<<! arg_parse) *<<! (Pair.second |<<! tail_parse)

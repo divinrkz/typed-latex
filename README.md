@@ -40,3 +40,7 @@ make build
 ```sh
 make run
 ```
+
+## Project Structure
+__This project is currently unfinished__
+### Overview
