@@ -120,7 +120,8 @@ def parse_inequalities(compound_inequality):
     parsed_inequalities = []
     for part in parts:
         if r'\mathbb' in part:
-            parsed_inequalities.append(f'Mathbb({srepr(Symbol(extract_string_between_braces(part.strip())))})')
+            parsed = parse_math_set(part)
+            parsed_inequalities.append(parsed)
         elif has_interval(part.strip()):
             parsed_inequalities.append(parse_interval(part.strip()))
         else: 
@@ -216,7 +217,8 @@ def parse_sets(set_string):
     parsed_sets = []
     for part in parts:
         if r'\mathbb' in part:
-            parsed_sets.append(f'Mathbb({srepr(Symbol(extract_string_between_braces(part.strip())))})')
+            parsed = parse_math_set(part)
+            parsed_sets.append(parsed)
         elif has_interval(part.strip()):
             parsed_sets.append(parse_interval(part.strip()))
         else: 
