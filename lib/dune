@@ -1,23 +1,24 @@
-(ocamllex latex_lexer math_lexer)
-
-(menhir
- ; (flags --explain --inspection --table --dump --strict)
- ; (flags --explain --inspection --table --dump --list-errors lib/latex_parser.mly)
- (flags --explain --inspection --table --dump)
- (modules latex_parser math_parser))
-
-(rule
- (targets latex_parser_messages.ml)
- (deps latex_parser.messages latex_parser.mly)
- (action (with-stdout-to %{targets} (run menhir --compile-errors %{deps}))))
-
-(rule
- (targets math_parser_messages.ml)
- (deps math_parser.messages math_parser.mly)
- (action (with-stdout-to %{targets} (run menhir --compile-errors %{deps}))))
-
 (library
  (name typed_latex)
- (modules ast typing math user util latex_lexer latex_parser latex_parser_messages math_lexer math_parser math_parser_messages)
- (libraries core menhirLib)
- (preprocess (pps ppx_sexp_conv ppx_deriving.show ppx_deriving.eq ppx_deriving.ord ppx_hash)))
+ (modules
+  string_tree
+  proof_lex
+  typing
+  math
+  patterns
+  pattern_extractor
+  latex_deserializer
+  latex_aux
+  util
+  comparable_extension
+  construction)
+ (libraries core menhirLib re yojson str spectrum)
+ ;  (flags -rectypes)
+ (preprocess
+  (pps
+   ; ppx_sexp_conv
+   ppx_deriving.show
+   ppx_deriving.eq
+   ppx_deriving.ord
+   ; ppx_hash
+   ppx_jane)))

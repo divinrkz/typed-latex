@@ -11,10 +11,13 @@ doc: "https://url/to/documentation"
 bug-reports: "https://github.com/username/reponame/issues"
 depends: [
   "ocaml"
-  "dune" {>= "3.8"}
-  "odoc" {with-doc}
-  "stdio"
+  "dune" {>= "3.16"}
   "core"
+  "stdio"
+  "menhir"
+  "ppx_deriving"
+  "re"
+  "odoc" {with-doc}
 ]
 build: [
   ["dune" "subst"] {dev}

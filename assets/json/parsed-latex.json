@@ -1,0 +1,100 @@
+{
+  "type": "Latex",
+  "children": [
+    {
+      "type": "Macro",
+      "name": "documentclass",
+      "args": [
+        {
+          "type": "Text",
+          "value": "{article}"
+        }
+      ]
+    },
+    {
+      "type": "Macro",
+      "name": "usepackage",
+      "args": [
+        {
+          "type": "Text",
+          "value": "{amsfonts}"
+        }
+      ]
+    },
+    {
+      "type": "Macro",
+      "name": "usepackage",
+      "args": [
+        {
+          "type": "Text",
+          "value": "{graphicx}"
+        }
+      ]
+    },
+    {
+      "type": "Comment",
+      "value": "% Required for inserting images"
+    },
+    {
+      "type": "Macro",
+      "name": "title",
+      "args": [
+        {
+          "type": "Text",
+          "value": "{SURF Example Proof}"
+        }
+      ]
+    },
+    {
+      "type": "Macro",
+      "name": "author",
+      "args": [
+        {
+          "type": "Text",
+          "value": "{Gosha}"
+        }
+      ]
+    },
+    {
+      "type": "Macro",
+      "name": "date",
+      "args": [
+        {
+          "type": "Text",
+          "value": "{Summer 2024}"
+        }
+      ]
+    },
+    {
+      "type": "Environment",
+      "name": "document",
+      "children": [
+        {
+          "type": "Macro",
+          "name": "maketitle",
+          "args": []
+        },
+        {
+          "type": "Text",
+          "value": "\nLet "
+        },
+        {
+          "type": "Math",
+          "value": "Equality(Function('f')(Symbol('x')), Mul(Integer(2), Symbol('x')))"
+        },
+        {
+          "type": "Text",
+          "value": "\nLet "
+        },
+        {
+          "type": "Math",
+          "value": "Equality(Symbol('y'), Integer(4))"
+        },
+        {
+          "type": "Math",
+          "value": "Equality(Function('f')(Symbol('y')), Integer(8))"
+        }
+      ]
+    }
+  ]
+}

@@ -1,42 +1,42 @@
 (* will "interpret" a subset of mathematical statements *)
 
-(* 
-Probably need to include: assumptions, facts, declarations/definitions
-Basic english pattern matcher?
-- Since, Given, Starting with, Since we have
-- We start with, We have, Assume, Suppose
-- AND to combine relations logically
-- Or, we can just take LHS as assumptions.
+(*
+   Probably need to include: assumptions, facts, declarations/definitions
+   Basic english pattern matcher?
+   - Since, Given, Starting with, Since we have
+   - We start with, We have, Assume, Suppose
+   - AND to combine relations logically
+   - Or, we can just take LHS as assumptions.
 
-Function declarations: f(...vars) = RHS
-- Ensure function declaration only in leftmost in chain of expressions (otherwise, doesn't make sense)
-- function args should all be variables/symbol commands
-- give warnings about free variables in RHS
+   Function declarations: f(...vars) = RHS
+   - Ensure function declaration only in leftmost in chain of expressions (otherwise, doesn't make sense)
+   - function args should all be variables/symbol commands
+   - give warnings about free variables in RHS
 
-Relations:
-- Given a chain of equalities/inequalities/subsets/supersets,
-  - ensure consistency (e.g. chain only contains =, < and <=; or only =, \\subset, \\subseteq; etc)
-  - with a < b < c, is true iff a < b and b < c, etc
-- in general, a relation can be assigned a truth value, and is either assumed or trying to be proved
+   Relations:
+   - Given a chain of equalities/inequalities/subsets/supersets,
+     - ensure consistency (e.g. chain only contains =, < and <=; or only =, \\subset, \\subseteq; etc)
+     - with a < b < c, is true iff a < b and b < c, etc
+   - in general, a relation can be assigned a truth value, and is either assumed or trying to be proved
 
-a = b = c is shorthand for a = b and b = c => a = c
+   a = b = c is shorthand for a = b and b = c => a = c
 
-Logic:
-- implications
+   Logic:
+   - implications
 
 
-for a direct proof:
-    start => ... => final
+   for a direct proof:
+       start => ... => final
 
-for contrapositive:
-    !final => ... => !start
+   for contrapositive:
+       !final => ... => !start
 
-for contradiction:
-    assume !final => ... => contradiction
+   for contradiction:
+       assume !final => ... => contradiction
 
-for induction:
-    base case AND induction hypothesis AND induction step => done
- *)
+   for induction:
+       base case AND induction hypothesis AND induction step => done
+*)
 
 (*
 Type checking:
@@ -52,7 +52,6 @@ First iteration:
 - take last RHS to be the thing to be proved
 - give each variable a type - either numeric, function, or set of _
 *)
-
 
 (*
 Rules for interpreting:
