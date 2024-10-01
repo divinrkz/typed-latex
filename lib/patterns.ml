@@ -5,26 +5,45 @@ open String_tree
 open Latex_deserializer
 open Util
 
-module MatchID = struct
+module MatchID : sig
+  type t [@@deriving eq, sexp, hash, ord, compare]
+
+  include Comparable.S with type t := t
+
+  val from_int : int -> t
+  val from_string : string -> t
+  val ignore : t
+  val to_string : t -> string
+  val reserved_for_replace : t
+  val pp : Formatter.t -> t -> unit
+  val is_ignore : t -> bool
+end = struct
   module T = struct
-    type t = (int, string) Either.t [@@deriving eq, sexp, hash, ord, compare]
+    type t = (int, string) Either.t option
+    [@@deriving eq, sexp, hash, ord, compare]
   end
 
   include T
   include Comparable.Make (T)
 
-  let from_int : int -> t = Either.First.return
+  let from_int : int -> t = Option.some << Either.First.return
+  let from_string : string -> t = Option.some << Either.Second.return
 
   let to_string (match_id : t) : string =
     match match_id with
-    | First int_val -> "<" ^ string_of_int int_val ^ ">"
-    | Second special_val -> "<\"" ^ special_val ^ "\">"
+    | Some (First int_val) -> "<" ^ string_of_int int_val ^ ">"
+    | Some (Second special_val) -> "<\"" ^ special_val ^ "\">"
+    | None -> "<IGNORE>"
 
-  let reserved_for_replace : t = Second "replace_container"
+  let reserved_for_replace : t = Some (Second "replace_container")
+  let ignore : t = None
+  let is_ignore : t -> bool = is_some
+
   let pp (formatter : Formatter.t) (match_id : t) =
     match match_id with
-    | First int_val -> Int.pp formatter int_val
-    | Second special_val -> String.pp formatter special_val
+    | Some (First int_val) -> Int.pp formatter int_val
+    | Some (Second special_val) -> String.pp formatter special_val
+    | None -> String.pp formatter "IGNORE"
 end
 
 type math_pattern =
@@ -34,7 +53,6 @@ type math_pattern =
 [@@deriving eq, show, sexp, hash, ord]
 
 type pattern =
-  (* Primary *)
   | Word of string
   | Any of pattern list
   | Sequence of pattern list
@@ -43,9 +61,10 @@ type pattern =
   | TypeName of MatchID.t
   | DefContainer of pattern * MatchID.t
   | MathPattern of math_pattern
-  (* Auxiliary *)
   | OptRepeat of pattern
-  [@@deriving eq, show, sexp, hash, ord] 
+[@@deriving eq, show, sexp, hash, ord]
+
+
 
 module rec MatchContainer : sig
   type match_value =
@@ -75,7 +94,7 @@ end = struct
   let empty = MatchID.Map.empty
 
   let put (map : t) (k : MatchID.t) (v : match_value) =
-    Core.Map.add_multi map ~key:k ~data:v
+    if MatchID.is_ignore k then map else Core.Map.add_multi map ~key:k ~data:v
 
   let rec recursive_size (map : t) =
     List.sum

@@ -6,7 +6,6 @@ open String_tree
 open Proof_lex
 open Pattern_extractor
 open Patterns
-
 module Json = Yojson.Basic
 
 
