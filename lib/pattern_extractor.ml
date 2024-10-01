@@ -39,8 +39,7 @@ module PatternExtractor = struct
     incr curr_match_id;
     MatchID.from_int !curr_match_id
 
-  let get_id () = 
-    MatchID.from_int (gen_id ())
+  let get_id () = gen_id ()
 
   let parse_relation_type (relation_type : string) =
     match relation_type with

@@ -53,21 +53,17 @@ type math_pattern =
 [@@deriving eq, show, sexp, hash, ord]
 
 type pattern =
-  (* Primary *)
   | Word of string
   | Any of pattern list
   | Sequence of pattern list
   | Optional of pattern
   | Repeat of pattern
   | TypeName of MatchID.t
-  | Relation of relation_type * MatchID.t 
-  (* TODO:remove *)
   | DefContainer of pattern * MatchID.t
   | MathPattern of math_pattern
-  | Expression of MatchID.t
-  (* TODO:remove *)
-  (* Auxiliary *)
   | OptRepeat of pattern
+[@@deriving eq, show, sexp, hash, ord]
+
 
 
 module rec MatchContainer : sig

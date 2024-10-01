@@ -5,10 +5,7 @@ open Latex_deserializer
 open String_tree
 
 module ProofToken : sig
-  type t =
-    | WordToken of string
-    | MathToken of RawMathLatex.t
-    | IntermediateToken of IntermediateRepresentation.t
+  type t = WordToken of string | MathToken of RawMathLatex.t
 
   val to_string_tree : t -> string_tree
 end = struct
