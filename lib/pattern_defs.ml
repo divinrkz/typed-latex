@@ -186,7 +186,7 @@ let def =
 
 (* let def1 = Sequence [Word "let"; DefContainer (MathPattern (TerminalSymbol 1), 1); Word "be"; Word "an"; TypeName 1] *)
 
-let def1 = Sequence [
+Sequence [
   Any [ Word "suppose"; Word "say"; Word "imagine"; Word "let" ];
   DefContainer ( MathPattern (Function ("Symbol", [TerminalSymbol 1], 2)), 3);
   Word "be";

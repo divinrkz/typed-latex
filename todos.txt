@@ -140,3 +140,9 @@ RULES
 
   
    
+
+
+      ```ocaml
+   (+) : int -> int -> int
+   (*) : int -> int -> int
+   (<=) : int -> int -> bool

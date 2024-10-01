@@ -17,7 +17,8 @@ let main () =
            |<<!! parsed_latex)));
   let opt_latex = Result.ok parsed_latex in
   let document_ast = Latex_aux.unwrap_to_document =<<? opt_latex in
-  print_endline << RawLatex.tree_format <-<? document_ast;
+
+  print_endline <<   RawLatex.tree_format <-<? document_ast;
 
   let pattern = Pattern_defs.def1 in
   let tokenization = Proof_lex.tokenize |<<? document_ast in
@@ -49,3 +50,5 @@ let main () =
            print_endline << Patterns.MatchContainer.tree_format <-<? matches)
 
 let () = main ()
+
+
